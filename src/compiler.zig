@@ -6,6 +6,9 @@ const OpCode = chunk_mod.OpCode;
 
 const debug_mod = @import("debug.zig");
 
+const node_mod = @import("node.zig");
+const Node = node_mod.Node;
+
 const scanner_mod = @import("scanner.zig");
 const Scanner = scanner_mod.Scanner;
 const Token = scanner_mod.Token;
@@ -24,6 +27,25 @@ pub const Parser = struct {
     previous: Token = undefined,
     had_error: bool = false,
     panic_mode: bool = false,
+};
+
+const Precedence = enum {
+    prec_none,
+    prec_secondary,
+    prec_primary,
+};
+
+const CompilerError = error{
+    compile_error,
+};
+
+const PrefixParseFn = *const fn () CompilerError!*Node;
+const InfixParseFn = *const fn (*Node) CompilerError!*Node;
+
+const ParseRule = struct {
+    prefix: ?PrefixParseFn,
+    infix: ?InfixParseFn,
+    precedence: Precedence,
 };
 
 var parser: Parser = Parser{};
@@ -79,13 +101,21 @@ fn consume(token_type: TokenType, message: []const u8) void {
     errorAtCurrent(message);
 }
 
-fn emitByte(byte: u8) void {
+fn check(token_type: TokenType) bool {
+    return parser.current.token_type == token_type;
+}
+
+pub fn emitByte(byte: u8) void {
     currentChunk().write(byte, parser.previous.line);
 }
 
 fn emitBytes(byte1: u8, byte2: u8) void {
     emitByte(byte1);
     emitByte(byte2);
+}
+
+pub fn emitInstruction(instruction: OpCode) void {
+    emitByte(@enumToInt(instruction));
 }
 
 fn emitReturn() void {
@@ -106,8 +136,12 @@ fn emitConstant(value: *Value) void {
     emitBytes(@enumToInt(OpCode.op_constant), makeConstant(value));
 }
 
-fn endCompiler() void {
-    emitReturn();
+fn endCompiler(node: *Node) void {
+    const top_node = Node.init(.{ .op_code = .op_return }, currentChunk().allocator);
+    top_node.rhs = node;
+    top_node.traverse();
+    top_node.deinit(currentChunk().allocator);
+
     if (comptime debug_print_code) {
         if (!parser.had_error) {
             debug_mod.disassembleChunk(currentChunk(), "code");
@@ -115,19 +149,92 @@ fn endCompiler() void {
     }
 }
 
-fn number() !void {
+fn number() CompilerError!*Node {
     const float = std.fmt.parseFloat(f64, parser.previous.lexeme) catch std.debug.panic("Failed to parse float.", .{});
-    const value = try Value.init(.{ .float = float }, currentChunk().allocator);
-    emitConstant(value);
+    const value = Value.init(.{ .float = float }, currentChunk().allocator) catch return CompilerError.compile_error;
+    return Node.init(.{ .op_code = .op_constant, .byte = makeConstant(value) }, currentChunk().allocator);
 }
 
-fn expression() !void {
+fn binary(node: *Node) !*Node {
+    const current_node = Node.init(.{
+        .op_code = switch (parser.previous.token_type) {
+            .token_plus => .op_add,
+            else => unreachable,
+        },
+    }, currentChunk().allocator);
+    current_node.lhs = node;
+    current_node.rhs = try parsePrecedence(getRule(parser.previous.token_type).precedence);
+    return current_node;
+}
+
+fn grouping() !*Node {
+    defer consume(.token_right_paren, "Expect ')' after expression.");
+    return try expression();
+}
+
+fn parsePrecedence(precedence: Precedence) CompilerError!*Node {
     advance();
-    print("PREVIOUS = '{s}'\n", .{parser.previous.lexeme});
-    switch (parser.previous.token_type) {
-        .token_float => try number(),
-        else => unreachable,
+    const prefixRule = getRule(parser.previous.token_type).prefix orelse {
+        err("Expect expression.");
+        return CompilerError.compile_error;
+    };
+    var node = try prefixRule();
+
+    while (@enumToInt(precedence) <= @enumToInt(getRule(parser.current.token_type).precedence)) {
+        advance();
+        const infixRule = getRule(parser.previous.token_type).infix orelse unreachable;
+        node = try infixRule(node);
     }
+
+    return node;
+}
+
+fn getRule(token_type: TokenType) ParseRule {
+    return switch (token_type) {
+        // zig fmt: off
+        .token_left_paren    => ParseRule{ .prefix = grouping, .infix = null,   .precedence = .prec_none      },
+        .token_right_paren   => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_left_brace    => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_right_brace   => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_left_bracket  => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_right_bracket => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_semicolon     => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_colon         => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_double_colon  => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_plus          => ParseRule{ .prefix = null,     .infix = binary, .precedence = .prec_secondary },
+        .token_minus         => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_star          => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_percent       => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_ampersand     => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_pipe          => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_less          => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_greater       => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_equal         => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_tilde         => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_bang          => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_comma         => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_at            => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_question      => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_caret         => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_hash          => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_underscore    => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_dollar        => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_dot           => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_bool          => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_int           => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_float         => ParseRule{ .prefix = number,   .infix = null,   .precedence = .prec_none      },
+        .token_symbol        => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_char          => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_string        => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_identifier    => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_error         => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_eof           => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        // zig fmt: on
+    };
+}
+
+fn expression() !*Node {
+    return try parsePrecedence(.prec_secondary);
 }
 
 pub fn compile(source: []const u8, chunk: *Chunk) !void {
@@ -138,9 +245,20 @@ pub fn compile(source: []const u8, chunk: *Chunk) !void {
     parser.panic_mode = false;
 
     advance();
-    try expression();
+
+    var top_node = try expression();
+    while (!check(.token_eof)) {
+        const node = try expression();
+        var rhs = &node.rhs;
+        while (rhs.* != null) {
+            rhs = &rhs.*.?.rhs;
+        }
+        rhs.* = top_node;
+        top_node = node;
+    }
+
     consume(.token_eof, "Expect end of expression.");
-    endCompiler();
+    endCompiler(top_node);
 
     if (parser.had_error) return error.compile_error;
 }

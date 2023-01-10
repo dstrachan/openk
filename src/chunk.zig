@@ -5,6 +5,7 @@ const Value = value_mod.Value;
 
 pub const OpCode = enum {
     op_constant,
+    op_add,
     op_return,
 };
 

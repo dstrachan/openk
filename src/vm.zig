@@ -76,6 +76,7 @@ pub const VM = struct {
             const instruction = @intToEnum(OpCode, self.readByte());
             switch (instruction) {
                 .op_constant => self.opConstant(),
+                .op_add => try self.opAdd(),
                 .op_return => return self.pop(),
             }
         }
@@ -93,5 +94,21 @@ pub const VM = struct {
     fn opConstant(self: *Self) void {
         const constant = self.readConstant();
         self.push(constant);
+    }
+
+    fn opAdd(self: *Self) !void {
+        const a = self.pop();
+        defer a.deinit(self.allocator);
+        const b = self.pop();
+        defer b.deinit(self.allocator);
+
+        const value = switch (a.data) {
+            .float => |float_a| switch (b.data) {
+                .float => |float_b| try Value.init(.{ .float = float_a + float_b }, self.allocator),
+                else => unreachable,
+            },
+            else => unreachable,
+        };
+        self.push(value);
     }
 };
