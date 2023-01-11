@@ -5,6 +5,9 @@ const Value = value_mod.Value;
 
 pub const OpCode = enum {
     op_constant,
+    op_pop,
+    op_get_global,
+    op_set_global,
     op_add,
     op_return,
 };
@@ -17,20 +20,23 @@ pub const Chunk = struct {
     constants: std.ArrayList(*Value),
     lines: std.ArrayList(usize),
 
-    pub fn init(allocator: std.mem.Allocator) Self {
-        return Self{
+    pub fn init(allocator: std.mem.Allocator) *Self {
+        var self = allocator.create(Self) catch std.debug.panic("Failed to create chunk", .{});
+        self.* = Self{
             .allocator = allocator,
             .code = std.ArrayList(u8).init(allocator),
             .constants = std.ArrayList(*Value).init(allocator),
             .lines = std.ArrayList(usize).init(allocator),
         };
+        return self;
     }
 
     pub fn deinit(self: *Self) void {
         self.code.deinit();
-        // for (self.constants.items) |value| value.deinit(self.allocator);
+        for (self.constants.items) |value| value.deinit(self.allocator);
         self.constants.deinit();
         self.lines.deinit();
+        self.allocator.destroy(self);
     }
 
     pub fn write(self: *Self, byte: u8, line: usize) void {

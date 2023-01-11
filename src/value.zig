@@ -7,6 +7,7 @@ const utils_mod = @import("utils.zig");
 const print = utils_mod.print;
 
 pub const ValueType = enum {
+    nil,
     list,
     boolean,
     boolean_list,
@@ -18,9 +19,11 @@ pub const ValueType = enum {
     char_list,
     symbol,
     symbol_list,
+    function,
 };
 
-const ValueUnion = union(ValueType) {
+pub const ValueUnion = union(ValueType) {
+    nil,
     boolean: bool,
     int: i64,
     float: f64,
@@ -34,6 +37,8 @@ const ValueUnion = union(ValueType) {
     float_list: []*Value,
     char_list: []*Value,
     symbol_list: []*Value,
+
+    function: *ValueFunction,
 };
 
 pub const Value = struct {
@@ -42,24 +47,29 @@ pub const Value = struct {
     reference_count: u32,
     data: ValueUnion,
 
-    pub fn init(data: ValueUnion, allocator: std.mem.Allocator) !*Self {
-        const self = try allocator.create(Self);
-        self.reference_count = 1;
-        self.data = data;
+    pub fn init(data: ValueUnion, allocator: std.mem.Allocator) *Self {
+        const self = allocator.create(Self) catch std.debug.panic("Failed to create value", .{});
+        self.* = Self{
+            .reference_count = 1,
+            .data = data,
+        };
+        print("init value ({})\n", .{self});
         return self;
     }
 
     pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+        print("{d} => {d} ({})\n", .{ self.reference_count, self.reference_count - 1, self });
         self.reference_count -= 1;
         if (self.reference_count == 0) {
-            print("RC = 0\n", .{});
             switch (self.data) {
+                .nil,
                 .boolean,
                 .int,
                 .float,
                 .char,
                 => {},
                 .symbol => |symbol| allocator.free(symbol), // TODO: Symbol table
+                .function => |function| function.deinit(allocator),
                 .list,
                 .boolean_list,
                 .int_list,
@@ -82,6 +92,7 @@ pub const Value = struct {
                 for (list) |value| try writer.print("{}", .{value});
                 try writer.writeAll(")");
             },
+            .nil => {},
             .boolean => |boolean| try writer.writeAll(if (boolean) "1b" else "0b"),
             .boolean_list => |list| {
                 for (list) |value| try writer.writeAll(if (value.data.boolean) "1" else "0");
@@ -107,6 +118,32 @@ pub const Value = struct {
             .symbol_list => |list| {
                 for (list) |value| try writer.print("`{s}", .{value.data.symbol});
             },
+            .function => try writer.writeAll("{[]NYI}"),
         }
+    }
+};
+
+pub const ValueFunction = struct {
+    const Self = @This();
+
+    arity: u8,
+    local_count: u8,
+    chunk: *Chunk,
+    name: ?[]const u8,
+
+    pub fn init(allocator: std.mem.Allocator) *ValueFunction {
+        const self = allocator.create(Self) catch std.debug.panic("Failed to create function", .{});
+        self.* = Self{
+            .arity = 0,
+            .local_count = 0,
+            .chunk = Chunk.init(allocator),
+            .name = null,
+        };
+        return self;
+    }
+
+    pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+        self.chunk.deinit();
+        allocator.destroy(self);
     }
 };

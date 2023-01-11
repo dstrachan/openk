@@ -83,3 +83,9 @@ fn readFile(path: []const u8, allocator: std.mem.Allocator) []const u8 {
         std.process.exit(1);
     };
 }
+
+test {
+    _ = @import("tests/compiler.zig");
+    _ = @import("tests/scanner.zig");
+    _ = @import("tests/vm.zig");
+}

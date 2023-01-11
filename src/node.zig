@@ -18,15 +18,15 @@ pub const Node = struct {
 
     op_code: OpCode,
     byte: ?u8,
-    lhs: ?*Node,
-    rhs: ?*Node,
+    lhs: ?*Node = null,
+    rhs: ?*Node = null,
 
     pub fn init(config: Config, allocator: std.mem.Allocator) *Self {
         var self = allocator.create(Self) catch @panic("ALLOC");
-        self.op_code = config.op_code;
-        self.byte = config.byte;
-        self.lhs = null;
-        self.rhs = null;
+        self.* = Self{
+            .op_code = config.op_code,
+            .byte = config.byte,
+        };
         return self;
     }
 
