@@ -50,7 +50,8 @@ fn jumpInstruction(comptime instruction: OpCode, sign: Sign, chunk: *const Chunk
 
 fn constantInstruction(comptime instruction: OpCode, chunk: *const Chunk, offset: usize) usize {
     const constant = chunk.code.items[offset + 1];
-    print("{s:<16} {d:4} {}\n", .{ @tagName(instruction), constant, chunk.constants.items[constant] });
+    const value = chunk.constants.items[constant];
+    print("{s:<16} {d:4} {} [{d}]\n", .{ @tagName(instruction), constant, value, value.reference_count });
     return offset + 2;
 }
 
@@ -65,6 +66,9 @@ pub fn disassembleInstruction(chunk: *const Chunk, offset: usize) usize {
     const instruction = @intToEnum(OpCode, chunk.code.items[offset]);
     return switch (instruction) {
         .op_constant => constantInstruction(.op_constant, chunk, offset),
+        .op_pop => simpleInstruction(.op_pop, offset),
+        .op_get_global => constantInstruction(.op_get_global, chunk, offset),
+        .op_set_global => constantInstruction(.op_set_global, chunk, offset),
         .op_add => simpleInstruction(.op_add, offset),
         .op_return => simpleInstruction(.op_return, offset),
     };
