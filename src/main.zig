@@ -14,12 +14,12 @@ pub fn main() !void {
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
 
-    var vm = VM.init(allocator);
+    const vm = VM.init(allocator);
     defer vm.deinit();
 
     switch (args.len) {
-        1 => repl(&vm),
-        2 => runFile(&vm, args[1], allocator),
+        1 => repl(vm),
+        2 => runFile(vm, args[1], allocator),
         else => {
             print("Usage: z [path]\n", .{});
             std.process.exit(1);
@@ -46,8 +46,8 @@ fn repl(vm: *VM) void {
         }
 
         const result = vm.interpret(line) catch continue;
-        defer result.deinit(vm.allocator);
-        print("{}\n", .{result});
+        defer result.deref(vm.allocator);
+        print("{}\n", .{result.data});
     }
 }
 

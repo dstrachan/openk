@@ -6,9 +6,12 @@ const Value = value_mod.Value;
 pub const OpCode = enum {
     op_constant,
     op_pop,
+    op_get_local,
+    op_set_local,
     op_get_global,
     op_set_global,
     op_add,
+    op_call,
     op_return,
 };
 
@@ -33,7 +36,7 @@ pub const Chunk = struct {
 
     pub fn deinit(self: *Self) void {
         self.code.deinit();
-        for (self.constants.items) |value| value.deinit(self.allocator);
+        for (self.constants.items) |value| value.deref(self.allocator);
         self.constants.deinit();
         self.lines.deinit();
         self.allocator.destroy(self);
