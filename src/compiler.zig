@@ -41,7 +41,7 @@ const Precedence = enum {
     prec_primary,
 };
 
-const CompilerError = error{
+pub const CompilerError = error{
     compile_error,
 };
 
@@ -218,9 +218,25 @@ fn addLocal(name: Token) void {
 }
 
 fn number() CompilerError!*Node {
-    const float = std.fmt.parseFloat(f64, parser.previous.lexeme) catch std.debug.panic("Failed to parse float", .{});
-    const value = current.vm.initValue(.{ .float = float });
+    const value = switch (parser.previous.token_type) {
+        .token_bool => parseBool(parser.previous.lexeme),
+        .token_int => parseInt(parser.previous.lexeme),
+        .token_float => parseFloat(parser.previous.lexeme),
+        else => unreachable,
+    };
     return Node.init(.{ .op_code = .op_constant, .byte = makeConstant(value) }, current.vm.allocator);
+}
+
+fn parseBool(str: []const u8) *Value {
+    return current.vm.initValue(.{ .boolean = str[0] == '1' });
+}
+
+fn parseInt(str: []const u8) *Value {
+    return current.vm.initValue(.{ .int = std.fmt.parseInt(i64, str, 10) catch std.debug.panic("Failed to parse int", .{}) });
+}
+
+fn parseFloat(str: []const u8) *Value {
+    return current.vm.initValue(.{ .float = std.fmt.parseFloat(f64, str) catch std.debug.panic("Failed to parse float", .{}) });
 }
 
 fn symbol() CompilerError!*Node {
@@ -448,8 +464,8 @@ fn getRule(token_type: TokenType) ParseRule {
         .token_underscore    => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
         .token_dollar        => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
         .token_dot           => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
-        .token_bool          => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
-        .token_int           => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_bool          => ParseRule{ .prefix = number,   .infix = null,   .precedence = .prec_none      },
+        .token_int           => ParseRule{ .prefix = number,   .infix = null,   .precedence = .prec_none      },
         .token_float         => ParseRule{ .prefix = number,   .infix = null,   .precedence = .prec_none      },
         .token_symbol        => ParseRule{ .prefix = symbol,   .infix = null,   .precedence = .prec_none      },
         .token_char          => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
