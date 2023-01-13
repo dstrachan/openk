@@ -78,7 +78,12 @@ pub const Scanner = struct {
 
         const c = self.advance();
         if (isAlpha(c)) return self.identifier();
-        if (isDigit(c)) return self.number();
+        if (isDigit(c)) return self.number(c);
+        if (c == '.' and isDigit(self.peek())) return self.float();
+        if (c == '-') {
+            const p = self.peek();
+            if (p == '.' or isDigit(p)) return self.negativeNumber();
+        }
 
         return switch (c) {
             '(' => self.makeToken(.token_left_paren),
@@ -155,14 +160,45 @@ pub const Scanner = struct {
         return self.makeToken(.token_identifier);
     }
 
-    fn number(self: *Self) Token {
+    fn negativeNumber(self: *Self) Token {
         while (isDigit(self.peek())) _ = self.advance();
 
-        if (self.peek() == '.' and isDigit(self.peekNext())) {
+        if (self.peek() == '.') {
             _ = self.advance();
-
-            while (isDigit(self.peek())) _ = self.advance();
+            return self.float();
         }
+
+        return self.makeToken(.token_int);
+    }
+
+    fn number(self: *Self, c: u8) Token {
+        var token_type: TokenType = if (c > '1') .token_int else .token_bool;
+        while (isDigit(self.peek())) {
+            if (self.peek() > '1') token_type = .token_int;
+            _ = self.advance();
+        }
+
+        if (self.peek() == '.') {
+            _ = self.advance();
+            return self.float();
+        }
+
+        if (self.peek() == 'b') {
+            if (token_type == .token_bool) {
+                _ = self.advance();
+                return self.makeToken(.token_bool);
+            } else {
+                return self.errorToken("Invalid boolean value.");
+            }
+        }
+
+        return self.makeToken(.token_int);
+    }
+
+    fn float(self: *Self) Token {
+        while (isDigit(self.peek())) _ = self.advance();
+
+        if (self.peek() == '.') return self.errorToken("Too many decimal points.");
 
         return self.makeToken(.token_float);
     }

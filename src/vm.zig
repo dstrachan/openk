@@ -296,11 +296,25 @@ pub const VM = struct {
         defer y.deref(self.allocator);
 
         const value = switch (x.as) {
+            .boolean => |bool_x| switch (y.as) {
+                .boolean => |bool_y| self.initValue(.{ .int = @boolToInt(bool_x) + @boolToInt(bool_y) }),
+                .int => |int_y| self.initValue(.{ .int = @boolToInt(bool_x) + int_y }),
+                .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, @boolToInt(bool_x)) + float_y }),
+                else => unreachable,
+            },
+            .int => |int_x| switch (y.as) {
+                .boolean => |bool_y| self.initValue(.{ .int = int_x + @boolToInt(bool_y) }),
+                .int => |int_y| self.initValue(.{ .int = int_x + int_y }),
+                .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, int_x) + float_y }),
+                else => unreachable,
+            },
             .float => |float_x| switch (y.as) {
+                .boolean => |bool_y| self.initValue(.{ .float = float_x + @intToFloat(f64, @boolToInt(bool_y)) }),
+                .int => |int_y| self.initValue(.{ .float = float_x + @intToFloat(f64, int_y) }),
                 .float => |float_y| self.initValue(.{ .float = float_x + float_y }),
                 else => unreachable,
             },
-            else => unreachable,
+            else => return self.runtimeError("Can only add numeric values.", .{}),
         };
         try self.push(value);
     }
