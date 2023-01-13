@@ -168,6 +168,11 @@ pub const Scanner = struct {
             return self.float();
         }
 
+        if (self.peek() == 'f') {
+            defer _ = self.advance();
+            return self.makeToken(.token_float);
+        }
+
         return self.makeToken(.token_int);
     }
 
@@ -184,12 +189,13 @@ pub const Scanner = struct {
         }
 
         if (self.peek() == 'b') {
-            if (token_type == .token_bool) {
-                _ = self.advance();
-                return self.makeToken(.token_bool);
-            } else {
-                return self.errorToken("Invalid boolean value.");
-            }
+            _ = self.advance();
+            return if (token_type == .token_bool) self.makeToken(.token_bool) else self.errorToken("Invalid boolean value.");
+        }
+
+        if (self.peek() == 'f') {
+            defer _ = self.advance();
+            return self.makeToken(.token_float);
         }
 
         return self.makeToken(.token_int);
@@ -198,7 +204,17 @@ pub const Scanner = struct {
     fn float(self: *Self) Token {
         while (isDigit(self.peek())) _ = self.advance();
 
-        if (self.peek() == '.') return self.errorToken("Too many decimal points.");
+        if (self.peek() == '.') {
+            _ = self.advance();
+            var p = self.peek();
+            while (isDigit(p) or 0 == '.' or p == 'f') : (p = self.peek()) _ = self.advance();
+            return self.errorToken("Too many decimal points.");
+        }
+
+        if (self.peek() == 'f') {
+            defer _ = self.advance();
+            return self.makeToken(.token_float);
+        }
 
         return self.makeToken(.token_float);
     }
