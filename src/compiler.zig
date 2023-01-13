@@ -41,7 +41,7 @@ const Precedence = enum {
     prec_primary,
 };
 
-const CompilerError = error{
+pub const CompilerError = error{
     compile_error,
 };
 

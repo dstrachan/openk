@@ -24,6 +24,7 @@ fn runTest(input: []const u8, expected: []const TokenType) !void {
 test "bool" {
     try runTest("0b", &[_]TokenType{.token_bool});
     try runTest("1b", &[_]TokenType{.token_bool});
+
     try runTest("2b", &[_]TokenType{.token_error});
 
     try runTest("-1b", &[_]TokenType{ .token_int, .token_identifier });
