@@ -13,12 +13,21 @@ const Sign = enum {
 };
 
 pub fn disassembleChunk(chunk: *const Chunk, name: []const u8) void {
+    for (chunk.constants.items) |constant| {
+        switch (constant.as) {
+            .function => |function| disassembleChunk(function.chunk, function.name.?),
+            else => {},
+        }
+    }
+
     print("== {s} ==\n", .{name});
 
     var offset: usize = 0;
     while (offset < chunk.code.items.len) {
         offset = disassembleInstruction(chunk, offset);
     }
+
+    print("\n", .{});
 }
 
 fn simpleInstruction(comptime instruction: OpCode, offset: usize) usize {
@@ -51,25 +60,29 @@ fn jumpInstruction(comptime instruction: OpCode, sign: Sign, chunk: *const Chunk
 fn constantInstruction(comptime instruction: OpCode, chunk: *const Chunk, offset: usize) usize {
     const constant = chunk.code.items[offset + 1];
     const value = chunk.constants.items[constant];
-    print("{s:<16} {d:4} {} [{d}]\n", .{ @tagName(instruction), constant, value, value.reference_count });
+    print("{s:<16} {d:4} {}\n", .{ @tagName(instruction), constant, value });
     return offset + 2;
 }
 
 pub fn disassembleInstruction(chunk: *const Chunk, offset: usize) usize {
     print("{d:0>4} ", .{offset});
-    if (offset > 0 and chunk.lines.items[offset] == chunk.lines.items[offset - 1]) {
+    if (offset > 0 and chunk.tokens.items[offset].line == chunk.tokens.items[offset - 1].line) {
         print("   | ", .{});
     } else {
-        print("{d:4} ", .{chunk.lines.items[offset]});
+        print("{d:4} ", .{chunk.tokens.items[offset].line});
     }
 
     const instruction = @intToEnum(OpCode, chunk.code.items[offset]);
     return switch (instruction) {
+        .op_nil => simpleInstruction(.op_nil, offset),
         .op_constant => constantInstruction(.op_constant, chunk, offset),
         .op_pop => simpleInstruction(.op_pop, offset),
+        .op_get_local => byteInstruction(.op_get_local, chunk, offset),
+        .op_set_local => byteInstruction(.op_set_local, chunk, offset),
         .op_get_global => constantInstruction(.op_get_global, chunk, offset),
         .op_set_global => constantInstruction(.op_set_global, chunk, offset),
         .op_add => simpleInstruction(.op_add, offset),
+        .op_call => byteInstruction(.op_call, chunk, offset),
         .op_return => simpleInstruction(.op_return, offset),
     };
 }

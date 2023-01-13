@@ -2,6 +2,7 @@ pub const Token = struct {
     token_type: TokenType,
     lexeme: []const u8,
     line: usize,
+    follows_whitespace: bool,
 };
 
 pub const TokenType = enum {
@@ -57,6 +58,7 @@ pub const Scanner = struct {
     start: [*]const u8,
     current: [*]const u8,
     line: usize,
+    skipped_whitespace: bool,
 
     pub fn init(source: []const u8) Self {
         return Self{
@@ -64,6 +66,7 @@ pub const Scanner = struct {
             .start = source.ptr,
             .current = source.ptr,
             .line = 1,
+            .skipped_whitespace = false,
         };
     }
 
@@ -106,7 +109,7 @@ pub const Scanner = struct {
             '$' => self.makeToken(.token_dollar),
             '.' => self.makeToken(.token_dot),
             // '"' => self.string(),
-            // '`' => self.symbol(),
+            '`' => self.symbol(),
             else => self.errorToken("Unexpected character."),
         };
     }
@@ -124,6 +127,8 @@ pub const Scanner = struct {
     }
 
     fn skipWhitespace(self: *Self) void {
+        self.skipped_whitespace = self.start == self.source.ptr;
+
         while (true) {
             const c = self.peek();
             switch (c) {
@@ -141,6 +146,7 @@ pub const Scanner = struct {
                 },
                 else => return,
             }
+            self.skipped_whitespace = true;
         }
     }
 
@@ -159,6 +165,12 @@ pub const Scanner = struct {
         }
 
         return self.makeToken(.token_float);
+    }
+
+    fn symbol(self: *Self) Token {
+        while (isSymbolChar(self.peek())) _ = self.advance();
+
+        return self.makeToken(.token_symbol);
     }
 
     fn isAtEnd(self: *Self) bool {
@@ -188,6 +200,7 @@ pub const Scanner = struct {
             .token_type = token_type,
             .lexeme = lexeme,
             .line = self.line,
+            .follows_whitespace = self.skipped_whitespace,
         };
     }
 };
@@ -195,6 +208,13 @@ pub const Scanner = struct {
 fn isAlpha(c: u8) bool {
     return switch (c) {
         'a'...'z', 'A'...'Z', '_' => true,
+        else => false,
+    };
+}
+
+fn isSymbolChar(c: u8) bool {
+    return switch (c) {
+        'a'...'z', 'A'...'Z', '0'...'9', '.', '_' => true,
         else => false,
     };
 }
