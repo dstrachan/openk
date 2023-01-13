@@ -1,9 +1,13 @@
 const std = @import("std");
 
+const scanner_mod = @import("scanner.zig");
+const Token = scanner_mod.Token;
+
 const value_mod = @import("value.zig");
 const Value = value_mod.Value;
 
 pub const OpCode = enum {
+    op_nil,
     op_constant,
     op_pop,
     op_get_local,
@@ -21,7 +25,7 @@ pub const Chunk = struct {
     allocator: std.mem.Allocator,
     code: std.ArrayList(u8),
     constants: std.ArrayList(*Value),
-    lines: std.ArrayList(usize),
+    tokens: std.ArrayList(Token),
 
     pub fn init(allocator: std.mem.Allocator) *Self {
         var self = allocator.create(Self) catch std.debug.panic("Failed to create chunk", .{});
@@ -29,7 +33,7 @@ pub const Chunk = struct {
             .allocator = allocator,
             .code = std.ArrayList(u8).init(allocator),
             .constants = std.ArrayList(*Value).init(allocator),
-            .lines = std.ArrayList(usize).init(allocator),
+            .tokens = std.ArrayList(Token).init(allocator),
         };
         return self;
     }
@@ -38,17 +42,17 @@ pub const Chunk = struct {
         self.code.deinit();
         for (self.constants.items) |value| value.deref(self.allocator);
         self.constants.deinit();
-        self.lines.deinit();
+        self.tokens.deinit();
         self.allocator.destroy(self);
     }
 
-    pub fn write(self: *Self, byte: u8, line: usize) void {
+    pub fn write(self: *Self, byte: u8, token: Token) void {
         self.code.append(byte) catch std.debug.panic("Not enough memory", .{});
-        self.lines.append(line) catch std.debug.panic("Not enough memory", .{});
+        self.tokens.append(token) catch std.debug.panic("Not enough memory", .{});
     }
 
-    pub fn writeOpCode(self: *Self, op_code: OpCode, line: usize) void {
-        self.write(@enumToInt(op_code), line);
+    pub fn writeOpCode(self: *Self, op_code: OpCode, token: Token) void {
+        self.write(@enumToInt(op_code), token);
     }
 
     pub fn addConstant(self: *Self, value: *Value) usize {

@@ -14,7 +14,7 @@ const Sign = enum {
 
 pub fn disassembleChunk(chunk: *const Chunk, name: []const u8) void {
     for (chunk.constants.items) |constant| {
-        switch (constant.data) {
+        switch (constant.as) {
             .function => |function| disassembleChunk(function.chunk, function.name.?),
             else => {},
         }
@@ -66,14 +66,15 @@ fn constantInstruction(comptime instruction: OpCode, chunk: *const Chunk, offset
 
 pub fn disassembleInstruction(chunk: *const Chunk, offset: usize) usize {
     print("{d:0>4} ", .{offset});
-    if (offset > 0 and chunk.lines.items[offset] == chunk.lines.items[offset - 1]) {
+    if (offset > 0 and chunk.tokens.items[offset].line == chunk.tokens.items[offset - 1].line) {
         print("   | ", .{});
     } else {
-        print("{d:4} ", .{chunk.lines.items[offset]});
+        print("{d:4} ", .{chunk.tokens.items[offset].line});
     }
 
     const instruction = @intToEnum(OpCode, chunk.code.items[offset]);
     return switch (instruction) {
+        .op_nil => simpleInstruction(.op_nil, offset),
         .op_constant => constantInstruction(.op_constant, chunk, offset),
         .op_pop => simpleInstruction(.op_pop, offset),
         .op_get_local => byteInstruction(.op_get_local, chunk, offset),

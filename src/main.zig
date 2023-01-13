@@ -47,7 +47,7 @@ fn repl(vm: *VM) void {
 
         const result = vm.interpret(line) catch continue;
         defer result.deref(vm.allocator);
-        print("{}\n", .{result.data});
+        print("{}\n", .{result.as});
     }
 }
 
