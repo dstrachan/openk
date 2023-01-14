@@ -18,6 +18,7 @@ pub const OpCode = enum {
     op_subtract,
     op_multiply,
     op_divide,
+    op_concat,
     op_call,
     op_return,
 };

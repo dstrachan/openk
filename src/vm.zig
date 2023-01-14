@@ -230,6 +230,7 @@ pub const VM = struct {
                 .op_subtract => try self.opSubtract(),
                 .op_multiply => try self.opMultiply(),
                 .op_divide => try self.opDivide(),
+                .op_concat => try self.opConcat(),
                 .op_call => try self.opCall(),
                 .op_return => if (try self.opReturn()) |value| return value,
             }
@@ -303,19 +304,19 @@ pub const VM = struct {
                 .boolean => |bool_y| self.initValue(.{ .int = @boolToInt(bool_x) + @as(i64, @boolToInt(bool_y)) }),
                 .int => |int_y| self.initValue(.{ .int = @boolToInt(bool_x) + int_y }),
                 .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, @boolToInt(bool_x)) + float_y }),
-                else => unreachable,
+                else => return self.runtimeError("Can only add numeric values.", .{}),
             },
             .int => |int_x| switch (y.as) {
                 .boolean => |bool_y| self.initValue(.{ .int = int_x + @boolToInt(bool_y) }),
                 .int => |int_y| self.initValue(.{ .int = int_x + int_y }),
                 .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, int_x) + float_y }),
-                else => unreachable,
+                else => return self.runtimeError("Can only add numeric values.", .{}),
             },
             .float => |float_x| switch (y.as) {
                 .boolean => |bool_y| self.initValue(.{ .float = float_x + @intToFloat(f64, @boolToInt(bool_y)) }),
                 .int => |int_y| self.initValue(.{ .float = float_x + @intToFloat(f64, int_y) }),
                 .float => |float_y| self.initValue(.{ .float = float_x + float_y }),
-                else => unreachable,
+                else => return self.runtimeError("Can only add numeric values.", .{}),
             },
             else => return self.runtimeError("Can only add numeric values.", .{}),
         };
@@ -333,19 +334,19 @@ pub const VM = struct {
                 .boolean => |bool_y| self.initValue(.{ .int = @boolToInt(bool_x) - @as(i64, @boolToInt(bool_y)) }),
                 .int => |int_y| self.initValue(.{ .int = @boolToInt(bool_x) - int_y }),
                 .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, @boolToInt(bool_x)) - float_y }),
-                else => unreachable,
+                else => return self.runtimeError("Can only subtract numeric values.", .{}),
             },
             .int => |int_x| switch (y.as) {
                 .boolean => |bool_y| self.initValue(.{ .int = int_x - @boolToInt(bool_y) }),
                 .int => |int_y| self.initValue(.{ .int = int_x - int_y }),
                 .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, int_x) - float_y }),
-                else => unreachable,
+                else => return self.runtimeError("Can only subtract numeric values.", .{}),
             },
             .float => |float_x| switch (y.as) {
                 .boolean => |bool_y| self.initValue(.{ .float = float_x - @intToFloat(f64, @boolToInt(bool_y)) }),
                 .int => |int_y| self.initValue(.{ .float = float_x - @intToFloat(f64, int_y) }),
                 .float => |float_y| self.initValue(.{ .float = float_x - float_y }),
-                else => unreachable,
+                else => return self.runtimeError("Can only subtract numeric values.", .{}),
             },
             else => return self.runtimeError("Can only subtract numeric values.", .{}),
         };
@@ -363,19 +364,19 @@ pub const VM = struct {
                 .boolean => |bool_y| self.initValue(.{ .int = @boolToInt(bool_x) * @boolToInt(bool_y) }),
                 .int => |int_y| self.initValue(.{ .int = @boolToInt(bool_x) * int_y }),
                 .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, @boolToInt(bool_x)) * float_y }),
-                else => unreachable,
+                else => return self.runtimeError("Can only multiply numeric values.", .{}),
             },
             .int => |int_x| switch (y.as) {
                 .boolean => |bool_y| self.initValue(.{ .int = int_x * @boolToInt(bool_y) }),
                 .int => |int_y| self.initValue(.{ .int = int_x * int_y }),
                 .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, int_x) * float_y }),
-                else => unreachable,
+                else => return self.runtimeError("Can only multiply numeric values.", .{}),
             },
             .float => |float_x| switch (y.as) {
                 .boolean => |bool_y| self.initValue(.{ .float = float_x * @intToFloat(f64, @boolToInt(bool_y)) }),
                 .int => |int_y| self.initValue(.{ .float = float_x * @intToFloat(f64, int_y) }),
                 .float => |float_y| self.initValue(.{ .float = float_x * float_y }),
-                else => unreachable,
+                else => return self.runtimeError("Can only multiply numeric values.", .{}),
             },
             else => return self.runtimeError("Can only multiply numeric values.", .{}),
         };
@@ -393,21 +394,187 @@ pub const VM = struct {
                 .boolean => |bool_y| self.initValue(.{ .float = @intToFloat(f64, @boolToInt(bool_x)) / @intToFloat(f64, @boolToInt(bool_y)) }),
                 .int => |int_y| self.initValue(.{ .float = @intToFloat(f64, @boolToInt(bool_x)) / @intToFloat(f64, int_y) }),
                 .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, @boolToInt(bool_x)) / float_y }),
-                else => unreachable,
+                else => return self.runtimeError("Can only divide numeric values.", .{}),
             },
             .int => |int_x| switch (y.as) {
                 .boolean => |bool_y| self.initValue(.{ .float = @intToFloat(f64, int_x) / @intToFloat(f64, @boolToInt(bool_y)) }),
                 .int => |int_y| self.initValue(.{ .float = @intToFloat(f64, int_x) / @intToFloat(f64, int_y) }),
                 .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, int_x) / float_y }),
-                else => unreachable,
+                else => return self.runtimeError("Can only divide numeric values.", .{}),
             },
             .float => |float_x| switch (y.as) {
                 .boolean => |bool_y| self.initValue(.{ .float = float_x / @intToFloat(f64, @boolToInt(bool_y)) }),
                 .int => |int_y| self.initValue(.{ .float = float_x / @intToFloat(f64, int_y) }),
                 .float => |float_y| self.initValue(.{ .float = float_x / float_y }),
-                else => unreachable,
+                else => return self.runtimeError("Can only divide numeric values.", .{}),
             },
             else => return self.runtimeError("Can only divide numeric values.", .{}),
+        };
+        try self.push(value);
+    }
+
+    fn opConcat(self: *Self) !void {
+        const x = self.pop();
+        defer x.deref(self.allocator);
+        const y = self.pop();
+        defer y.deref(self.allocator);
+
+        const value = switch (x.as) {
+            .boolean => |bool_x| switch (y.as) {
+                .boolean => |bool_y| blk: {
+                    const list = self.allocator.alloc(bool, 2) catch std.debug.panic("Failed to create list.", .{});
+                    list[0] = bool_x;
+                    list[1] = bool_y;
+                    break :blk self.initValue(.{ .boolean_list = list });
+                },
+                .boolean_list => |bool_list_y| blk: {
+                    const list = self.allocator.alloc(bool, bool_list_y.len + 1) catch std.debug.panic("Failed to create list.", .{});
+                    list[0] = bool_x;
+                    std.mem.copy(bool, list[1..], bool_list_y);
+                    break :blk self.initValue(.{ .boolean_list = list });
+                },
+                else => return self.runtimeError("NYI", .{}),
+            },
+            .int => |int_x| switch (y.as) {
+                .int => |int_y| blk: {
+                    const list = self.allocator.alloc(i64, 2) catch std.debug.panic("Failed to create list.", .{});
+                    list[0] = int_x;
+                    list[1] = int_y;
+                    break :blk self.initValue(.{ .int_list = list });
+                },
+                .int_list => |int_list_y| blk: {
+                    const list = self.allocator.alloc(i64, int_list_y.len + 1) catch std.debug.panic("Failed to create list.", .{});
+                    list[0] = int_x;
+                    std.mem.copy(i64, list[1..], int_list_y);
+                    break :blk self.initValue(.{ .int_list = list });
+                },
+                else => return self.runtimeError("NYI", .{}),
+            },
+            .float => |float_x| switch (y.as) {
+                .float => |float_y| blk: {
+                    const list = self.allocator.alloc(f64, 2) catch std.debug.panic("Failed to create list.", .{});
+                    list[0] = float_x;
+                    list[1] = float_y;
+                    break :blk self.initValue(.{ .float_list = list });
+                },
+                .float_list => |float_list_y| blk: {
+                    const list = self.allocator.alloc(f64, float_list_y.len + 1) catch std.debug.panic("Failed to create list.", .{});
+                    list[0] = float_x;
+                    std.mem.copy(f64, list[1..], float_list_y);
+                    break :blk self.initValue(.{ .float_list = list });
+                },
+                else => return self.runtimeError("NYI", .{}),
+            },
+            .char => |char_x| switch (y.as) {
+                .char => |char_y| blk: {
+                    const list = self.allocator.alloc(u8, 2) catch std.debug.panic("Failed to create list.", .{});
+                    list[0] = char_x;
+                    list[1] = char_y;
+                    break :blk self.initValue(.{ .char_list = list });
+                },
+                .char_list => |char_list_y| blk: {
+                    const list = self.allocator.alloc(u8, char_list_y.len + 1) catch std.debug.panic("Failed to create list.", .{});
+                    list[0] = char_x;
+                    std.mem.copy(u8, list[1..], char_list_y);
+                    break :blk self.initValue(.{ .char_list = list });
+                },
+                else => return self.runtimeError("NYI", .{}),
+            },
+            .symbol => switch (y.as) {
+                .symbol => blk: {
+                    const list = self.allocator.alloc(*Value, 2) catch std.debug.panic("Failed to create list.", .{});
+                    list[0] = x.ref();
+                    list[1] = y.ref();
+                    break :blk self.initValue(.{ .symbol_list = list });
+                },
+                .symbol_list => |symbol_list_y| blk: {
+                    const list = self.allocator.alloc(*Value, symbol_list_y.len + 1) catch std.debug.panic("Failed to create list.", .{});
+                    list[0] = x.ref();
+                    for (symbol_list_y) |symbol| _ = symbol.ref();
+                    std.mem.copy(*Value, list[1..], symbol_list_y);
+                    break :blk self.initValue(.{ .symbol_list = list });
+                },
+                else => return self.runtimeError("NYI", .{}),
+            },
+            .boolean_list => |bool_list_x| switch (y.as) {
+                .boolean => |bool_y| blk: {
+                    const list = self.allocator.alloc(bool, bool_list_x.len + 1) catch std.debug.panic("Failed to create list.", .{});
+                    std.mem.copy(bool, list, bool_list_x);
+                    list[list.len - 1] = bool_y;
+                    break :blk self.initValue(.{ .boolean_list = list });
+                },
+                .boolean_list => |bool_list_y| blk: {
+                    const list = self.allocator.alloc(bool, bool_list_x.len + bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
+                    std.mem.copy(bool, list, bool_list_x);
+                    std.mem.copy(bool, list[bool_list_x.len..], bool_list_y);
+                    break :blk self.initValue(.{ .boolean_list = list });
+                },
+                else => return self.runtimeError("NYI", .{}),
+            },
+            .int_list => |int_list_x| switch (y.as) {
+                .int => |int_y| blk: {
+                    const list = self.allocator.alloc(i64, int_list_x.len + 1) catch std.debug.panic("Failed to create list.", .{});
+                    std.mem.copy(i64, list, int_list_x);
+                    list[list.len - 1] = int_y;
+                    break :blk self.initValue(.{ .int_list = list });
+                },
+                .int_list => |int_list_y| blk: {
+                    const list = self.allocator.alloc(i64, int_list_x.len + int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
+                    std.mem.copy(i64, list, int_list_x);
+                    std.mem.copy(i64, list[int_list_x.len..], int_list_y);
+                    break :blk self.initValue(.{ .int_list = list });
+                },
+                else => return self.runtimeError("NYI", .{}),
+            },
+            .float_list => |float_list_x| switch (y.as) {
+                .float => |float_y| blk: {
+                    const list = self.allocator.alloc(f64, float_list_x.len + 1) catch std.debug.panic("Failed to create list.", .{});
+                    std.mem.copy(f64, list, float_list_x);
+                    list[list.len - 1] = float_y;
+                    break :blk self.initValue(.{ .float_list = list });
+                },
+                .float_list => |float_list_y| blk: {
+                    const list = self.allocator.alloc(f64, float_list_x.len + float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
+                    std.mem.copy(f64, list, float_list_x);
+                    std.mem.copy(f64, list[float_list_x.len..], float_list_y);
+                    break :blk self.initValue(.{ .float_list = list });
+                },
+                else => return self.runtimeError("NYI", .{}),
+            },
+            .char_list => |char_list_x| switch (y.as) {
+                .char => |char_y| blk: {
+                    const list = self.allocator.alloc(u8, char_list_x.len + 1) catch std.debug.panic("Failed to create list.", .{});
+                    std.mem.copy(u8, list, char_list_x);
+                    list[list.len - 1] = char_y;
+                    break :blk self.initValue(.{ .char_list = list });
+                },
+                .char_list => |char_list_y| blk: {
+                    const list = self.allocator.alloc(u8, char_list_x.len + char_list_y.len) catch std.debug.panic("Failed to create list.", .{});
+                    std.mem.copy(u8, list, char_list_x);
+                    std.mem.copy(u8, list[char_list_x.len..], char_list_y);
+                    break :blk self.initValue(.{ .char_list = list });
+                },
+                else => return self.runtimeError("NYI", .{}),
+            },
+            .symbol_list => |symbol_list_x| switch (y.as) {
+                .symbol => blk: {
+                    const list = self.allocator.alloc(*Value, symbol_list_x.len + 1) catch std.debug.panic("Failed to create list.", .{});
+                    for (symbol_list_x) |symbol| _ = symbol.ref();
+                    std.mem.copy(*Value, list, symbol_list_x);
+                    list[list.len - 1] = y.ref();
+                    break :blk self.initValue(.{ .symbol_list = list });
+                },
+                .symbol_list => |symbol_list_y| blk: {
+                    const list = self.allocator.alloc(*Value, symbol_list_x.len + symbol_list_y.len) catch std.debug.panic("Failed to create list.", .{});
+                    for (symbol_list_x) |symbol| _ = symbol.ref();
+                    std.mem.copy(*Value, list, symbol_list_x);
+                    for (symbol_list_y) |symbol| _ = symbol.ref();
+                    std.mem.copy(*Value, list[symbol_list_x.len..], symbol_list_y);
+                    break :blk self.initValue(.{ .symbol_list = list });
+                },
+                else => return self.runtimeError("NYI", .{}),
+            },
+            else => return self.runtimeError("NYI", .{}),
         };
         try self.push(value);
     }

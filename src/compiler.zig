@@ -447,6 +447,7 @@ fn binary(node: *Node) CompilerError!*Node {
             .token_minus => .op_subtract,
             .token_star => .op_multiply,
             .token_percent => .op_divide,
+            .token_comma => .op_concat,
             else => unreachable,
         },
     }, current.vm.allocator);
@@ -574,7 +575,7 @@ fn getRule(token_type: TokenType) ParseRule {
         .token_equal         => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
         .token_tilde         => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
         .token_bang          => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
-        .token_comma         => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_comma         => ParseRule{ .prefix = null,     .infix = binary, .precedence = .prec_secondary },
         .token_at            => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
         .token_question      => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
         .token_caret         => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
