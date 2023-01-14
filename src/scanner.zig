@@ -1,3 +1,8 @@
+const utils_mod = @import("utils.zig");
+const print = utils_mod.print;
+
+const debug_print_chars = @import("builtin").mode == .Debug and !@import("builtin").is_test;
+
 pub const Token = struct {
     token_type: TokenType,
     lexeme: []const u8,
@@ -66,7 +71,7 @@ pub const Scanner = struct {
             .start = source.ptr,
             .current = source.ptr,
             .line = 1,
-            .skipped_whitespace = false,
+            .skipped_whitespace = true,
         };
     }
 
@@ -77,10 +82,12 @@ pub const Scanner = struct {
         if (self.isAtEnd()) return self.makeToken(.token_eof);
 
         const c = self.advance();
+        if (comptime debug_print_chars) print("c = '{s}'\n", .{&[_]u8{c}});
+
         if (isAlpha(c)) return self.identifier();
         if (isDigit(c)) return self.number(c);
         if (c == '.' and isDigit(self.peek())) return self.float();
-        if (c == '-') {
+        if (c == '-' and self.skipped_whitespace) {
             const p = self.peek();
             if (p == '.' or isDigit(p)) return self.negativeNumber();
         }
@@ -132,8 +139,6 @@ pub const Scanner = struct {
     }
 
     fn skipWhitespace(self: *Self) void {
-        self.skipped_whitespace = self.start == self.source.ptr;
-
         while (true) {
             const c = self.peek();
             switch (c) {
@@ -248,6 +253,7 @@ pub const Scanner = struct {
     }
 
     fn token(self: *Self, token_type: TokenType, lexeme: []const u8) Token {
+        defer self.skipped_whitespace = false;
         return Token{
             .token_type = token_type,
             .lexeme = lexeme,
