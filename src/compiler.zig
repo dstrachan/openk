@@ -220,23 +220,97 @@ fn addLocal(name: Token) void {
 fn number() CompilerError!*Node {
     const value = switch (parser.previous.token_type) {
         .token_bool => parseBool(parser.previous.lexeme),
-        .token_int => parseInt(parser.previous.lexeme),
-        .token_float => parseFloat(parser.previous.lexeme),
+        .token_int => blk: {
+            switch (parser.current.token_type) {
+                .token_int => {
+                    var iList = std.ArrayList(i64).init(current.vm.allocator);
+                    defer iList.deinit();
+                    iList.append(parseInt(parser.previous.lexeme)) catch std.debug.panic("Failed to append item.", .{});
+
+                    while (parser.current.token_type == .token_int or parser.current.token_type == .token_float) {
+                        if (parser.current.token_type == .token_float) { // switch to parsing floats
+                            var list = std.ArrayList(f64).init(current.vm.allocator);
+                            defer list.deinit();
+
+                            for (iList.items) |i| {
+                                list.append(@intToFloat(f64, i)) catch std.debug.panic("Failed to append item.", .{});
+                            }
+
+                            list.append(parseFloat(parser.current.lexeme)) catch std.debug.panic("Failed to append item.", .{});
+                            advance();
+
+                            while (parser.current.token_type == .token_int or parser.current.token_type == .token_float) {
+                                list.append(parseFloat(parser.current.lexeme)) catch std.debug.panic("Failed to append item.", .{});
+                                advance();
+                            }
+
+                            const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                            break :blk current.vm.initValue(.{ .float_list = slice });
+                        }
+
+                        iList.append(parseInt(parser.current.lexeme)) catch std.debug.panic("Failed to append item.", .{});
+                        advance();
+                    }
+
+                    const slice = iList.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                    break :blk current.vm.initValue(.{ .int_list = slice });
+                },
+                .token_float => {
+                    var list = std.ArrayList(f64).init(current.vm.allocator);
+                    defer list.deinit();
+                    list.append(parseFloat(parser.previous.lexeme)) catch std.debug.panic("Failed to append item.", .{});
+
+                    while (parser.current.token_type == .token_int or parser.current.token_type == .token_float) {
+                        list.append(parseFloat(parser.current.lexeme)) catch std.debug.panic("Failed to append item.", .{});
+                        advance();
+                    }
+
+                    const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                    break :blk current.vm.initValue(.{ .float_list = slice });
+                },
+                else => break :blk current.vm.initValue(.{ .int = parseInt(parser.previous.lexeme) }),
+            }
+        },
+        .token_float => blk: {
+            switch (parser.current.token_type) {
+                .token_int, .token_float => {
+                    var list = std.ArrayList(f64).init(current.vm.allocator);
+                    defer list.deinit();
+                    list.append(parseFloat(parser.previous.lexeme)) catch std.debug.panic("Failed to append item.", .{});
+
+                    while (parser.current.token_type == .token_int or parser.current.token_type == .token_float) {
+                        list.append(parseFloat(parser.current.lexeme)) catch std.debug.panic("Failed to append item.", .{});
+                        advance();
+                    }
+
+                    const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                    break :blk current.vm.initValue(.{ .float_list = slice });
+                },
+                else => break :blk current.vm.initValue(.{ .float = parseFloat(parser.previous.lexeme) }),
+            }
+        },
         else => unreachable,
     };
     return Node.init(.{ .op_code = .op_constant, .byte = makeConstant(value) }, current.vm.allocator);
 }
 
 fn parseBool(str: []const u8) *Value {
+    if (str.len > 2) {
+        const list = current.vm.allocator.alloc(bool, str.len - 1) catch std.debug.panic("Failed to create list", .{});
+        for (str[0 .. str.len - 1]) |c, i| {
+            list[i] = c == '1';
+        }
+        return current.vm.initValue(.{ .boolean_list = list });
+    }
     return current.vm.initValue(.{ .boolean = str[0] == '1' });
 }
 
-fn parseInt(str: []const u8) *Value {
-    return current.vm.initValue(.{ .int = std.fmt.parseInt(i64, str, 10) catch std.debug.panic("Failed to parse int", .{}) });
+fn parseInt(str: []const u8) i64 {
+    return std.fmt.parseInt(i64, str, 10) catch std.debug.panic("Failed to parse int", .{});
 }
 
-fn parseFloat(str: []const u8) *Value {
-    return current.vm.initValue(.{ .float = std.fmt.parseFloat(f64, str) catch std.debug.panic("Failed to parse float", .{}) });
+fn parseFloat(str: []const u8) f64 {
+    return std.fmt.parseFloat(f64, str) catch std.debug.panic("Failed to parse float", .{});
 }
 
 fn symbol() CompilerError!*Node {
