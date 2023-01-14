@@ -227,6 +227,9 @@ pub const VM = struct {
                 .op_get_global => try self.opGetGlobal(),
                 .op_set_global => try self.opSetGlobal(),
                 .op_add => try self.opAdd(),
+                .op_subtract => try self.opSubtract(),
+                .op_multiply => try self.opMultiply(),
+                .op_divide => try self.opDivide(),
                 .op_call => try self.opCall(),
                 .op_return => if (try self.opReturn()) |value| return value,
             }
@@ -297,7 +300,7 @@ pub const VM = struct {
 
         const value = switch (x.as) {
             .boolean => |bool_x| switch (y.as) {
-                .boolean => |bool_y| self.initValue(.{ .int = @boolToInt(bool_x) + @boolToInt(bool_y) }),
+                .boolean => |bool_y| self.initValue(.{ .int = @boolToInt(bool_x) + @as(i64, @boolToInt(bool_y)) }),
                 .int => |int_y| self.initValue(.{ .int = @boolToInt(bool_x) + int_y }),
                 .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, @boolToInt(bool_x)) + float_y }),
                 else => unreachable,
@@ -315,6 +318,96 @@ pub const VM = struct {
                 else => unreachable,
             },
             else => return self.runtimeError("Can only add numeric values.", .{}),
+        };
+        try self.push(value);
+    }
+
+    fn opSubtract(self: *Self) !void {
+        const x = self.pop();
+        defer x.deref(self.allocator);
+        const y = self.pop();
+        defer y.deref(self.allocator);
+
+        const value = switch (x.as) {
+            .boolean => |bool_x| switch (y.as) {
+                .boolean => |bool_y| self.initValue(.{ .int = @boolToInt(bool_x) - @as(i64, @boolToInt(bool_y)) }),
+                .int => |int_y| self.initValue(.{ .int = @boolToInt(bool_x) - int_y }),
+                .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, @boolToInt(bool_x)) - float_y }),
+                else => unreachable,
+            },
+            .int => |int_x| switch (y.as) {
+                .boolean => |bool_y| self.initValue(.{ .int = int_x - @boolToInt(bool_y) }),
+                .int => |int_y| self.initValue(.{ .int = int_x - int_y }),
+                .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, int_x) - float_y }),
+                else => unreachable,
+            },
+            .float => |float_x| switch (y.as) {
+                .boolean => |bool_y| self.initValue(.{ .float = float_x - @intToFloat(f64, @boolToInt(bool_y)) }),
+                .int => |int_y| self.initValue(.{ .float = float_x - @intToFloat(f64, int_y) }),
+                .float => |float_y| self.initValue(.{ .float = float_x - float_y }),
+                else => unreachable,
+            },
+            else => return self.runtimeError("Can only subtract numeric values.", .{}),
+        };
+        try self.push(value);
+    }
+
+    fn opMultiply(self: *Self) !void {
+        const x = self.pop();
+        defer x.deref(self.allocator);
+        const y = self.pop();
+        defer y.deref(self.allocator);
+
+        const value = switch (x.as) {
+            .boolean => |bool_x| switch (y.as) {
+                .boolean => |bool_y| self.initValue(.{ .int = @boolToInt(bool_x) * @boolToInt(bool_y) }),
+                .int => |int_y| self.initValue(.{ .int = @boolToInt(bool_x) * int_y }),
+                .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, @boolToInt(bool_x)) * float_y }),
+                else => unreachable,
+            },
+            .int => |int_x| switch (y.as) {
+                .boolean => |bool_y| self.initValue(.{ .int = int_x * @boolToInt(bool_y) }),
+                .int => |int_y| self.initValue(.{ .int = int_x * int_y }),
+                .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, int_x) * float_y }),
+                else => unreachable,
+            },
+            .float => |float_x| switch (y.as) {
+                .boolean => |bool_y| self.initValue(.{ .float = float_x * @intToFloat(f64, @boolToInt(bool_y)) }),
+                .int => |int_y| self.initValue(.{ .float = float_x * @intToFloat(f64, int_y) }),
+                .float => |float_y| self.initValue(.{ .float = float_x * float_y }),
+                else => unreachable,
+            },
+            else => return self.runtimeError("Can only multiply numeric values.", .{}),
+        };
+        try self.push(value);
+    }
+
+    fn opDivide(self: *Self) !void {
+        const x = self.pop();
+        defer x.deref(self.allocator);
+        const y = self.pop();
+        defer y.deref(self.allocator);
+
+        const value = switch (x.as) {
+            .boolean => |bool_x| switch (y.as) {
+                .boolean => |bool_y| self.initValue(.{ .float = @intToFloat(f64, @boolToInt(bool_x)) / @intToFloat(f64, @boolToInt(bool_y)) }),
+                .int => |int_y| self.initValue(.{ .float = @intToFloat(f64, @boolToInt(bool_x)) / @intToFloat(f64, int_y) }),
+                .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, @boolToInt(bool_x)) / float_y }),
+                else => unreachable,
+            },
+            .int => |int_x| switch (y.as) {
+                .boolean => |bool_y| self.initValue(.{ .float = @intToFloat(f64, int_x) / @intToFloat(f64, @boolToInt(bool_y)) }),
+                .int => |int_y| self.initValue(.{ .float = @intToFloat(f64, int_x) / @intToFloat(f64, int_y) }),
+                .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, int_x) / float_y }),
+                else => unreachable,
+            },
+            .float => |float_x| switch (y.as) {
+                .boolean => |bool_y| self.initValue(.{ .float = float_x / @intToFloat(f64, @boolToInt(bool_y)) }),
+                .int => |int_y| self.initValue(.{ .float = float_x / @intToFloat(f64, int_y) }),
+                .float => |float_y| self.initValue(.{ .float = float_x / float_y }),
+                else => unreachable,
+            },
+            else => return self.runtimeError("Can only divide numeric values.", .{}),
         };
         try self.push(value);
     }

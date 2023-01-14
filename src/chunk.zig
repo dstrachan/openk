@@ -15,6 +15,9 @@ pub const OpCode = enum {
     op_get_global,
     op_set_global,
     op_add,
+    op_subtract,
+    op_multiply,
+    op_divide,
     op_call,
     op_return,
 };
