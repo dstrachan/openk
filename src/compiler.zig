@@ -329,6 +329,9 @@ fn binary(node: *Node) CompilerError!*Node {
     const current_node = Node.init(.{
         .op_code = switch (parser.previous.token_type) {
             .token_plus => .op_add,
+            .token_minus => .op_subtract,
+            .token_star => .op_multiply,
+            .token_percent => .op_divide,
             else => unreachable,
         },
     }, current.vm.allocator);
@@ -446,9 +449,9 @@ fn getRule(token_type: TokenType) ParseRule {
         .token_colon         => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
         .token_double_colon  => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
         .token_plus          => ParseRule{ .prefix = null,     .infix = binary, .precedence = .prec_secondary },
-        .token_minus         => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
-        .token_star          => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
-        .token_percent       => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_minus         => ParseRule{ .prefix = null,     .infix = binary, .precedence = .prec_secondary },
+        .token_star          => ParseRule{ .prefix = null,     .infix = binary, .precedence = .prec_secondary },
+        .token_percent       => ParseRule{ .prefix = null,     .infix = binary, .precedence = .prec_secondary },
         .token_ampersand     => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
         .token_pipe          => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
         .token_less          => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },

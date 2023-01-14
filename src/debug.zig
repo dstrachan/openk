@@ -82,6 +82,9 @@ pub fn disassembleInstruction(chunk: *const Chunk, offset: usize) usize {
         .op_get_global => constantInstruction(.op_get_global, chunk, offset),
         .op_set_global => constantInstruction(.op_set_global, chunk, offset),
         .op_add => simpleInstruction(.op_add, offset),
+        .op_subtract => simpleInstruction(.op_subtract, offset),
+        .op_multiply => simpleInstruction(.op_multiply, offset),
+        .op_divide => simpleInstruction(.op_divide, offset),
         .op_call => byteInstruction(.op_call, chunk, offset),
         .op_return => simpleInstruction(.op_return, offset),
     };
