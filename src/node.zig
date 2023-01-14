@@ -36,17 +36,17 @@ pub const Node = struct {
         return self;
     }
 
+    pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+        if (self.lhs) |lhs| lhs.deinit(allocator);
+        if (self.rhs) |rhs| rhs.deinit(allocator);
+        allocator.destroy(self);
+    }
+
     pub fn format(self: Self, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
         try writer.print("Node{{ .op_code = {}", .{self.op_code});
         if (self.lhs) |lhs| try writer.print(", .lhs = {}", .{lhs});
         if (self.rhs) |rhs| try writer.print(", .rhs = {}", .{rhs});
         try writer.writeAll(" }");
-    }
-
-    pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
-        if (self.lhs) |lhs| lhs.deinit(allocator);
-        if (self.rhs) |rhs| rhs.deinit(allocator);
-        allocator.destroy(self);
     }
 
     pub fn traverse(self: *Self) void {

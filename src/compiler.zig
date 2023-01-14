@@ -244,6 +244,30 @@ fn symbol() CompilerError!*Node {
     return Node.init(.{ .op_code = .op_constant, .byte = makeConstant(value) }, current.vm.allocator);
 }
 
+fn char() CompilerError!*Node {
+    const value = current.vm.initValue(.{ .char = parser.previous.lexeme[parser.previous.lexeme.len - 2] });
+    return Node.init(.{ .op_code = .op_constant, .byte = makeConstant(value) }, current.vm.allocator);
+}
+
+fn string() CompilerError!*Node {
+    var list = std.ArrayList(u8).init(current.vm.allocator);
+    defer list.deinit();
+
+    var is_escaped = false;
+    for (parser.previous.lexeme[1 .. parser.previous.lexeme.len - 1]) |c| {
+        if (c == '\\' and !is_escaped) {
+            is_escaped = true;
+            continue;
+        }
+        is_escaped = false;
+        list.append(c) catch std.debug.panic("Failed to append item", .{});
+    }
+
+    const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create string", .{});
+    const value = current.vm.initValue(.{ .char_list = slice });
+    return Node.init(.{ .op_code = .op_constant, .byte = makeConstant(value) }, current.vm.allocator);
+}
+
 fn variable() CompilerError!*Node {
     const name = parser.previous;
 
@@ -471,8 +495,8 @@ fn getRule(token_type: TokenType) ParseRule {
         .token_int           => ParseRule{ .prefix = number,   .infix = null,   .precedence = .prec_none      },
         .token_float         => ParseRule{ .prefix = number,   .infix = null,   .precedence = .prec_none      },
         .token_symbol        => ParseRule{ .prefix = symbol,   .infix = null,   .precedence = .prec_none      },
-        .token_char          => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
-        .token_string        => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
+        .token_char          => ParseRule{ .prefix = char,     .infix = null,   .precedence = .prec_none      },
+        .token_string        => ParseRule{ .prefix = string,   .infix = null,   .precedence = .prec_none      },
         .token_identifier    => ParseRule{ .prefix = variable, .infix = null,   .precedence = .prec_none      },
         .token_error         => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
         .token_eof           => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },

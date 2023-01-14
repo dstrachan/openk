@@ -141,7 +141,7 @@ pub const Scanner = struct {
             '_' => self.makeToken(.token_underscore),
             '$' => self.makeToken(.token_dollar),
             '.' => self.makeToken(.token_dot),
-            // '"' => self.string(),
+            '"' => self.string(),
             '`' => self.symbol(),
             else => self.errorToken("Unexpected character."),
         };
@@ -243,6 +243,24 @@ pub const Scanner = struct {
         }
 
         return self.makeToken(.token_float);
+    }
+
+    fn string(self: *Self) Token {
+        var len: usize = 0;
+        while (self.peek() != '"' and !self.isAtEnd()) {
+            switch (self.peek()) {
+                '\n' => self.line += 1,
+                '\\' => _ = self.advance(),
+                else => {},
+            }
+            _ = self.advance();
+            len += 1;
+        }
+
+        if (self.isAtEnd()) return self.errorToken("Unterminated string.");
+
+        _ = self.advance();
+        return self.makeToken(if (len == 1) .token_char else .token_string);
     }
 
     fn symbol(self: *Self) Token {

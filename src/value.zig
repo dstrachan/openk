@@ -38,7 +38,7 @@ pub const ValueUnion = union(ValueType) {
     boolean_list: []*Value,
     int_list: []*Value,
     float_list: []*Value,
-    char_list: []*Value,
+    char_list: []const u8,
     symbol_list: []*Value,
 
     function: *ValueFunction,
@@ -67,10 +67,14 @@ pub const ValueUnion = union(ValueType) {
                 for (list[0 .. list.len - 1]) |value| try writer.print("{d} ", .{value.as.float});
                 try writer.print("{d}f", .{list[list.len - 1].as.float});
             },
-            .char => |char| try writer.print("\"{c}\"", .{char}),
+            .char => |char| {
+                try writer.writeAll("\"");
+                try printChar(writer, char);
+                try writer.writeAll("\"");
+            },
             .char_list => |list| {
                 try writer.writeAll("\"");
-                for (list) |value| try writer.print("{c}", .{value.as.char});
+                for (list) |char| try printChar(writer, char);
                 try writer.writeAll("\"");
             },
             .symbol => |symbol| try writer.print("`{s}", .{symbol}),
@@ -97,6 +101,14 @@ pub const ValueUnion = union(ValueType) {
                     try writer.writeAll("]");
                 }
             },
+        }
+    }
+
+    fn printChar(writer: anytype, char: u8) !void {
+        switch (char) {
+            '\\' => try writer.writeAll("\\\\"),
+            '"' => try writer.writeAll("\\\""),
+            else => try writer.print("{c}", .{char}),
         }
     }
 };
@@ -141,9 +153,12 @@ pub const Value = struct {
                 .boolean_list,
                 .int_list,
                 .float_list,
-                .char_list,
-                .symbol_list,
                 => |list| {
+                    for (list) |value| value.deref(allocator);
+                    allocator.free(list);
+                },
+                .char_list => |list| allocator.free(list),
+                .symbol_list => |list| {
                     for (list) |value| value.deref(allocator);
                     allocator.free(list);
                 },
