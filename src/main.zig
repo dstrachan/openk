@@ -45,7 +45,15 @@ fn repl(vm: *VM) void {
             break;
         }
 
-        const result = vm.interpret(line) catch continue;
+        var i = line.len;
+        while (i > 0) {
+            switch (line[i - 1]) {
+                ' ', '\t', '\r', '\n' => i -= 1,
+                else => break,
+            }
+        }
+
+        const result = vm.interpret(line[0..i]) catch continue;
         defer result.deref(vm.allocator);
         print("{}\n", .{result.as});
     }
@@ -54,7 +62,16 @@ fn repl(vm: *VM) void {
 fn runFile(vm: *VM, file: []const u8, allocator: std.mem.Allocator) void {
     const source = readFile(file, allocator);
     defer allocator.free(source);
-    _ = vm.interpret(source) catch std.process.exit(1);
+
+    var i = source.len;
+    while (i > 0) {
+        switch (source[i - 1]) {
+            ' ', '\t', '\r', '\n' => i -= 1,
+            else => break,
+        }
+    }
+
+    _ = vm.interpret(source[0..i]) catch std.process.exit(1);
 }
 
 fn readFile(path: []const u8, allocator: std.mem.Allocator) []const u8 {

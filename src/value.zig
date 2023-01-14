@@ -48,8 +48,8 @@ pub const ValueUnion = union(ValueType) {
         switch (self) {
             .list => |list| {
                 try writer.writeAll("(");
-                for (list) |value| try writer.print("{}", .{value});
-                try writer.writeAll(")");
+                for (list[0 .. list.len - 1]) |value| try writer.print("{};", .{value.as});
+                try writer.print("{})", .{list[list.len - 1].as});
             },
             .nil => try writer.writeAll("(::)"),
             .boolean => |boolean| try writer.writeAll(if (boolean) "1b" else "0b"),
