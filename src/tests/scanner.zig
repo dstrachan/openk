@@ -59,6 +59,22 @@ test "scanner - float" {
     try runTest("0.0.0", &[_]TokenType{.token_error});
 }
 
+test "scanner - char" {
+    try runTest("\" \"", &[_]TokenType{.token_char});
+    try runTest("\"a\"", &[_]TokenType{.token_char});
+    try runTest("\"\\\"\"", &[_]TokenType{.token_char});
+}
+
+test "scanner - string" {
+    try runTest("\"\"", &[_]TokenType{.token_string});
+    try runTest("\"  \"", &[_]TokenType{.token_string});
+    try runTest("\"aa\"", &[_]TokenType{.token_string});
+    try runTest("\"\\\"\\\"\"", &[_]TokenType{.token_string});
+
+    try runTest("\"", &[_]TokenType{.token_error});
+    try runTest("\"\"\"", &[_]TokenType{ .token_string, .token_error });
+}
+
 test "scanner - boolean addition" {
     try runTest("0b+0b", &[_]TokenType{ .token_bool, .token_plus, .token_bool });
     try runTest("0b+1b", &[_]TokenType{ .token_bool, .token_plus, .token_bool });
