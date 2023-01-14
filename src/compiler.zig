@@ -314,7 +314,24 @@ fn parseFloat(str: []const u8) f64 {
 }
 
 fn symbol() CompilerError!*Node {
-    const value = current.vm.copySymbol(parser.previous.lexeme[1..parser.previous.lexeme.len]);
+    const value = switch (parser.current.token_type) {
+        .token_symbol => blk: {
+            if (parser.current.follows_whitespace) break :blk current.vm.copySymbol(parser.previous.lexeme[1..parser.previous.lexeme.len]);
+
+            var list = std.ArrayList(*Value).init(current.vm.allocator);
+            defer list.deinit();
+            list.append(current.vm.copySymbol(parser.previous.lexeme[1..parser.previous.lexeme.len])) catch std.debug.panic("Failed to append item.", .{});
+
+            while (parser.current.token_type == .token_symbol and !parser.current.follows_whitespace) {
+                list.append(current.vm.copySymbol(parser.current.lexeme[1..parser.current.lexeme.len])) catch std.debug.panic("Failed to append item.", .{});
+                advance();
+            }
+
+            const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+            break :blk current.vm.initValue(.{ .symbol_list = slice });
+        },
+        else => current.vm.copySymbol(parser.previous.lexeme[1..parser.previous.lexeme.len]),
+    };
     return Node.init(.{ .op_code = .op_constant, .byte = makeConstant(value) }, current.vm.allocator);
 }
 
