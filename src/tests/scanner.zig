@@ -67,13 +67,17 @@ test "scanner - boolean addition" {
 
     try runTest("0b+0", &[_]TokenType{ .token_bool, .token_plus, .token_int });
     try runTest("0b+1", &[_]TokenType{ .token_bool, .token_plus, .token_int });
+    try runTest("0b+-1", &[_]TokenType{ .token_bool, .token_plus, .token_int });
     try runTest("1b+0", &[_]TokenType{ .token_bool, .token_plus, .token_int });
     try runTest("1b+1", &[_]TokenType{ .token_bool, .token_plus, .token_int });
+    try runTest("1b+-1", &[_]TokenType{ .token_bool, .token_plus, .token_int });
 
     try runTest("0b+0f", &[_]TokenType{ .token_bool, .token_plus, .token_float });
     try runTest("0b+1f", &[_]TokenType{ .token_bool, .token_plus, .token_float });
+    try runTest("0b+-1f", &[_]TokenType{ .token_bool, .token_plus, .token_float });
     try runTest("1b+0f", &[_]TokenType{ .token_bool, .token_plus, .token_float });
     try runTest("1b+1f", &[_]TokenType{ .token_bool, .token_plus, .token_float });
+    try runTest("1b+-1f", &[_]TokenType{ .token_bool, .token_plus, .token_float });
 }
 
 test "scanner - int addition" {
@@ -81,16 +85,28 @@ test "scanner - int addition" {
     try runTest("0+1b", &[_]TokenType{ .token_int, .token_plus, .token_bool });
     try runTest("1+0b", &[_]TokenType{ .token_int, .token_plus, .token_bool });
     try runTest("1+1b", &[_]TokenType{ .token_int, .token_plus, .token_bool });
+    try runTest("-1+0b", &[_]TokenType{ .token_int, .token_plus, .token_bool });
+    try runTest("-1+1b", &[_]TokenType{ .token_int, .token_plus, .token_bool });
 
     try runTest("0+0", &[_]TokenType{ .token_int, .token_plus, .token_int });
     try runTest("0+1", &[_]TokenType{ .token_int, .token_plus, .token_int });
+    try runTest("0+-1", &[_]TokenType{ .token_int, .token_plus, .token_int });
     try runTest("1+0", &[_]TokenType{ .token_int, .token_plus, .token_int });
     try runTest("1+1", &[_]TokenType{ .token_int, .token_plus, .token_int });
+    try runTest("1+-1", &[_]TokenType{ .token_int, .token_plus, .token_int });
+    try runTest("-1+0", &[_]TokenType{ .token_int, .token_plus, .token_int });
+    try runTest("-1+1", &[_]TokenType{ .token_int, .token_plus, .token_int });
+    try runTest("-1+-1", &[_]TokenType{ .token_int, .token_plus, .token_int });
 
     try runTest("0+0f", &[_]TokenType{ .token_int, .token_plus, .token_float });
     try runTest("0+1f", &[_]TokenType{ .token_int, .token_plus, .token_float });
+    try runTest("0+-1f", &[_]TokenType{ .token_int, .token_plus, .token_float });
     try runTest("1+0f", &[_]TokenType{ .token_int, .token_plus, .token_float });
     try runTest("1+1f", &[_]TokenType{ .token_int, .token_plus, .token_float });
+    try runTest("1+-1f", &[_]TokenType{ .token_int, .token_plus, .token_float });
+    try runTest("-1+0f", &[_]TokenType{ .token_int, .token_plus, .token_float });
+    try runTest("-1+1f", &[_]TokenType{ .token_int, .token_plus, .token_float });
+    try runTest("-1+-1f", &[_]TokenType{ .token_int, .token_plus, .token_float });
 }
 
 test "scanner - float addition" {
@@ -98,16 +114,28 @@ test "scanner - float addition" {
     try runTest("0f+1b", &[_]TokenType{ .token_float, .token_plus, .token_bool });
     try runTest("1f+0b", &[_]TokenType{ .token_float, .token_plus, .token_bool });
     try runTest("1f+1b", &[_]TokenType{ .token_float, .token_plus, .token_bool });
+    try runTest("-1f+0b", &[_]TokenType{ .token_float, .token_plus, .token_bool });
+    try runTest("-1f+1b", &[_]TokenType{ .token_float, .token_plus, .token_bool });
 
     try runTest("0f+0", &[_]TokenType{ .token_float, .token_plus, .token_int });
     try runTest("0f+1", &[_]TokenType{ .token_float, .token_plus, .token_int });
+    try runTest("0f+-1", &[_]TokenType{ .token_float, .token_plus, .token_int });
     try runTest("1f+0", &[_]TokenType{ .token_float, .token_plus, .token_int });
     try runTest("1f+1", &[_]TokenType{ .token_float, .token_plus, .token_int });
+    try runTest("1f+-1", &[_]TokenType{ .token_float, .token_plus, .token_int });
+    try runTest("-1f+0", &[_]TokenType{ .token_float, .token_plus, .token_int });
+    try runTest("-1f+1", &[_]TokenType{ .token_float, .token_plus, .token_int });
+    try runTest("-1f+-1", &[_]TokenType{ .token_float, .token_plus, .token_int });
 
     try runTest("0f+0f", &[_]TokenType{ .token_float, .token_plus, .token_float });
     try runTest("0f+1f", &[_]TokenType{ .token_float, .token_plus, .token_float });
+    try runTest("0f+-1f", &[_]TokenType{ .token_float, .token_plus, .token_float });
     try runTest("1f+0f", &[_]TokenType{ .token_float, .token_plus, .token_float });
     try runTest("1f+1f", &[_]TokenType{ .token_float, .token_plus, .token_float });
+    try runTest("1f+-1f", &[_]TokenType{ .token_float, .token_plus, .token_float });
+    try runTest("-1f+0f", &[_]TokenType{ .token_float, .token_plus, .token_float });
+    try runTest("-1f+1f", &[_]TokenType{ .token_float, .token_plus, .token_float });
+    try runTest("-1f+-1f", &[_]TokenType{ .token_float, .token_plus, .token_float });
 }
 
 test "scanner - boolean subtraction" {
@@ -118,13 +146,17 @@ test "scanner - boolean subtraction" {
 
     try runTest("0b-0", &[_]TokenType{ .token_bool, .token_minus, .token_int });
     try runTest("0b-1", &[_]TokenType{ .token_bool, .token_minus, .token_int });
+    try runTest("0b--1", &[_]TokenType{ .token_bool, .token_minus, .token_int });
     try runTest("1b-0", &[_]TokenType{ .token_bool, .token_minus, .token_int });
     try runTest("1b-1", &[_]TokenType{ .token_bool, .token_minus, .token_int });
+    try runTest("1b--1", &[_]TokenType{ .token_bool, .token_minus, .token_int });
 
     try runTest("0b-0f", &[_]TokenType{ .token_bool, .token_minus, .token_float });
     try runTest("0b-1f", &[_]TokenType{ .token_bool, .token_minus, .token_float });
+    try runTest("0b--1f", &[_]TokenType{ .token_bool, .token_minus, .token_float });
     try runTest("1b-0f", &[_]TokenType{ .token_bool, .token_minus, .token_float });
     try runTest("1b-1f", &[_]TokenType{ .token_bool, .token_minus, .token_float });
+    try runTest("1b--1f", &[_]TokenType{ .token_bool, .token_minus, .token_float });
 }
 
 test "scanner - int subtraction" {
@@ -132,16 +164,28 @@ test "scanner - int subtraction" {
     try runTest("0-1b", &[_]TokenType{ .token_int, .token_minus, .token_bool });
     try runTest("1-0b", &[_]TokenType{ .token_int, .token_minus, .token_bool });
     try runTest("1-1b", &[_]TokenType{ .token_int, .token_minus, .token_bool });
+    try runTest("-1-0b", &[_]TokenType{ .token_int, .token_minus, .token_bool });
+    try runTest("-1-1b", &[_]TokenType{ .token_int, .token_minus, .token_bool });
 
     try runTest("0-0", &[_]TokenType{ .token_int, .token_minus, .token_int });
     try runTest("0-1", &[_]TokenType{ .token_int, .token_minus, .token_int });
+    try runTest("0--1", &[_]TokenType{ .token_int, .token_minus, .token_int });
     try runTest("1-0", &[_]TokenType{ .token_int, .token_minus, .token_int });
     try runTest("1-1", &[_]TokenType{ .token_int, .token_minus, .token_int });
+    try runTest("1--1", &[_]TokenType{ .token_int, .token_minus, .token_int });
+    try runTest("-1-0", &[_]TokenType{ .token_int, .token_minus, .token_int });
+    try runTest("-1-1", &[_]TokenType{ .token_int, .token_minus, .token_int });
+    try runTest("-1--1", &[_]TokenType{ .token_int, .token_minus, .token_int });
 
     try runTest("0-0f", &[_]TokenType{ .token_int, .token_minus, .token_float });
     try runTest("0-1f", &[_]TokenType{ .token_int, .token_minus, .token_float });
+    try runTest("0--1f", &[_]TokenType{ .token_int, .token_minus, .token_float });
     try runTest("1-0f", &[_]TokenType{ .token_int, .token_minus, .token_float });
     try runTest("1-1f", &[_]TokenType{ .token_int, .token_minus, .token_float });
+    try runTest("1--1f", &[_]TokenType{ .token_int, .token_minus, .token_float });
+    try runTest("-1-0f", &[_]TokenType{ .token_int, .token_minus, .token_float });
+    try runTest("-1-1f", &[_]TokenType{ .token_int, .token_minus, .token_float });
+    try runTest("-1--1f", &[_]TokenType{ .token_int, .token_minus, .token_float });
 }
 
 test "scanner - float subtraction" {
@@ -149,16 +193,28 @@ test "scanner - float subtraction" {
     try runTest("0f-1b", &[_]TokenType{ .token_float, .token_minus, .token_bool });
     try runTest("1f-0b", &[_]TokenType{ .token_float, .token_minus, .token_bool });
     try runTest("1f-1b", &[_]TokenType{ .token_float, .token_minus, .token_bool });
+    try runTest("-1f-0b", &[_]TokenType{ .token_float, .token_minus, .token_bool });
+    try runTest("-1f-1b", &[_]TokenType{ .token_float, .token_minus, .token_bool });
 
     try runTest("0f-0", &[_]TokenType{ .token_float, .token_minus, .token_int });
     try runTest("0f-1", &[_]TokenType{ .token_float, .token_minus, .token_int });
+    try runTest("0f--1", &[_]TokenType{ .token_float, .token_minus, .token_int });
     try runTest("1f-0", &[_]TokenType{ .token_float, .token_minus, .token_int });
     try runTest("1f-1", &[_]TokenType{ .token_float, .token_minus, .token_int });
+    try runTest("1f--1", &[_]TokenType{ .token_float, .token_minus, .token_int });
+    try runTest("-1f-0", &[_]TokenType{ .token_float, .token_minus, .token_int });
+    try runTest("-1f-1", &[_]TokenType{ .token_float, .token_minus, .token_int });
+    try runTest("-1f--1", &[_]TokenType{ .token_float, .token_minus, .token_int });
 
     try runTest("0f-0f", &[_]TokenType{ .token_float, .token_minus, .token_float });
     try runTest("0f-1f", &[_]TokenType{ .token_float, .token_minus, .token_float });
+    try runTest("0f--1f", &[_]TokenType{ .token_float, .token_minus, .token_float });
     try runTest("1f-0f", &[_]TokenType{ .token_float, .token_minus, .token_float });
     try runTest("1f-1f", &[_]TokenType{ .token_float, .token_minus, .token_float });
+    try runTest("1f--1f", &[_]TokenType{ .token_float, .token_minus, .token_float });
+    try runTest("-1f-0f", &[_]TokenType{ .token_float, .token_minus, .token_float });
+    try runTest("-1f-1f", &[_]TokenType{ .token_float, .token_minus, .token_float });
+    try runTest("-1f--1f", &[_]TokenType{ .token_float, .token_minus, .token_float });
 }
 
 test "scanner - boolean multiplication" {
@@ -169,13 +225,17 @@ test "scanner - boolean multiplication" {
 
     try runTest("0b*0", &[_]TokenType{ .token_bool, .token_star, .token_int });
     try runTest("0b*1", &[_]TokenType{ .token_bool, .token_star, .token_int });
+    try runTest("0b*-1", &[_]TokenType{ .token_bool, .token_star, .token_int });
     try runTest("1b*0", &[_]TokenType{ .token_bool, .token_star, .token_int });
     try runTest("1b*1", &[_]TokenType{ .token_bool, .token_star, .token_int });
+    try runTest("1b*-1", &[_]TokenType{ .token_bool, .token_star, .token_int });
 
     try runTest("0b*0f", &[_]TokenType{ .token_bool, .token_star, .token_float });
     try runTest("0b*1f", &[_]TokenType{ .token_bool, .token_star, .token_float });
+    try runTest("0b*-1f", &[_]TokenType{ .token_bool, .token_star, .token_float });
     try runTest("1b*0f", &[_]TokenType{ .token_bool, .token_star, .token_float });
     try runTest("1b*1f", &[_]TokenType{ .token_bool, .token_star, .token_float });
+    try runTest("1b*-1f", &[_]TokenType{ .token_bool, .token_star, .token_float });
 }
 
 test "scanner - int multiplication" {
@@ -183,16 +243,28 @@ test "scanner - int multiplication" {
     try runTest("0*1b", &[_]TokenType{ .token_int, .token_star, .token_bool });
     try runTest("1*0b", &[_]TokenType{ .token_int, .token_star, .token_bool });
     try runTest("1*1b", &[_]TokenType{ .token_int, .token_star, .token_bool });
+    try runTest("-1*0b", &[_]TokenType{ .token_int, .token_star, .token_bool });
+    try runTest("-1*1b", &[_]TokenType{ .token_int, .token_star, .token_bool });
 
     try runTest("0*0", &[_]TokenType{ .token_int, .token_star, .token_int });
     try runTest("0*1", &[_]TokenType{ .token_int, .token_star, .token_int });
+    try runTest("0*-1", &[_]TokenType{ .token_int, .token_star, .token_int });
     try runTest("1*0", &[_]TokenType{ .token_int, .token_star, .token_int });
     try runTest("1*1", &[_]TokenType{ .token_int, .token_star, .token_int });
+    try runTest("1*-1", &[_]TokenType{ .token_int, .token_star, .token_int });
+    try runTest("-1*0", &[_]TokenType{ .token_int, .token_star, .token_int });
+    try runTest("-1*1", &[_]TokenType{ .token_int, .token_star, .token_int });
+    try runTest("-1*-1", &[_]TokenType{ .token_int, .token_star, .token_int });
 
     try runTest("0*0f", &[_]TokenType{ .token_int, .token_star, .token_float });
     try runTest("0*1f", &[_]TokenType{ .token_int, .token_star, .token_float });
+    try runTest("0*-1f", &[_]TokenType{ .token_int, .token_star, .token_float });
     try runTest("1*0f", &[_]TokenType{ .token_int, .token_star, .token_float });
     try runTest("1*1f", &[_]TokenType{ .token_int, .token_star, .token_float });
+    try runTest("1*-1f", &[_]TokenType{ .token_int, .token_star, .token_float });
+    try runTest("-1*0f", &[_]TokenType{ .token_int, .token_star, .token_float });
+    try runTest("-1*1f", &[_]TokenType{ .token_int, .token_star, .token_float });
+    try runTest("-1*-1f", &[_]TokenType{ .token_int, .token_star, .token_float });
 }
 
 test "scanner - float multiplication" {
@@ -200,16 +272,28 @@ test "scanner - float multiplication" {
     try runTest("0f*1b", &[_]TokenType{ .token_float, .token_star, .token_bool });
     try runTest("1f*0b", &[_]TokenType{ .token_float, .token_star, .token_bool });
     try runTest("1f*1b", &[_]TokenType{ .token_float, .token_star, .token_bool });
+    try runTest("-1f*0b", &[_]TokenType{ .token_float, .token_star, .token_bool });
+    try runTest("-1f*1b", &[_]TokenType{ .token_float, .token_star, .token_bool });
 
     try runTest("0f*0", &[_]TokenType{ .token_float, .token_star, .token_int });
     try runTest("0f*1", &[_]TokenType{ .token_float, .token_star, .token_int });
+    try runTest("0f*-1", &[_]TokenType{ .token_float, .token_star, .token_int });
     try runTest("1f*0", &[_]TokenType{ .token_float, .token_star, .token_int });
     try runTest("1f*1", &[_]TokenType{ .token_float, .token_star, .token_int });
+    try runTest("1f*-1", &[_]TokenType{ .token_float, .token_star, .token_int });
+    try runTest("-1f*0", &[_]TokenType{ .token_float, .token_star, .token_int });
+    try runTest("-1f*1", &[_]TokenType{ .token_float, .token_star, .token_int });
+    try runTest("-1f*-1", &[_]TokenType{ .token_float, .token_star, .token_int });
 
     try runTest("0f*0f", &[_]TokenType{ .token_float, .token_star, .token_float });
     try runTest("0f*1f", &[_]TokenType{ .token_float, .token_star, .token_float });
+    try runTest("0f*-1f", &[_]TokenType{ .token_float, .token_star, .token_float });
     try runTest("1f*0f", &[_]TokenType{ .token_float, .token_star, .token_float });
     try runTest("1f*1f", &[_]TokenType{ .token_float, .token_star, .token_float });
+    try runTest("1f*-1f", &[_]TokenType{ .token_float, .token_star, .token_float });
+    try runTest("-1f*0f", &[_]TokenType{ .token_float, .token_star, .token_float });
+    try runTest("-1f*1f", &[_]TokenType{ .token_float, .token_star, .token_float });
+    try runTest("-1f*-1f", &[_]TokenType{ .token_float, .token_star, .token_float });
 }
 
 test "scanner - boolean division" {
@@ -220,13 +304,17 @@ test "scanner - boolean division" {
 
     try runTest("0b%0", &[_]TokenType{ .token_bool, .token_percent, .token_int });
     try runTest("0b%1", &[_]TokenType{ .token_bool, .token_percent, .token_int });
+    try runTest("0b%-1", &[_]TokenType{ .token_bool, .token_percent, .token_int });
     try runTest("1b%0", &[_]TokenType{ .token_bool, .token_percent, .token_int });
     try runTest("1b%1", &[_]TokenType{ .token_bool, .token_percent, .token_int });
+    try runTest("1b%-1", &[_]TokenType{ .token_bool, .token_percent, .token_int });
 
     try runTest("0b%0f", &[_]TokenType{ .token_bool, .token_percent, .token_float });
     try runTest("0b%1f", &[_]TokenType{ .token_bool, .token_percent, .token_float });
+    try runTest("0b%-1f", &[_]TokenType{ .token_bool, .token_percent, .token_float });
     try runTest("1b%0f", &[_]TokenType{ .token_bool, .token_percent, .token_float });
     try runTest("1b%1f", &[_]TokenType{ .token_bool, .token_percent, .token_float });
+    try runTest("1b%-1f", &[_]TokenType{ .token_bool, .token_percent, .token_float });
 }
 
 test "scanner - int division" {
@@ -234,16 +322,28 @@ test "scanner - int division" {
     try runTest("0%1b", &[_]TokenType{ .token_int, .token_percent, .token_bool });
     try runTest("1%0b", &[_]TokenType{ .token_int, .token_percent, .token_bool });
     try runTest("1%1b", &[_]TokenType{ .token_int, .token_percent, .token_bool });
+    try runTest("-1%0b", &[_]TokenType{ .token_int, .token_percent, .token_bool });
+    try runTest("-1%1b", &[_]TokenType{ .token_int, .token_percent, .token_bool });
 
     try runTest("0%0", &[_]TokenType{ .token_int, .token_percent, .token_int });
     try runTest("0%1", &[_]TokenType{ .token_int, .token_percent, .token_int });
+    try runTest("0%-1", &[_]TokenType{ .token_int, .token_percent, .token_int });
     try runTest("1%0", &[_]TokenType{ .token_int, .token_percent, .token_int });
     try runTest("1%1", &[_]TokenType{ .token_int, .token_percent, .token_int });
+    try runTest("1%-1", &[_]TokenType{ .token_int, .token_percent, .token_int });
+    try runTest("-1%0", &[_]TokenType{ .token_int, .token_percent, .token_int });
+    try runTest("-1%1", &[_]TokenType{ .token_int, .token_percent, .token_int });
+    try runTest("-1%-1", &[_]TokenType{ .token_int, .token_percent, .token_int });
 
     try runTest("0%0f", &[_]TokenType{ .token_int, .token_percent, .token_float });
     try runTest("0%1f", &[_]TokenType{ .token_int, .token_percent, .token_float });
+    try runTest("0%-1f", &[_]TokenType{ .token_int, .token_percent, .token_float });
     try runTest("1%0f", &[_]TokenType{ .token_int, .token_percent, .token_float });
     try runTest("1%1f", &[_]TokenType{ .token_int, .token_percent, .token_float });
+    try runTest("1%-1f", &[_]TokenType{ .token_int, .token_percent, .token_float });
+    try runTest("-1%0f", &[_]TokenType{ .token_int, .token_percent, .token_float });
+    try runTest("-1%1f", &[_]TokenType{ .token_int, .token_percent, .token_float });
+    try runTest("-1%-1f", &[_]TokenType{ .token_int, .token_percent, .token_float });
 }
 
 test "scanner - float division" {
@@ -251,14 +351,26 @@ test "scanner - float division" {
     try runTest("0f%1b", &[_]TokenType{ .token_float, .token_percent, .token_bool });
     try runTest("1f%0b", &[_]TokenType{ .token_float, .token_percent, .token_bool });
     try runTest("1f%1b", &[_]TokenType{ .token_float, .token_percent, .token_bool });
+    try runTest("-1f%0b", &[_]TokenType{ .token_float, .token_percent, .token_bool });
+    try runTest("-1f%1b", &[_]TokenType{ .token_float, .token_percent, .token_bool });
 
     try runTest("0f%0", &[_]TokenType{ .token_float, .token_percent, .token_int });
     try runTest("0f%1", &[_]TokenType{ .token_float, .token_percent, .token_int });
+    try runTest("0f%-1", &[_]TokenType{ .token_float, .token_percent, .token_int });
     try runTest("1f%0", &[_]TokenType{ .token_float, .token_percent, .token_int });
     try runTest("1f%1", &[_]TokenType{ .token_float, .token_percent, .token_int });
+    try runTest("1f%-1", &[_]TokenType{ .token_float, .token_percent, .token_int });
+    try runTest("-1f%0", &[_]TokenType{ .token_float, .token_percent, .token_int });
+    try runTest("-1f%1", &[_]TokenType{ .token_float, .token_percent, .token_int });
+    try runTest("-1f%-1", &[_]TokenType{ .token_float, .token_percent, .token_int });
 
     try runTest("0f%0f", &[_]TokenType{ .token_float, .token_percent, .token_float });
     try runTest("0f%1f", &[_]TokenType{ .token_float, .token_percent, .token_float });
+    try runTest("0f%-1f", &[_]TokenType{ .token_float, .token_percent, .token_float });
     try runTest("1f%0f", &[_]TokenType{ .token_float, .token_percent, .token_float });
     try runTest("1f%1f", &[_]TokenType{ .token_float, .token_percent, .token_float });
+    try runTest("1f%-1f", &[_]TokenType{ .token_float, .token_percent, .token_float });
+    try runTest("-1f%0f", &[_]TokenType{ .token_float, .token_percent, .token_float });
+    try runTest("-1f%1f", &[_]TokenType{ .token_float, .token_percent, .token_float });
+    try runTest("-1f%-1f", &[_]TokenType{ .token_float, .token_percent, .token_float });
 }
