@@ -38,7 +38,7 @@ pub const ValueUnion = union(ValueType) {
     boolean_list: []*Value,
     int_list: []*Value,
     float_list: []*Value,
-    char_list: []*Value,
+    char_list: []const u8,
     symbol_list: []*Value,
 
     function: *ValueFunction,
@@ -151,9 +151,12 @@ pub const Value = struct {
                 .boolean_list,
                 .int_list,
                 .float_list,
-                .char_list,
-                .symbol_list,
                 => |list| {
+                    for (list) |value| value.deref(allocator);
+                    allocator.free(list);
+                },
+                .char_list => |list| allocator.free(list),
+                .symbol_list => |list| {
                     for (list) |value| value.deref(allocator);
                     allocator.free(list);
                 },
