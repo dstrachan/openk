@@ -48,8 +48,8 @@ pub const ValueUnion = union(ValueType) {
         switch (self) {
             .list => |list| {
                 try writer.writeAll("(");
-                for (list) |value| try writer.print("{}", .{value});
-                try writer.writeAll(")");
+                for (list[0 .. list.len - 1]) |value| try writer.print("{};", .{value.as});
+                try writer.print("{})", .{list[list.len - 1].as});
             },
             .nil => try writer.writeAll("(::)"),
             .boolean => |boolean| try writer.writeAll(if (boolean) "1b" else "0b"),
@@ -74,13 +74,11 @@ pub const ValueUnion = union(ValueType) {
             },
             .char_list => |list| {
                 try writer.writeAll("\"");
-                for (list) |char| try printChar(writer, char);
+                for (list) |value| try printChar(writer, value.as.char);
                 try writer.writeAll("\"");
             },
             .symbol => |symbol| try writer.print("`{s}", .{symbol}),
-            .symbol_list => |list| {
-                for (list) |value| try writer.print("`{s}", .{value.as.symbol});
-            },
+            .symbol_list => |list| for (list) |value| try writer.print("`{s}", .{value.as.symbol}),
             .function => |function| if (function.name) |name| try writer.print("{s}", .{name}) else try writer.writeAll("script"),
             .projection => |projection| {
                 const function = projection.value.as.function;
