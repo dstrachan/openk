@@ -20,6 +20,7 @@ const print = utils_mod.print;
 const value_mod = @import("value.zig");
 const Value = value_mod.Value;
 const ValueFn = value_mod.ValueFunction;
+const ValueType = value_mod.ValueType;
 
 const vm_mod = @import("vm.zig");
 const VM = vm_mod.VM;
@@ -170,6 +171,10 @@ fn makeConstant(value: *Value) u8 {
     }
 
     return @intCast(u8, constant);
+}
+
+fn getValue(constant: u8) *Value {
+    return currentChunk().constants.items[constant];
 }
 
 fn endCompiler(node: *Node) *ValueFn {
@@ -459,8 +464,138 @@ fn binary(node: *Node) CompilerError!*Node {
 }
 
 fn grouping() CompilerError!*Node {
-    defer consume(.token_right_paren, "Expect ')' after expression.");
-    return try expression();
+    const first_node = try expression();
+    if (match(.token_right_paren)) {
+        return first_node;
+    }
+
+    if (check(.token_semicolon)) {
+        var list = std.ArrayList(*Node).init(current.vm.allocator);
+        defer list.deinit();
+
+        var all_constants = first_node.op_code == .op_constant;
+        var value_type = if (all_constants) @as(ValueType, getValue(first_node.byte.?).as) else .list;
+
+        list.append(first_node) catch std.debug.panic("Failed to append item.", .{});
+        while (match(.token_semicolon)) {
+            const node = try expression();
+            all_constants = if (all_constants and node.op_code == .op_constant) true else false;
+            if (all_constants and value_type != @as(ValueType, getValue(node.byte.?).as)) {
+                value_type = .list;
+            }
+            list.append(node) catch std.debug.panic("Failed to append item.", .{});
+        }
+        consume(.token_right_paren, "Expect ')' after list.");
+
+        return createList(list, value_type, all_constants);
+    }
+
+    errorAtCurrent("Expect ')' after expression.");
+    return CompilerError.compile_error;
+}
+
+// TODO: Reuse constant slots
+fn createList(nodes: std.ArrayList(*Node), value_type: ValueType, all_constants: bool) *Node {
+    if (all_constants) {
+        const list_type: ValueType = switch (value_type) {
+            .boolean => .boolean_list,
+            .int => .int_list,
+            .float => .float_list,
+            .char => .char_list,
+            .symbol => .symbol_list,
+            else => .list,
+        };
+        const value = switch (list_type) {
+            .boolean_list => blk: {
+                const list = current.vm.allocator.alloc(bool, nodes.items.len) catch std.debug.panic("Failed to create list.", .{});
+
+                for (nodes.items) |node, i| {
+                    list[i] = getValue(node.byte.?).as.boolean;
+                    node.deinit(current.vm.allocator);
+                }
+
+                break :blk current.vm.initValue(.{ .boolean_list = list });
+            },
+            .int_list => blk: {
+                const list = current.vm.allocator.alloc(i64, nodes.items.len) catch std.debug.panic("Failed to create list.", .{});
+
+                for (nodes.items) |node, i| {
+                    list[i] = getValue(node.byte.?).as.int;
+                    node.deinit(current.vm.allocator);
+                }
+
+                break :blk current.vm.initValue(.{ .int_list = list });
+            },
+            .float_list => blk: {
+                const list = current.vm.allocator.alloc(f64, nodes.items.len) catch std.debug.panic("Failed to create list.", .{});
+
+                for (nodes.items) |node, i| {
+                    list[i] = getValue(node.byte.?).as.float;
+                    node.deinit(current.vm.allocator);
+                }
+
+                break :blk current.vm.initValue(.{ .float_list = list });
+            },
+            .char_list => blk: {
+                const list = current.vm.allocator.alloc(u8, nodes.items.len) catch std.debug.panic("Failed to create list.", .{});
+
+                for (nodes.items) |node, i| {
+                    list[i] = getValue(node.byte.?).as.char;
+                    node.deinit(current.vm.allocator);
+                }
+
+                break :blk current.vm.initValue(.{ .char_list = list });
+            },
+            .symbol_list => blk: {
+                const list = current.vm.allocator.alloc(*Value, nodes.items.len) catch std.debug.panic("Failed to create list.", .{});
+
+                for (nodes.items) |node, i| {
+                    list[i] = getValue(node.byte.?).ref();
+                    node.deinit(current.vm.allocator);
+                }
+
+                break :blk current.vm.initValue(.{ .symbol_list = list });
+            },
+            .list => blk: {
+                const list = current.vm.allocator.alloc(*Value, nodes.items.len) catch std.debug.panic("Failed to create list.", .{});
+
+                for (nodes.items) |node, i| {
+                    list[i] = getValue(node.byte.?).ref();
+                    node.deinit(current.vm.allocator);
+                }
+
+                break :blk current.vm.initValue(.{ .list = list });
+            },
+            else => unreachable,
+        };
+        return Node.init(.{ .op_code = .op_constant, .byte = makeConstant(value) }, current.vm.allocator);
+    }
+
+    // (0+0;1+1)     => 1, 1, op_add, 0, 0, op_add, op_concat
+    // (0+0;1+1;2+2) => 2, 2, op_add, 1, 1, op_add, op_concat, 0, 0, op_add, op_concat
+
+    print("\n\n==========\n\n", .{});
+    var j = nodes.items.len;
+    while (j > 0) : (j -= 1) {
+        print("node = {}\n", .{nodes.items[j - 1]});
+    }
+    print("\n\n==========\n\n", .{});
+
+    // TODO: Implement runtime op_concat
+    // This might be simpler if we maintain the node tree structure, rather than creating a simple list
+    // const top_node = Node.init(.{ .op_code = .op_concat }, current.vm.allocator);
+    // var prev_node = top_node;
+    // var i: usize = 0;
+    // while (i < nodes.items.len) : (i += 1) {
+    //     const node = nodes.items[i];
+    //     var rhs = &prev_node.rhs;
+    //     while (rhs.* != null) {
+    //         rhs = &rhs.*.?.rhs;
+    //     }
+    //     rhs.* = node;
+    //     prev_node = node;
+    // }
+    // return top_node;
 }
 
 fn block() CompilerError!*Node {
