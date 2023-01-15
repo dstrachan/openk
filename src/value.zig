@@ -35,10 +35,10 @@ pub const ValueUnion = union(ValueType) {
 
     list: []*Value,
 
-    boolean_list: []const bool,
-    int_list: []const i64,
-    float_list: []const f64,
-    char_list: []const u8,
+    boolean_list: []*Value,
+    int_list: []*Value,
+    float_list: []*Value,
+    char_list: []*Value,
     symbol_list: []*Value,
 
     function: *ValueFunction,
@@ -54,18 +54,18 @@ pub const ValueUnion = union(ValueType) {
             .nil => try writer.writeAll("(::)"),
             .boolean => |boolean| try writer.writeAll(if (boolean) "1b" else "0b"),
             .boolean_list => |list| {
-                for (list) |boolean| try writer.writeAll(if (boolean) "1" else "0");
+                for (list) |value| try writer.writeAll(if (value.as.boolean) "1" else "0");
                 try writer.writeAll("b");
             },
             .int => |int| try writer.print("{d}", .{int}),
             .int_list => |list| {
-                for (list[0 .. list.len - 1]) |int| try writer.print("{d} ", .{int});
-                try writer.print("{d}", .{list[list.len - 1]});
+                for (list[0 .. list.len - 1]) |value| try writer.print("{d} ", .{value.as.int});
+                try writer.print("{d}", .{list[list.len - 1].as.int});
             },
             .float => |float| try writer.print("{d}f", .{float}),
             .float_list => |list| {
-                for (list[0 .. list.len - 1]) |float| try writer.print("{d} ", .{float});
-                try writer.print("{d}f", .{list[list.len - 1]});
+                for (list[0 .. list.len - 1]) |value| try writer.print("{d} ", .{value.as.float});
+                try writer.print("{d}f", .{list[list.len - 1].as.float});
             },
             .char => |char| {
                 try writer.writeAll("\"");
@@ -74,7 +74,7 @@ pub const ValueUnion = union(ValueType) {
             },
             .char_list => |list| {
                 try writer.writeAll("\"");
-                for (list) |char| try printChar(writer, char);
+                for (list) |value| try printChar(writer, value.as.char);
                 try writer.writeAll("\"");
             },
             .symbol => |symbol| try writer.print("`{s}", .{symbol}),
@@ -147,15 +147,13 @@ pub const Value = struct {
                 .symbol => |symbol| allocator.free(symbol),
                 .function => |function| function.deinit(allocator),
                 .projection => |projection| projection.deinit(allocator),
-                .list => |list| {
-                    for (list) |value| value.deref(allocator);
-                    allocator.free(list);
-                },
-                .boolean_list => |list| allocator.free(list),
-                .int_list => |list| allocator.free(list),
-                .float_list => |list| allocator.free(list),
-                .char_list => |list| allocator.free(list),
-                .symbol_list => |list| {
+                .list,
+                .boolean_list,
+                .int_list,
+                .float_list,
+                .char_list,
+                .symbol_list,
+                => |list| {
                     for (list) |value| value.deref(allocator);
                     allocator.free(list);
                 },

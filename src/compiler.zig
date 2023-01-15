@@ -228,17 +228,15 @@ fn number() CompilerError!*Node {
         .token_int => blk: {
             switch (parser.current.token_type) {
                 .token_int => {
-                    var iList = std.ArrayList(i64).init(current.vm.allocator);
-                    defer iList.deinit();
-                    iList.append(parseInt(parser.previous.lexeme)) catch std.debug.panic("Failed to append item.", .{});
+                    var list = std.ArrayList(*Value).init(current.vm.allocator);
+                    defer list.deinit();
+                    list.append(parseInt(parser.previous.lexeme)) catch std.debug.panic("Failed to append item.", .{});
 
                     while (parser.current.token_type == .token_int or parser.current.token_type == .token_float) {
                         if (parser.current.token_type == .token_float) { // switch to parsing floats
-                            var list = std.ArrayList(f64).init(current.vm.allocator);
-                            defer list.deinit();
-
-                            for (iList.items) |i| {
-                                list.append(@intToFloat(f64, i)) catch std.debug.panic("Failed to append item.", .{});
+                            for (list.items) |value, i| {
+                                list.items[i] = current.vm.initValue(.{ .float = @intToFloat(f64, value.as.int) });
+                                value.deref(current.vm.allocator);
                             }
 
                             list.append(parseFloat(parser.current.lexeme)) catch std.debug.panic("Failed to append item.", .{});
@@ -253,15 +251,15 @@ fn number() CompilerError!*Node {
                             break :blk current.vm.initValue(.{ .float_list = slice });
                         }
 
-                        iList.append(parseInt(parser.current.lexeme)) catch std.debug.panic("Failed to append item.", .{});
+                        list.append(parseInt(parser.current.lexeme)) catch std.debug.panic("Failed to append item.", .{});
                         advance();
                     }
 
-                    const slice = iList.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                    const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
                     break :blk current.vm.initValue(.{ .int_list = slice });
                 },
                 .token_float => {
-                    var list = std.ArrayList(f64).init(current.vm.allocator);
+                    var list = std.ArrayList(*Value).init(current.vm.allocator);
                     defer list.deinit();
                     list.append(parseFloat(parser.previous.lexeme)) catch std.debug.panic("Failed to append item.", .{});
 
@@ -273,13 +271,13 @@ fn number() CompilerError!*Node {
                     const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
                     break :blk current.vm.initValue(.{ .float_list = slice });
                 },
-                else => break :blk current.vm.initValue(.{ .int = parseInt(parser.previous.lexeme) }),
+                else => break :blk parseInt(parser.previous.lexeme),
             }
         },
         .token_float => blk: {
             switch (parser.current.token_type) {
                 .token_int, .token_float => {
-                    var list = std.ArrayList(f64).init(current.vm.allocator);
+                    var list = std.ArrayList(*Value).init(current.vm.allocator);
                     defer list.deinit();
                     list.append(parseFloat(parser.previous.lexeme)) catch std.debug.panic("Failed to append item.", .{});
 
@@ -291,7 +289,7 @@ fn number() CompilerError!*Node {
                     const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
                     break :blk current.vm.initValue(.{ .float_list = slice });
                 },
-                else => break :blk current.vm.initValue(.{ .float = parseFloat(parser.previous.lexeme) }),
+                else => break :blk parseFloat(parser.previous.lexeme),
             }
         },
         else => unreachable,
@@ -301,21 +299,23 @@ fn number() CompilerError!*Node {
 
 fn parseBool(str: []const u8) *Value {
     if (str.len > 2) {
-        const list = current.vm.allocator.alloc(bool, str.len - 1) catch std.debug.panic("Failed to create list", .{});
+        const list = current.vm.allocator.alloc(*Value, str.len - 1) catch std.debug.panic("Failed to create list", .{});
         for (str[0 .. str.len - 1]) |c, i| {
-            list[i] = c == '1';
+            list[i] = current.vm.initValue(.{ .boolean = c == '1' });
         }
         return current.vm.initValue(.{ .boolean_list = list });
     }
     return current.vm.initValue(.{ .boolean = str[0] == '1' });
 }
 
-fn parseInt(str: []const u8) i64 {
-    return std.fmt.parseInt(i64, str, 10) catch std.debug.panic("Failed to parse int", .{});
+fn parseInt(str: []const u8) *Value {
+    const int = std.fmt.parseInt(i64, str, 10) catch std.debug.panic("Failed to parse int", .{});
+    return current.vm.initValue(.{ .int = int });
 }
 
-fn parseFloat(str: []const u8) f64 {
-    return std.fmt.parseFloat(f64, str) catch std.debug.panic("Failed to parse float", .{});
+fn parseFloat(str: []const u8) *Value {
+    const float = std.fmt.parseFloat(f64, str) catch std.debug.panic("Failed to parse float", .{});
+    return current.vm.initValue(.{ .float = float });
 }
 
 fn symbol() CompilerError!*Node {
@@ -346,7 +346,7 @@ fn char() CompilerError!*Node {
 }
 
 fn string() CompilerError!*Node {
-    var list = std.ArrayList(u8).init(current.vm.allocator);
+    var list = std.ArrayList(*Value).init(current.vm.allocator);
     defer list.deinit();
 
     var is_escaped = false;
@@ -356,7 +356,7 @@ fn string() CompilerError!*Node {
             continue;
         }
         is_escaped = false;
-        list.append(c) catch std.debug.panic("Failed to append item", .{});
+        list.append(current.vm.initValue(.{ .char = c })) catch std.debug.panic("Failed to append item", .{});
     }
 
     const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create string", .{});
@@ -505,97 +505,37 @@ fn createList(nodes: std.ArrayList(*Node), value_type: ValueType, all_constants:
             .symbol => .symbol_list,
             else => .list,
         };
+        const list = current.vm.allocator.alloc(*Value, nodes.items.len) catch std.debug.panic("Failed to create list.", .{});
+        for (nodes.items) |node, i| {
+            list[i] = getValue(node.byte.?);
+            node.deinit(current.vm.allocator);
+        }
         const value = switch (list_type) {
-            .boolean_list => blk: {
-                const list = current.vm.allocator.alloc(bool, nodes.items.len) catch std.debug.panic("Failed to create list.", .{});
-
-                for (nodes.items) |node, i| {
-                    list[i] = getValue(node.byte.?).as.boolean;
-                    node.deinit(current.vm.allocator);
-                }
-
-                break :blk current.vm.initValue(.{ .boolean_list = list });
-            },
-            .int_list => blk: {
-                const list = current.vm.allocator.alloc(i64, nodes.items.len) catch std.debug.panic("Failed to create list.", .{});
-
-                for (nodes.items) |node, i| {
-                    list[i] = getValue(node.byte.?).as.int;
-                    node.deinit(current.vm.allocator);
-                }
-
-                break :blk current.vm.initValue(.{ .int_list = list });
-            },
-            .float_list => blk: {
-                const list = current.vm.allocator.alloc(f64, nodes.items.len) catch std.debug.panic("Failed to create list.", .{});
-
-                for (nodes.items) |node, i| {
-                    list[i] = getValue(node.byte.?).as.float;
-                    node.deinit(current.vm.allocator);
-                }
-
-                break :blk current.vm.initValue(.{ .float_list = list });
-            },
-            .char_list => blk: {
-                const list = current.vm.allocator.alloc(u8, nodes.items.len) catch std.debug.panic("Failed to create list.", .{});
-
-                for (nodes.items) |node, i| {
-                    list[i] = getValue(node.byte.?).as.char;
-                    node.deinit(current.vm.allocator);
-                }
-
-                break :blk current.vm.initValue(.{ .char_list = list });
-            },
-            .symbol_list => blk: {
-                const list = current.vm.allocator.alloc(*Value, nodes.items.len) catch std.debug.panic("Failed to create list.", .{});
-
-                for (nodes.items) |node, i| {
-                    list[i] = getValue(node.byte.?).ref();
-                    node.deinit(current.vm.allocator);
-                }
-
-                break :blk current.vm.initValue(.{ .symbol_list = list });
-            },
-            .list => blk: {
-                const list = current.vm.allocator.alloc(*Value, nodes.items.len) catch std.debug.panic("Failed to create list.", .{});
-
-                for (nodes.items) |node, i| {
-                    list[i] = getValue(node.byte.?).ref();
-                    node.deinit(current.vm.allocator);
-                }
-
-                break :blk current.vm.initValue(.{ .list = list });
-            },
+            .boolean_list => current.vm.initValue(.{ .boolean_list = list }),
+            .int_list => current.vm.initValue(.{ .int_list = list }),
+            .float_list => current.vm.initValue(.{ .float_list = list }),
+            .char_list => current.vm.initValue(.{ .char_list = list }),
+            .symbol_list => current.vm.initValue(.{ .symbol_list = list }),
+            .list => current.vm.initValue(.{ .list = list }),
             else => unreachable,
         };
         return Node.init(.{ .op_code = .op_constant, .byte = makeConstant(value) }, current.vm.allocator);
     }
 
-    // (0+0;1+1)     => 1, 1, op_add, 0, 0, op_add, op_concat
-    // (0+0;1+1;2+2) => 2, 2, op_add, 1, 1, op_add, op_concat, 0, 0, op_add, op_concat
+    const bottom_node = Node.init(.{ .op_code = .op_concat }, current.vm.allocator);
+    bottom_node.rhs = nodes.items[nodes.items.len - 1];
+    bottom_node.lhs = nodes.items[nodes.items.len - 2];
+    var prev_node = bottom_node;
 
-    print("\n\n==========\n\n", .{});
-    var j = nodes.items.len;
-    while (j > 0) : (j -= 1) {
-        print("node = {}\n", .{nodes.items[j - 1]});
+    var i = nodes.items.len - 2;
+    while (i > 0) : (i -= 1) {
+        const node = Node.init(.{ .op_code = .op_concat }, current.vm.allocator);
+        node.lhs = nodes.items[i - 1];
+        node.rhs = prev_node;
+        prev_node = node;
     }
-    print("\n\n==========\n\n", .{});
 
-    // TODO: Implement runtime op_concat
-    // This might be simpler if we maintain the node tree structure, rather than creating a simple list
-    // const top_node = Node.init(.{ .op_code = .op_concat }, current.vm.allocator);
-    // var prev_node = top_node;
-    // var i: usize = 0;
-    // while (i < nodes.items.len) : (i += 1) {
-    //     const node = nodes.items[i];
-    //     var rhs = &prev_node.rhs;
-    //     while (rhs.* != null) {
-    //         rhs = &rhs.*.?.rhs;
-    //     }
-    //     rhs.* = node;
-    //     prev_node = node;
-    // }
-    // return top_node;
+    return prev_node;
 }
 
 fn block() CompilerError!*Node {
