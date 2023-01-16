@@ -38,7 +38,7 @@ pub const ValueUnion = union(ValueType) {
     boolean_list: []*Value,
     int_list: []*Value,
     float_list: []*Value,
-    char_list: []const u8,
+    char_list: []*Value,
     symbol_list: []*Value,
 
     function: *ValueFunction,
