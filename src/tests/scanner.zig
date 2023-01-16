@@ -24,8 +24,11 @@ fn runTest(input: []const u8, expected: []const TokenType) !void {
 test "scanner - bool" {
     try runTest("0b", &[_]TokenType{.token_bool});
     try runTest("1b", &[_]TokenType{.token_bool});
+    try runTest("00b", &[_]TokenType{.token_bool});
+    try runTest("11b", &[_]TokenType{.token_bool});
 
     try runTest("2b", &[_]TokenType{.token_error});
+    try runTest("22b", &[_]TokenType{.token_error});
 
     try runTest("-1b", &[_]TokenType{ .token_int, .token_identifier });
 }
@@ -35,6 +38,11 @@ test "scanner - int" {
     try runTest("1", &[_]TokenType{.token_int});
 
     try runTest("-1", &[_]TokenType{.token_int});
+
+    try runTest("1 2", &[_]TokenType{ .token_int, .token_int });
+    try runTest("-1 2", &[_]TokenType{ .token_int, .token_int });
+    try runTest("1 -2", &[_]TokenType{ .token_int, .token_int });
+    try runTest("-1 -2", &[_]TokenType{ .token_int, .token_int });
 
     try runTest("- 1", &[_]TokenType{ .token_minus, .token_int });
 }
@@ -56,6 +64,13 @@ test "scanner - float" {
     try runTest("-.0", &[_]TokenType{.token_float});
     try runTest("-.0f", &[_]TokenType{.token_float});
 
+    try runTest("1 2f", &[_]TokenType{ .token_int, .token_float });
+    try runTest("-1 2f", &[_]TokenType{ .token_int, .token_float });
+    try runTest("1 -2f", &[_]TokenType{ .token_int, .token_float });
+    try runTest("-1 -2f", &[_]TokenType{ .token_int, .token_float });
+
+    try runTest("- 1f", &[_]TokenType{ .token_minus, .token_float });
+
     try runTest("0.0.0", &[_]TokenType{.token_error});
 }
 
@@ -73,6 +88,22 @@ test "scanner - string" {
 
     try runTest("\"", &[_]TokenType{.token_error});
     try runTest("\"\"\"", &[_]TokenType{ .token_string, .token_error });
+}
+
+test "scanner - symbol" {
+    try runTest("`", &[_]TokenType{.token_symbol});
+    try runTest("`a", &[_]TokenType{.token_symbol});
+
+    try runTest("`a-b", &[_]TokenType{ .token_symbol, .token_minus, .token_identifier });
+
+    try runTest("``", &[_]TokenType{ .token_symbol, .token_symbol });
+    try runTest("``a", &[_]TokenType{ .token_symbol, .token_symbol });
+    try runTest("`a`", &[_]TokenType{ .token_symbol, .token_symbol });
+    try runTest("`a`a", &[_]TokenType{ .token_symbol, .token_symbol });
+}
+
+test "scanner - list" {
+    try runTest("(0;1)", &[_]TokenType{ .token_left_paren, .token_int, .token_semicolon, .token_int, .token_right_paren });
 }
 
 test "scanner - boolean addition" {
