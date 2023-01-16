@@ -14,11 +14,13 @@ pub const OpCode = enum {
     op_set_local,
     op_get_global,
     op_set_global,
+    op_enlist,
     op_add,
     op_subtract,
     op_multiply,
     op_divide,
     op_concat,
+    op_merge,
     op_call,
     op_return,
 };

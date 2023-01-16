@@ -38,7 +38,7 @@ fn runTestError(input: []const u8) !void {
     value.deref(std.testing.allocator);
 }
 
-test "compiler bool" {
+test "compiler - bool" {
     try runTest("0b", &[_]ValueUnion{.{ .boolean = false }});
     try runTest("1b", &[_]ValueUnion{.{ .boolean = true }});
 
@@ -46,7 +46,7 @@ test "compiler bool" {
     try runTestError("-1b");
 }
 
-test "compiler int" {
+test "compiler - int" {
     try runTest("0", &[_]ValueUnion{.{ .int = 0 }});
     try runTest("1", &[_]ValueUnion{.{ .int = 1 }});
 
@@ -55,7 +55,7 @@ test "compiler int" {
     try runTestError("- 1");
 }
 
-test "compiler float" {
+test "compiler - float" {
     try runTest("1f", &[_]ValueUnion{.{ .float = 1 }});
     try runTest("1.", &[_]ValueUnion{.{ .float = 1 }});
     try runTest("1.f", &[_]ValueUnion{.{ .float = 1 }});
@@ -74,6 +74,12 @@ test "compiler float" {
 
     try runTestError("0.0.0");
 }
+
+test "compiler - char" {}
+
+test "compiler - symbol" {}
+
+test "compiler - list" {}
 
 test "compiler - boolean addition" {
     try runTest("0b+0b", &[_]ValueUnion{ .{ .boolean = false }, .{ .boolean = false } });
