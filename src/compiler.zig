@@ -452,7 +452,7 @@ fn binary(node: *Node) CompilerError!*Node {
             .token_minus => .op_subtract,
             .token_star => .op_multiply,
             .token_percent => .op_divide,
-            .token_comma => .op_concat,
+            .token_comma => .op_merge,
             else => unreachable,
         },
     }, current.vm.allocator);
@@ -472,6 +472,7 @@ fn grouping() CompilerError!*Node {
     if (check(.token_semicolon)) {
         var list = std.ArrayList(*Node).init(current.vm.allocator);
         defer list.deinit();
+        errdefer for (list.items) |node| node.deinit(current.vm.allocator);
 
         var all_constants = first_node.op_code == .op_constant;
         var value_type = if (all_constants) @as(ValueType, getValue(first_node.byte.?).as) else .list;
@@ -507,7 +508,7 @@ fn createList(nodes: std.ArrayList(*Node), value_type: ValueType, all_constants:
         };
         const list = current.vm.allocator.alloc(*Value, nodes.items.len) catch std.debug.panic("Failed to create list.", .{});
         for (nodes.items) |node, i| {
-            list[i] = getValue(node.byte.?);
+            list[i] = getValue(node.byte.?).ref();
             node.deinit(current.vm.allocator);
         }
         const value = switch (list_type) {
@@ -529,7 +530,7 @@ fn createList(nodes: std.ArrayList(*Node), value_type: ValueType, all_constants:
 
     var i = nodes.items.len - 2;
     while (i > 0) : (i -= 1) {
-        const node = Node.init(.{ .op_code = .op_concat }, current.vm.allocator);
+        const node = Node.init(.{ .op_code = .op_merge }, current.vm.allocator);
         node.lhs = nodes.items[i - 1];
         node.rhs = prev_node;
         prev_node = node;
@@ -607,6 +608,17 @@ fn pop() CompilerError!*Node {
     return Node.init(.{ .op_code = .op_pop }, current.vm.allocator);
 }
 
+fn unary() CompilerError!*Node {
+    const node = Node.init(.{
+        .op_code = switch (parser.previous.token_type) {
+            .token_comma => .op_enlist,
+            else => unreachable,
+        },
+    }, current.vm.allocator);
+    node.rhs = try parsePrecedence(getRule(parser.previous.token_type).precedence, true);
+    return node;
+}
+
 fn parsePrecedence(precedence: Precedence, should_advance: bool) CompilerError!*Node {
     if (should_advance) advance();
     const prefixRule = getRule(parser.previous.token_type).prefix orelse {
@@ -650,7 +662,7 @@ fn getRule(token_type: TokenType) ParseRule {
         .token_equal         => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
         .token_tilde         => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
         .token_bang          => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
-        .token_comma         => ParseRule{ .prefix = null,     .infix = binary, .precedence = .prec_secondary },
+        .token_comma         => ParseRule{ .prefix = unary,    .infix = binary, .precedence = .prec_secondary },
         .token_at            => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
         .token_question      => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
         .token_caret         => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },

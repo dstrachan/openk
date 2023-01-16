@@ -46,39 +46,50 @@ pub const ValueUnion = union(ValueType) {
 
     pub fn format(self: Self, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
         switch (self) {
-            .list => |list| {
-                try writer.writeAll("(");
-                for (list[0 .. list.len - 1]) |value| try writer.print("{};", .{value.as});
-                try writer.print("{})", .{list[list.len - 1].as});
-            },
             .nil => try writer.writeAll("(::)"),
             .boolean => |boolean| try writer.writeAll(if (boolean) "1b" else "0b"),
-            .boolean_list => |list| {
-                for (list) |value| try writer.writeAll(if (value.as.boolean) "1" else "0");
-                try writer.writeAll("b");
-            },
             .int => |int| try writer.print("{d}", .{int}),
-            .int_list => |list| {
-                for (list[0 .. list.len - 1]) |value| try writer.print("{d} ", .{value.as.int});
-                try writer.print("{d}", .{list[list.len - 1].as.int});
-            },
             .float => |float| try writer.print("{d}f", .{float}),
-            .float_list => |list| {
-                for (list[0 .. list.len - 1]) |value| try writer.print("{d} ", .{value.as.float});
-                try writer.print("{d}f", .{list[list.len - 1].as.float});
-            },
             .char => |char| {
                 try writer.writeAll("\"");
                 try printChar(writer, char);
                 try writer.writeAll("\"");
             },
+            .symbol => |symbol| try writer.print("`{s}", .{symbol}),
+            .list => |list| {
+                if (list.len == 1) {
+                    try writer.print(",{}", .{list[0].as});
+                } else {
+                    try writer.writeAll("(");
+                    for (list[0 .. list.len - 1]) |value| try writer.print("{};", .{value.as});
+                    try writer.print("{})", .{list[list.len - 1].as});
+                }
+            },
+            .boolean_list => |list| {
+                if (list.len == 1) try writer.writeAll(",");
+                for (list) |value| try writer.writeAll(if (value.as.boolean) "1" else "0");
+                try writer.writeAll("b");
+            },
+            .int_list => |list| {
+                if (list.len == 1) try writer.writeAll(",");
+                for (list[0 .. list.len - 1]) |value| try writer.print("{d} ", .{value.as.int});
+                try writer.print("{d}", .{list[list.len - 1].as.int});
+            },
+            .float_list => |list| {
+                if (list.len == 1) try writer.writeAll(",");
+                for (list[0 .. list.len - 1]) |value| try writer.print("{d} ", .{value.as.float});
+                try writer.print("{d}f", .{list[list.len - 1].as.float});
+            },
             .char_list => |list| {
+                if (list.len == 1) try writer.writeAll(",");
                 try writer.writeAll("\"");
                 for (list) |value| try printChar(writer, value.as.char);
                 try writer.writeAll("\"");
             },
-            .symbol => |symbol| try writer.print("`{s}", .{symbol}),
-            .symbol_list => |list| for (list) |value| try writer.print("`{s}", .{value.as.symbol}),
+            .symbol_list => |list| {
+                if (list.len == 1) try writer.writeAll(",");
+                for (list) |value| try writer.print("`{s}", .{value.as.symbol});
+            },
             .function => |function| if (function.name) |name| try writer.print("{s}", .{name}) else try writer.writeAll("script"),
             .projection => |projection| {
                 const function = projection.value.as.function;
@@ -130,12 +141,50 @@ pub const Value = struct {
     pub fn ref(self: *Self) *Self {
         print("{} => [{d}]\n", .{ self, self.reference_count + 1 });
         self.reference_count += 1;
+        switch (self.as) {
+            .nil,
+            .boolean,
+            .int,
+            .float,
+            .char,
+            .symbol,
+            .function,
+            .projection,
+            => {},
+            .list,
+            .boolean_list,
+            .int_list,
+            .float_list,
+            .char_list,
+            .symbol_list,
+            => |list| {
+                for (list) |value| _ = value.ref();
+            },
+        }
         return self;
     }
 
     pub fn deref(self: *Self, allocator: std.mem.Allocator) void {
         print("{} => [{d}]\n", .{ self, self.reference_count - 1 });
         self.reference_count -= 1;
+        switch (self.as) {
+            .nil,
+            .boolean,
+            .int,
+            .float,
+            .char,
+            .symbol,
+            .function,
+            .projection,
+            => {},
+            .list,
+            .boolean_list,
+            .int_list,
+            .float_list,
+            .char_list,
+            .symbol_list,
+            => |list| for (list) |value| value.deref(allocator),
+        }
         if (self.reference_count == 0) {
             switch (self.as) {
                 .nil,
@@ -151,15 +200,9 @@ pub const Value = struct {
                 .boolean_list,
                 .int_list,
                 .float_list,
-                => |list| {
-                    for (list) |value| value.deref(allocator);
-                    allocator.free(list);
-                },
-                .char_list => |list| allocator.free(list),
-                .symbol_list => |list| {
-                    for (list) |value| value.deref(allocator);
-                    allocator.free(list);
-                },
+                .char_list,
+                .symbol_list,
+                => |list| allocator.free(list),
             }
             allocator.destroy(self);
         }
