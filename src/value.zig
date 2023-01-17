@@ -57,7 +57,9 @@ pub const ValueUnion = union(ValueType) {
             },
             .symbol => |symbol| try writer.print("`{s}", .{symbol}),
             .list => |list| {
-                if (list.len == 1) {
+                if (list.len == 0) {
+                    try writer.writeAll("()");
+                } else if (list.len == 1) {
                     try writer.print(",{}", .{list[0].as});
                 } else {
                     try writer.writeAll("(");
@@ -66,16 +68,28 @@ pub const ValueUnion = union(ValueType) {
                 }
             },
             .boolean_list => |list| {
+                if (list.len == 0) {
+                    try writer.writeAll("`boolean$()");
+                    return;
+                }
                 if (list.len == 1) try writer.writeAll(",");
                 for (list) |value| try writer.writeAll(if (value.as.boolean) "1" else "0");
                 try writer.writeAll("b");
             },
             .int_list => |list| {
+                if (list.len == 0) {
+                    try writer.writeAll("`int$()");
+                    return;
+                }
                 if (list.len == 1) try writer.writeAll(",");
                 for (list[0 .. list.len - 1]) |value| try writer.print("{d} ", .{value.as.int});
                 try writer.print("{d}", .{list[list.len - 1].as.int});
             },
             .float_list => |list| {
+                if (list.len == 0) {
+                    try writer.writeAll("`float$()");
+                    return;
+                }
                 if (list.len == 1) try writer.writeAll(",");
                 for (list[0 .. list.len - 1]) |value| try writer.print("{d} ", .{value.as.float});
                 try writer.print("{d}f", .{list[list.len - 1].as.float});
@@ -87,6 +101,10 @@ pub const ValueUnion = union(ValueType) {
                 try writer.writeAll("\"");
             },
             .symbol_list => |list| {
+                if (list.len == 0) {
+                    try writer.writeAll("`symbol$()");
+                    return;
+                }
                 if (list.len == 1) try writer.writeAll(",");
                 for (list) |value| try writer.print("`{s}", .{value.as.symbol});
             },

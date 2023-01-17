@@ -9,7 +9,7 @@ const ValueUnion = value_mod.ValueUnion;
 const vm_mod = @import("../vm.zig");
 const VM = vm_mod.VM;
 
-const TestValue = union(ValueType) {
+pub const TestValue = union(ValueType) {
     const Self = @This();
 
     nil,
@@ -42,7 +42,7 @@ fn compareValues(expected: TestValue, actual: ValueUnion) !void {
         .boolean => try std.testing.expectEqual(expected.boolean, actual.boolean),
         .int => try std.testing.expectEqual(expected.int, actual.int),
         .float => try std.testing.expectEqual(expected.float, actual.float),
-        .char => try std.testing.expectEqual(expected.char, actual.char),
+        .char => try std.testing.expectEqualSlices(u8, &[_]u8{expected.char}, &[_]u8{actual.char}),
         .symbol => try std.testing.expectEqualSlices(u8, expected.symbol, actual.symbol),
         .list => {
             try std.testing.expectEqual(expected.list.len, actual.list.len);
@@ -61,8 +61,15 @@ fn compareValues(expected: TestValue, actual: ValueUnion) !void {
             for (expected.float_list) |value, i| try compareValues(value, actual.float_list[i].as);
         },
         .char_list => {
-            try std.testing.expectEqual(expected.char_list.len, actual.char_list.len);
-            for (expected.char_list) |value, i| try compareValues(value, actual.char_list[i].as);
+            const expected_list = std.testing.allocator.alloc(u8, expected.char_list.len) catch std.debug.panic("Failed to create list.", .{});
+            defer std.testing.allocator.free(expected_list);
+            for (expected.char_list) |value, i| expected_list[i] = value.char;
+
+            const actual_list = std.testing.allocator.alloc(u8, actual.char_list.len) catch std.debug.panic("Failed to create list.", .{});
+            defer std.testing.allocator.free(actual_list);
+            for (actual.char_list) |value, i| actual_list[i] = value.as.char;
+
+            try std.testing.expectEqualSlices(u8, expected_list, actual_list);
         },
         .symbol_list => {
             try std.testing.expectEqual(expected.symbol_list.len, actual.symbol_list.len);
@@ -73,7 +80,7 @@ fn compareValues(expected: TestValue, actual: ValueUnion) !void {
     }
 }
 
-fn runTest(input: []const u8, expected: TestValue) !void {
+pub fn runTest(input: []const u8, expected: TestValue) !void {
     var vm = VM.init(std.testing.allocator);
     defer vm.deinit();
 
@@ -135,347 +142,4 @@ test "vm - list" {
 test "vm - concat" {
     try runTest(",1", .{ .int_list = &[_]TestValue{.{ .int = 1 }} });
     try runTest(",,1", .{ .list = &[_]TestValue{.{ .int_list = &[_]TestValue{.{ .int = 1 }} }} });
-}
-
-test "vm - flip" {
-    try runTest("+(0 1;2 3)", .{
-        .list = &[_]TestValue{
-            .{ .int_list = &[_]TestValue{ .{ .int = 0 }, .{ .int = 2 } } },
-            .{ .int_list = &[_]TestValue{ .{ .int = 1 }, .{ .int = 3 } } },
-        },
-    });
-    try runTest("+(`a`b;`c`d)", .{
-        .list = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{ .{ .symbol = "a" }, .{ .symbol = "c" } } },
-            .{ .symbol_list = &[_]TestValue{ .{ .symbol = "b" }, .{ .symbol = "d" } } },
-        },
-    });
-    try runTest("+(\"ab\";\"cd\")", .{
-        .list = &[_]TestValue{
-            .{ .char_list = &[_]TestValue{ .{ .char = 'a' }, .{ .char = 'c' } } },
-            .{ .char_list = &[_]TestValue{ .{ .char = 'b' }, .{ .char = 'd' } } },
-        },
-    });
-    try runTest("+(`a;1;\"ab\";\"cd\")", .{
-        .list = &[_]TestValue{
-            .{ .list = &[_]TestValue{ .{ .symbol = "a" }, .{ .int = 1 }, .{ .char = 'a' }, .{ .char = 'c' } } },
-            .{ .list = &[_]TestValue{ .{ .symbol = "a" }, .{ .int = 1 }, .{ .char = 'b' }, .{ .char = 'd' } } },
-        },
-    });
-}
-
-test "vm - boolean addition" {
-    try runTest("0b+0b", .{ .int = 0 });
-    try runTest("0b+1b", .{ .int = 1 });
-    try runTest("1b+0b", .{ .int = 1 });
-    try runTest("1b+1b", .{ .int = 2 });
-
-    try runTest("0b+0", .{ .int = 0 });
-    try runTest("0b+1", .{ .int = 1 });
-    try runTest("0b+-1", .{ .int = -1 });
-    try runTest("1b+0", .{ .int = 1 });
-    try runTest("1b+1", .{ .int = 2 });
-    try runTest("1b+-1", .{ .int = 0 });
-
-    try runTest("0b+0f", .{ .float = 0 });
-    try runTest("0b+1f", .{ .float = 1 });
-    try runTest("0b+-1f", .{ .float = -1 });
-    try runTest("1b+0f", .{ .float = 1 });
-    try runTest("1b+1f", .{ .float = 2 });
-    try runTest("1b+-1f", .{ .float = 0 });
-}
-
-test "vm - int addition" {
-    try runTest("0+0b", .{ .int = 0 });
-    try runTest("0+1b", .{ .int = 1 });
-    try runTest("1+0b", .{ .int = 1 });
-    try runTest("1+1b", .{ .int = 2 });
-    try runTest("-1+0b", .{ .int = -1 });
-    try runTest("-1+1b", .{ .int = 0 });
-
-    try runTest("0+0", .{ .int = 0 });
-    try runTest("0+1", .{ .int = 1 });
-    try runTest("0+-1", .{ .int = -1 });
-    try runTest("1+0", .{ .int = 1 });
-    try runTest("1+1", .{ .int = 2 });
-    try runTest("1+-1", .{ .int = 0 });
-    try runTest("-1+0", .{ .int = -1 });
-    try runTest("-1+1", .{ .int = 0 });
-    try runTest("-1+-1", .{ .int = -2 });
-
-    try runTest("0+0f", .{ .float = 0 });
-    try runTest("0+1f", .{ .float = 1 });
-    try runTest("0+-1f", .{ .float = -1 });
-    try runTest("1+0f", .{ .float = 1 });
-    try runTest("1+1f", .{ .float = 2 });
-    try runTest("1+-1f", .{ .float = 0 });
-    try runTest("-1+0f", .{ .float = -1 });
-    try runTest("-1+1f", .{ .float = 0 });
-    try runTest("-1+-1f", .{ .float = -2 });
-}
-
-test "vm - float addition" {
-    try runTest("0f+0b", .{ .float = 0 });
-    try runTest("0f+1b", .{ .float = 1 });
-    try runTest("1f+0b", .{ .float = 1 });
-    try runTest("1f+1b", .{ .float = 2 });
-    try runTest("-1f+0b", .{ .float = -1 });
-    try runTest("-1f+1b", .{ .float = 0 });
-
-    try runTest("0f+0", .{ .float = 0 });
-    try runTest("0f+1", .{ .float = 1 });
-    try runTest("0f+-1", .{ .float = -1 });
-    try runTest("1f+0", .{ .float = 1 });
-    try runTest("1f+1", .{ .float = 2 });
-    try runTest("1f+-1", .{ .float = 0 });
-    try runTest("-1f+0", .{ .float = -1 });
-    try runTest("-1f+1", .{ .float = 0 });
-    try runTest("-1f+-1", .{ .float = -2 });
-
-    try runTest("0f+0f", .{ .float = 0 });
-    try runTest("0f+1f", .{ .float = 1 });
-    try runTest("0f+-1f", .{ .float = -1 });
-    try runTest("1f+0f", .{ .float = 1 });
-    try runTest("1f+1f", .{ .float = 2 });
-    try runTest("1f+-1f", .{ .float = 0 });
-    try runTest("-1f+0f", .{ .float = -1 });
-    try runTest("-1f+1f", .{ .float = 0 });
-    try runTest("-1f+-1f", .{ .float = -2 });
-}
-
-test "vm - boolean subtraction" {
-    try runTest("0b-0b", .{ .int = 0 });
-    try runTest("0b-1b", .{ .int = -1 });
-    try runTest("1b-0b", .{ .int = 1 });
-    try runTest("1b-1b", .{ .int = 0 });
-
-    try runTest("0b-0", .{ .int = 0 });
-    try runTest("0b-1", .{ .int = -1 });
-    try runTest("0b--1", .{ .int = 1 });
-    try runTest("1b-0", .{ .int = 1 });
-    try runTest("1b-1", .{ .int = 0 });
-    try runTest("1b--1", .{ .int = 2 });
-
-    try runTest("0b-0f", .{ .float = 0 });
-    try runTest("0b-1f", .{ .float = -1 });
-    try runTest("0b--1f", .{ .float = 1 });
-    try runTest("1b-0f", .{ .float = 1 });
-    try runTest("1b-1f", .{ .float = 0 });
-    try runTest("1b--1f", .{ .float = 2 });
-}
-
-test "vm - int subtraction" {
-    try runTest("0-0b", .{ .int = 0 });
-    try runTest("0-1b", .{ .int = -1 });
-    try runTest("1-0b", .{ .int = 1 });
-    try runTest("1-1b", .{ .int = 0 });
-    try runTest("-1-0b", .{ .int = -1 });
-    try runTest("-1-1b", .{ .int = -2 });
-
-    try runTest("0-0", .{ .int = 0 });
-    try runTest("0-1", .{ .int = -1 });
-    try runTest("0--1", .{ .int = 1 });
-    try runTest("1-0", .{ .int = 1 });
-    try runTest("1-1", .{ .int = 0 });
-    try runTest("1--1", .{ .int = 2 });
-    try runTest("-1-0", .{ .int = -1 });
-    try runTest("-1-1", .{ .int = -2 });
-    try runTest("-1--1", .{ .int = 0 });
-
-    try runTest("0-0f", .{ .float = 0 });
-    try runTest("0-1f", .{ .float = -1 });
-    try runTest("0--1f", .{ .float = 1 });
-    try runTest("1-0f", .{ .float = 1 });
-    try runTest("1-1f", .{ .float = 0 });
-    try runTest("1--1f", .{ .float = 2 });
-    try runTest("-1-0f", .{ .float = -1 });
-    try runTest("-1-1f", .{ .float = -2 });
-    try runTest("-1--1f", .{ .float = 0 });
-}
-
-test "vm - float subtraction" {
-    try runTest("0f-0b", .{ .float = 0 });
-    try runTest("0f-1b", .{ .float = -1 });
-    try runTest("1f-0b", .{ .float = 1 });
-    try runTest("1f-1b", .{ .float = 0 });
-    try runTest("-1f-0b", .{ .float = -1 });
-    try runTest("-1f-1b", .{ .float = -2 });
-
-    try runTest("0f-0", .{ .float = 0 });
-    try runTest("0f-1", .{ .float = -1 });
-    try runTest("0f--1", .{ .float = 1 });
-    try runTest("1f-0", .{ .float = 1 });
-    try runTest("1f-1", .{ .float = 0 });
-    try runTest("1f--1", .{ .float = 2 });
-    try runTest("-1f-0", .{ .float = -1 });
-    try runTest("-1f-1", .{ .float = -2 });
-    try runTest("-1f--1", .{ .float = 0 });
-
-    try runTest("0f-0f", .{ .float = 0 });
-    try runTest("0f-1f", .{ .float = -1 });
-    try runTest("0f--1f", .{ .float = 1 });
-    try runTest("1f-0f", .{ .float = 1 });
-    try runTest("1f-1f", .{ .float = 0 });
-    try runTest("1f--1f", .{ .float = 2 });
-    try runTest("-1f-0f", .{ .float = -1 });
-    try runTest("-1f-1f", .{ .float = -2 });
-    try runTest("-1f--1f", .{ .float = 0 });
-}
-
-test "vm - boolean multiplication" {
-    try runTest("0b*0b", .{ .int = 0 });
-    try runTest("0b*1b", .{ .int = 0 });
-    try runTest("1b*0b", .{ .int = 0 });
-    try runTest("1b*1b", .{ .int = 1 });
-
-    try runTest("0b*0", .{ .int = 0 });
-    try runTest("0b*1", .{ .int = 0 });
-    try runTest("0b*-1", .{ .int = 0 });
-    try runTest("1b*0", .{ .int = 0 });
-    try runTest("1b*1", .{ .int = 1 });
-    try runTest("1b*-1", .{ .int = -1 });
-
-    try runTest("0b*0f", .{ .float = 0 });
-    try runTest("0b*1f", .{ .float = 0 });
-    try runTest("0b*-1f", .{ .float = 0 });
-    try runTest("1b*0f", .{ .float = 0 });
-    try runTest("1b*1f", .{ .float = 1 });
-    try runTest("1b*-1f", .{ .float = -1 });
-}
-
-test "vm - int multiplication" {
-    try runTest("0*0b", .{ .int = 0 });
-    try runTest("0*1b", .{ .int = 0 });
-    try runTest("1*0b", .{ .int = 0 });
-    try runTest("1*1b", .{ .int = 1 });
-    try runTest("-1*0b", .{ .int = 0 });
-    try runTest("-1*1b", .{ .int = -1 });
-
-    try runTest("0*0", .{ .int = 0 });
-    try runTest("0*1", .{ .int = 0 });
-    try runTest("0*-1", .{ .int = 0 });
-    try runTest("1*0", .{ .int = 0 });
-    try runTest("1*1", .{ .int = 1 });
-    try runTest("1*-1", .{ .int = -1 });
-    try runTest("-1*0", .{ .int = 0 });
-    try runTest("-1*1", .{ .int = -1 });
-    try runTest("-1*-1", .{ .int = 1 });
-
-    try runTest("0*0f", .{ .float = 0 });
-    try runTest("0*1f", .{ .float = 0 });
-    try runTest("0*-1f", .{ .float = 0 });
-    try runTest("1*0f", .{ .float = 0 });
-    try runTest("1*1f", .{ .float = 1 });
-    try runTest("1*-1f", .{ .float = -1 });
-    try runTest("-1*0f", .{ .float = 0 });
-    try runTest("-1*1f", .{ .float = -1 });
-    try runTest("-1*-1f", .{ .float = 1 });
-}
-
-test "vm - float multiplication" {
-    try runTest("0f*0b", .{ .float = 0 });
-    try runTest("0f*1b", .{ .float = 0 });
-    try runTest("1f*0b", .{ .float = 0 });
-    try runTest("1f*1b", .{ .float = 1 });
-    try runTest("-1f*0b", .{ .float = 0 });
-    try runTest("-1f*1b", .{ .float = -1 });
-
-    try runTest("0f*0", .{ .float = 0 });
-    try runTest("0f*1", .{ .float = 0 });
-    try runTest("0f*-1", .{ .float = 0 });
-    try runTest("1f*0", .{ .float = 0 });
-    try runTest("1f*1", .{ .float = 1 });
-    try runTest("1f*-1", .{ .float = -1 });
-    try runTest("-1f*0", .{ .float = 0 });
-    try runTest("-1f*1", .{ .float = -1 });
-    try runTest("-1f*-1", .{ .float = 1 });
-
-    try runTest("0f*0f", .{ .float = 0 });
-    try runTest("0f*1f", .{ .float = 0 });
-    try runTest("0f*-1f", .{ .float = 0 });
-    try runTest("1f*0f", .{ .float = 0 });
-    try runTest("1f*1f", .{ .float = 1 });
-    try runTest("1f*-1f", .{ .float = -1 });
-    try runTest("-1f*0f", .{ .float = 0 });
-    try runTest("-1f*1f", .{ .float = -1 });
-    try runTest("-1f*-1f", .{ .float = 1 });
-}
-
-test "vm - boolean division" {
-    try runTest("0b%0b", .{ .float = -std.math.nan(f64) });
-    try runTest("0b%1b", .{ .float = 0 });
-    try runTest("1b%0b", .{ .float = std.math.inf(f64) });
-    try runTest("1b%1b", .{ .float = 1 });
-
-    try runTest("0b%0", .{ .float = -std.math.nan(f64) });
-    try runTest("0b%1", .{ .float = 0 });
-    try runTest("0b%-1", .{ .float = 0 });
-    try runTest("1b%0", .{ .float = std.math.inf(f64) });
-    try runTest("1b%1", .{ .float = 1 });
-    try runTest("1b%-1", .{ .float = -1 });
-
-    try runTest("0b%0f", .{ .float = -std.math.nan(f64) });
-    try runTest("0b%1f", .{ .float = 0 });
-    try runTest("0b%-1f", .{ .float = 0 });
-    try runTest("1b%0f", .{ .float = std.math.inf(f64) });
-    try runTest("1b%1f", .{ .float = 1 });
-    try runTest("1b%-1f", .{ .float = -1 });
-}
-
-test "vm - int division" {
-    try runTest("0%0b", .{ .float = -std.math.nan(f64) });
-    try runTest("0%1b", .{ .float = 0 });
-    try runTest("1%0b", .{ .float = std.math.inf(f64) });
-    try runTest("1%1b", .{ .float = 1 });
-    try runTest("-1%0b", .{ .float = -std.math.inf(f64) });
-    try runTest("-1%1b", .{ .float = -1 });
-
-    try runTest("0%0", .{ .float = -std.math.nan(f64) });
-    try runTest("0%1", .{ .float = 0 });
-    try runTest("0%-1", .{ .float = 0 });
-    try runTest("1%0", .{ .float = std.math.inf(f64) });
-    try runTest("1%1", .{ .float = 1 });
-    try runTest("1%-1", .{ .float = -1 });
-    try runTest("-1%0", .{ .float = -std.math.inf(f64) });
-    try runTest("-1%1", .{ .float = -1 });
-    try runTest("-1%-1", .{ .float = 1 });
-
-    try runTest("0%0f", .{ .float = -std.math.nan(f64) });
-    try runTest("0%1f", .{ .float = 0 });
-    try runTest("0%-1f", .{ .float = 0 });
-    try runTest("1%0f", .{ .float = std.math.inf(f64) });
-    try runTest("1%1f", .{ .float = 1 });
-    try runTest("1%-1f", .{ .float = -1 });
-    try runTest("-1%0f", .{ .float = -std.math.inf(f64) });
-    try runTest("-1%1f", .{ .float = -1 });
-    try runTest("-1%-1f", .{ .float = 1 });
-}
-
-test "vm - float division" {
-    try runTest("0f%0b", .{ .float = -std.math.nan(f64) });
-    try runTest("0f%1b", .{ .float = 0 });
-    try runTest("1f%0b", .{ .float = std.math.inf(f64) });
-    try runTest("1f%1b", .{ .float = 1 });
-    try runTest("-1f%0b", .{ .float = -std.math.inf(f64) });
-    try runTest("-1f%1b", .{ .float = -1 });
-
-    try runTest("0f%0", .{ .float = -std.math.nan(f64) });
-    try runTest("0f%1", .{ .float = 0 });
-    try runTest("0f%-1", .{ .float = 0 });
-    try runTest("1f%0", .{ .float = std.math.inf(f64) });
-    try runTest("1f%1", .{ .float = 1 });
-    try runTest("1f%-1", .{ .float = -1 });
-    try runTest("-1f%0", .{ .float = -std.math.inf(f64) });
-    try runTest("-1f%1", .{ .float = -1 });
-    try runTest("-1f%-1", .{ .float = 1 });
-
-    try runTest("0f%0f", .{ .float = -std.math.nan(f64) });
-    try runTest("0f%1f", .{ .float = 0 });
-    try runTest("0f%-1f", .{ .float = 0 });
-    try runTest("1f%0f", .{ .float = std.math.inf(f64) });
-    try runTest("1f%1f", .{ .float = 1 });
-    try runTest("1f%-1f", .{ .float = -1 });
-    try runTest("-1f%0f", .{ .float = -std.math.inf(f64) });
-    try runTest("-1f%1f", .{ .float = -1 });
-    try runTest("-1f%-1f", .{ .float = 1 });
 }
