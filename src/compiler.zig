@@ -475,13 +475,13 @@ fn grouping() CompilerError!*Node {
         errdefer for (list.items) |node| node.deinit(current.vm.allocator);
 
         var all_constants = first_node.op_code == .op_constant;
-        var value_type = if (all_constants) @as(ValueType, getValue(first_node.byte.?).as) else .list;
+        var value_type: ValueType = if (all_constants) getValue(first_node.byte.?).as else .list;
 
         list.append(first_node) catch std.debug.panic("Failed to append item.", .{});
         while (match(.token_semicolon)) {
             const node = try expression();
             all_constants = if (all_constants and node.op_code == .op_constant) true else false;
-            if (all_constants and value_type != @as(ValueType, getValue(node.byte.?).as)) {
+            if (all_constants and value_type != getValue(node.byte.?).as) {
                 value_type = .list;
             }
             list.append(node) catch std.debug.panic("Failed to append item.", .{});
@@ -611,6 +611,10 @@ fn pop() CompilerError!*Node {
 fn unary() CompilerError!*Node {
     const node = Node.init(.{
         .op_code = switch (parser.previous.token_type) {
+            .token_plus => .op_flip,
+            .token_minus => .op_negate,
+            .token_star => .op_first,
+            .token_percent => .op_sqrt,
             .token_comma => .op_enlist,
             else => unreachable,
         },
@@ -651,10 +655,10 @@ fn getRule(token_type: TokenType) ParseRule {
         .token_semicolon     => ParseRule{ .prefix = pop,      .infix = null,   .precedence = .prec_none      },
         .token_colon         => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
         .token_double_colon  => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
-        .token_plus          => ParseRule{ .prefix = null,     .infix = binary, .precedence = .prec_secondary },
-        .token_minus         => ParseRule{ .prefix = null,     .infix = binary, .precedence = .prec_secondary },
-        .token_star          => ParseRule{ .prefix = null,     .infix = binary, .precedence = .prec_secondary },
-        .token_percent       => ParseRule{ .prefix = null,     .infix = binary, .precedence = .prec_secondary },
+        .token_plus          => ParseRule{ .prefix = unary,    .infix = binary, .precedence = .prec_secondary },
+        .token_minus         => ParseRule{ .prefix = unary,    .infix = binary, .precedence = .prec_secondary },
+        .token_star          => ParseRule{ .prefix = unary,    .infix = binary, .precedence = .prec_secondary },
+        .token_percent       => ParseRule{ .prefix = unary,    .infix = binary, .precedence = .prec_secondary },
         .token_ampersand     => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
         .token_pipe          => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
         .token_less          => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
