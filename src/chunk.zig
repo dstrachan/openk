@@ -25,6 +25,8 @@ pub const OpCode = enum {
     op_enlist,
     op_merge,
     op_concat,
+    op_key,
+    op_dict,
     op_call,
     op_return,
 };

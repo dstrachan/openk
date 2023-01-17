@@ -238,6 +238,8 @@ pub const VM = struct {
                 .op_enlist => try self.opEnlist(),
                 .op_merge => try self.opMerge(),
                 .op_concat => try self.opConcat(),
+                .op_key => try self.opKey(),
+                .op_dict => try self.opDict(),
                 .op_call => try self.opCall(),
                 .op_return => if (try self.opReturn()) |value| return value,
             }
@@ -788,6 +790,27 @@ pub const VM = struct {
             .boolean => |bool_x| self.initValue(.{ .int = if (bool_x) -1 else 0 }),
             .int => |int_x| self.initValue(.{ .int = -int_x }),
             .float => |float_x| self.initValue(.{ .float = -float_x }),
+            .boolean_list => |bool_list_x| blk: {
+                const list = self.allocator.alloc(*Value, bool_list_x.len) catch std.debug.panic("Failed to create list.", .{});
+                for (bool_list_x) |value, i| {
+                    list[i] = self.initValue(.{ .int = if (value.as.boolean) -1 else 0 });
+                }
+                break :blk self.initValue(.{ .int_list = list });
+            },
+            .int_list => |int_list_x| blk: {
+                const list = self.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
+                for (int_list_x) |value, i| {
+                    list[i] = self.initValue(.{ .int = -value.as.int });
+                }
+                break :blk self.initValue(.{ .int_list = list });
+            },
+            .float_list => |float_list_x| blk: {
+                const list = self.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
+                for (float_list_x) |value, i| {
+                    list[i] = self.initValue(.{ .float = -value.as.float });
+                }
+                break :blk self.initValue(.{ .int_list = list });
+            },
             else => return self.runtimeError("Can only negate numeric values.", .{}),
         };
         try self.push(value);
@@ -1159,6 +1182,33 @@ pub const VM = struct {
             },
         };
         try self.push(value);
+    }
+
+    fn opKey(self: *Self) !void {
+        const x = self.pop();
+        defer x.deref(self.allocator);
+
+        const value = switch (x.as) {
+            .int => |int_x| blk: {
+                const list = self.allocator.alloc(*Value, std.math.absCast(int_x)) catch std.debug.panic("Failed to create list.", .{});
+                if (int_x < 0) {
+                    for (list) |_, i| {
+                        list[i] = self.initValue(.{ .int = int_x + @intCast(i64, i) });
+                    }
+                } else {
+                    for (list) |_, i| {
+                        list[i] = self.initValue(.{ .int = @intCast(i64, i) });
+                    }
+                }
+                break :blk self.initValue(.{ .int_list = list });
+            },
+            else => unreachable,
+        };
+        try self.push(value);
+    }
+
+    fn opDict(self: *Self) !void {
+        _ = self;
     }
 
     fn opCall(self: *Self) !void {
