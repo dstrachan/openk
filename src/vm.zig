@@ -582,7 +582,7 @@ pub const VM = struct {
                 .boolean => |bool_y| blk: {
                     const list = self.allocator.alloc(*Value, boolean_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     for (boolean_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .int = @boolToInt(value.as.boolean) + @boolToInt(bool_y) });
+                        list[i] = self.initValue(.{ .int = @boolToInt(value.as.boolean) + @as(i64, @boolToInt(bool_y)) });
                     }
                     break :blk self.initValue(.{ .int_list = list });
                 },
@@ -621,7 +621,7 @@ pub const VM = struct {
                 .boolean_list => |boolean_list_y| blk: {
                     const list = self.allocator.alloc(*Value, boolean_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     for (boolean_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .int = @boolToInt(value.as.boolean) + @boolToInt(boolean_list_y[i].as.boolean) });
+                        list[i] = self.initValue(.{ .int = @boolToInt(value.as.boolean) + @as(i64, @boolToInt(boolean_list_y[i].as.boolean)) });
                     }
                     break :blk self.initValue(.{ .int_list = list });
                 },
