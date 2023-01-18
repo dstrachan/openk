@@ -275,6 +275,7 @@ pub const Scanner = struct {
     }
 
     fn peek(self: *Self) u8 {
+        if (self.isAtEnd()) return 0;
         return self.current[0];
     }
 
