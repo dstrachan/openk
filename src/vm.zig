@@ -775,7 +775,8 @@ pub const VM = struct {
     }
 
     fn addInt(x: i64, y: i64) i64 {
-        return x + y;
+        if (x == Value.null_int or y == Value.null_int) return Value.null_int;
+        return x +% y;
     }
 
     fn addFloat(x: f64, y: f64) f64 {
@@ -829,7 +830,8 @@ pub const VM = struct {
     }
 
     fn subtractInt(x: i64, y: i64) i64 {
-        return x - y;
+        if (x == Value.null_int or y == Value.null_int) return Value.null_int;
+        return x -% y;
     }
 
     fn subtractFloat(x: f64, y: f64) f64 {
@@ -860,7 +862,8 @@ pub const VM = struct {
     }
 
     fn multiplyInt(x: i64, y: i64) i64 {
-        return x * y;
+        if (x == Value.null_int or y == Value.null_int) return Value.null_int;
+        return x *% y;
     }
 
     fn multiplyFloat(x: f64, y: f64) f64 {

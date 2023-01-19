@@ -48,8 +48,28 @@ pub const ValueUnion = union(ValueType) {
         switch (self) {
             .nil => try writer.writeAll("(::)"),
             .boolean => |boolean| try writer.writeAll(if (boolean) "1b" else "0b"),
-            .int => |int| try writer.print("{d}", .{int}),
-            .float => |float| try writer.print("{d}f", .{float}),
+            .int => |int| {
+                if (int == Value.null_int) {
+                    try writer.writeAll("0N");
+                } else if (int == -Value.inf_int) {
+                    try writer.writeAll("-0W");
+                } else if (int == Value.inf_int) {
+                    try writer.writeAll("0W");
+                } else {
+                    try writer.print("{d}", .{int});
+                }
+            },
+            .float => |float| {
+                if (std.math.isNan(float)) {
+                    try writer.writeAll("0n");
+                } else if (float == -Value.inf_float) {
+                    try writer.writeAll("-0w");
+                } else if (float == Value.inf_float) {
+                    try writer.writeAll("0w");
+                } else {
+                    try writer.print("{d}f", .{float});
+                }
+            },
             .char => |char| {
                 try writer.writeAll("\"");
                 try printChar(writer, char);
@@ -142,6 +162,12 @@ pub const ValueUnion = union(ValueType) {
 
 pub const Value = struct {
     const Self = @This();
+
+    pub const null_int = -9223372036854775808;
+    pub const inf_int = 9223372036854775807;
+
+    pub const null_float = std.math.nan(f64);
+    pub const inf_float = std.math.inf(f64);
 
     reference_count: u32,
     as: ValueUnion,
