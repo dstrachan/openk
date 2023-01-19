@@ -1,6 +1,10 @@
 const vm_mod = @import("../vm.zig");
 const verbTest = vm_mod.verbTest;
+const runTest = vm_mod.runTest;
 const DataType = vm_mod.DataType;
+
+const value_mod = @import("../../value.zig");
+const Value = value_mod.Value;
 
 fn getDataType(comptime x: DataType, comptime y: DataType) DataType {
     return switch (x) {
@@ -30,4 +34,14 @@ test "add" {
         add,
         "+",
     );
+}
+
+test "add with null/inf" {
+    try runTest("0W+1", .{ .int = Value.null_int });
+    try runTest("0N+1", .{ .int = Value.null_int });
+    try runTest("0W+2", .{ .int = -Value.inf_int });
+
+    try runTest("0w+1", .{ .float = Value.inf_float });
+    try runTest("0n+1", .{ .float = Value.null_float });
+    try runTest("-0w+1", .{ .float = -Value.inf_float });
 }
