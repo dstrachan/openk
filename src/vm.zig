@@ -30,6 +30,10 @@ const CallFrame = struct {
     slots: []*Value,
 };
 
+fn BinaryFn(comptime T: type) type {
+    return *const fn (x: T, y: T) T;
+}
+
 pub const VM = struct {
     const Self = @This();
 
@@ -382,12 +386,12 @@ pub const VM = struct {
         try self.push(value);
     }
 
-    fn add(self: *Self, x: *Value, y: *Value) *Value {
+    fn binary(self: *Self, int_fn: BinaryFn(i64), float_fn: BinaryFn(f64), x: *Value, y: *Value) *Value {
         return switch (x.as) {
             .boolean => |bool_x| switch (y.as) {
-                .boolean => |bool_y| self.initValue(.{ .int = @boolToInt(bool_x) + @as(i64, @boolToInt(bool_y)) }),
-                .int => |int_y| self.initValue(.{ .int = @boolToInt(bool_x) + int_y }),
-                .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, @boolToInt(bool_x)) + float_y }),
+                .boolean => |bool_y| self.initValue(.{ .int = int_fn(@boolToInt(bool_x), @as(i64, @boolToInt(bool_y))) }),
+                .int => |int_y| self.initValue(.{ .int = int_fn(@boolToInt(bool_x), int_y) }),
+                .float => |float_y| self.initValue(.{ .float = float_fn(@intToFloat(f64, @boolToInt(bool_x)), float_y) }),
                 .list => |list_y| blk: {
                     const list = self.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                     var list_type: ValueType = switch (list_y[0].as) {
@@ -397,7 +401,7 @@ pub const VM = struct {
                         else => .list,
                     };
                     for (list_y) |value, i| {
-                        list[i] = self.add(x, value);
+                        list[i] = self.binary(int_fn, float_fn, x, value);
                         if (list_type != .list and list_type != list[i].as) list_type = .list;
                     }
                     break :blk self.initValue(switch (list_type) {
@@ -409,30 +413,30 @@ pub const VM = struct {
                 .boolean_list => |boolean_list_y| blk: {
                     const list = self.allocator.alloc(*Value, boolean_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                     for (boolean_list_y) |value, i| {
-                        list[i] = self.initValue(.{ .int = @boolToInt(bool_x) + @as(i64, @boolToInt(value.as.boolean)) });
+                        list[i] = self.initValue(.{ .int = int_fn(@boolToInt(bool_x), @as(i64, @boolToInt(value.as.boolean))) });
                     }
                     break :blk self.initValue(.{ .int_list = list });
                 },
                 .int_list => |int_list_y| blk: {
                     const list = self.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                     for (int_list_y) |value, i| {
-                        list[i] = self.initValue(.{ .int = @boolToInt(bool_x) + value.as.int });
+                        list[i] = self.initValue(.{ .int = int_fn(@boolToInt(bool_x), value.as.int) });
                     }
                     break :blk self.initValue(.{ .int_list = list });
                 },
                 .float_list => |float_list_y| blk: {
                     const list = self.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                     for (float_list_y) |value, i| {
-                        list[i] = self.initValue(.{ .float = @intToFloat(f64, @boolToInt(bool_x)) + value.as.float });
+                        list[i] = self.initValue(.{ .float = float_fn(@intToFloat(f64, @boolToInt(bool_x)), value.as.float) });
                     }
                     break :blk self.initValue(.{ .float_list = list });
                 },
                 else => unreachable,
             },
             .int => |int_x| switch (y.as) {
-                .boolean => |bool_y| self.initValue(.{ .int = int_x + @as(i64, @boolToInt(bool_y)) }),
-                .int => |int_y| self.initValue(.{ .int = int_x + int_y }),
-                .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, int_x) + float_y }),
+                .boolean => |bool_y| self.initValue(.{ .int = int_fn(int_x, @as(i64, @boolToInt(bool_y))) }),
+                .int => |int_y| self.initValue(.{ .int = int_fn(int_x, int_y) }),
+                .float => |float_y| self.initValue(.{ .float = float_fn(@intToFloat(f64, int_x), float_y) }),
                 .list => |list_y| blk: {
                     const list = self.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                     var list_type: ValueType = switch (list_y[0].as) {
@@ -442,7 +446,7 @@ pub const VM = struct {
                         else => .list,
                     };
                     for (list_y) |value, i| {
-                        list[i] = self.add(x, value);
+                        list[i] = self.binary(int_fn, float_fn, x, value);
                         if (list_type != .list and list_type != list[i].as) list_type = .list;
                     }
                     break :blk self.initValue(switch (list_type) {
@@ -454,30 +458,30 @@ pub const VM = struct {
                 .boolean_list => |boolean_list_y| blk: {
                     const list = self.allocator.alloc(*Value, boolean_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                     for (boolean_list_y) |value, i| {
-                        list[i] = self.initValue(.{ .int = int_x + @as(i64, @boolToInt(value.as.boolean)) });
+                        list[i] = self.initValue(.{ .int = int_fn(int_x, @as(i64, @boolToInt(value.as.boolean))) });
                     }
                     break :blk self.initValue(.{ .int_list = list });
                 },
                 .int_list => |int_list_y| blk: {
                     const list = self.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                     for (int_list_y) |value, i| {
-                        list[i] = self.initValue(.{ .int = int_x + value.as.int });
+                        list[i] = self.initValue(.{ .int = int_fn(int_x, value.as.int) });
                     }
                     break :blk self.initValue(.{ .int_list = list });
                 },
                 .float_list => |float_list_y| blk: {
                     const list = self.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                     for (float_list_y) |value, i| {
-                        list[i] = self.initValue(.{ .float = @intToFloat(f64, int_x) + value.as.float });
+                        list[i] = self.initValue(.{ .float = float_fn(@intToFloat(f64, int_x), value.as.float) });
                     }
                     break :blk self.initValue(.{ .float_list = list });
                 },
                 else => unreachable,
             },
             .float => |float_x| switch (y.as) {
-                .boolean => |bool_y| self.initValue(.{ .float = float_x + @intToFloat(f64, @boolToInt(bool_y)) }),
-                .int => |int_y| self.initValue(.{ .float = float_x + @intToFloat(f64, int_y) }),
-                .float => |float_y| self.initValue(.{ .float = float_x + float_y }),
+                .boolean => |bool_y| self.initValue(.{ .float = float_fn(float_x, @intToFloat(f64, @boolToInt(bool_y))) }),
+                .int => |int_y| self.initValue(.{ .float = float_fn(float_x, @intToFloat(f64, int_y)) }),
+                .float => |float_y| self.initValue(.{ .float = float_fn(float_x, float_y) }),
                 .list => |list_y| blk: {
                     const list = self.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                     var list_type: ValueType = switch (list_y[0].as) {
@@ -487,7 +491,7 @@ pub const VM = struct {
                         else => .list,
                     };
                     for (list_y) |value, i| {
-                        list[i] = self.add(x, value);
+                        list[i] = self.binary(int_fn, float_fn, x, value);
                         if (list_type != .list and list_type != list[i].as) list_type = .list;
                     }
                     break :blk self.initValue(switch (list_type) {
@@ -498,21 +502,21 @@ pub const VM = struct {
                 .boolean_list => |boolean_list_y| blk: {
                     const list = self.allocator.alloc(*Value, boolean_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                     for (boolean_list_y) |value, i| {
-                        list[i] = self.initValue(.{ .float = float_x + @intToFloat(f64, @boolToInt(value.as.boolean)) });
+                        list[i] = self.initValue(.{ .float = float_fn(float_x, @intToFloat(f64, @boolToInt(value.as.boolean))) });
                     }
                     break :blk self.initValue(.{ .float_list = list });
                 },
                 .int_list => |int_list_y| blk: {
                     const list = self.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                     for (int_list_y) |value, i| {
-                        list[i] = self.initValue(.{ .float = float_x + @intToFloat(f64, value.as.int) });
+                        list[i] = self.initValue(.{ .float = float_fn(float_x, @intToFloat(f64, value.as.int)) });
                     }
                     break :blk self.initValue(.{ .float_list = list });
                 },
                 .float_list => |float_list_y| blk: {
                     const list = self.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                     for (float_list_y) |value, i| {
-                        list[i] = self.initValue(.{ .float = float_x + value.as.float });
+                        list[i] = self.initValue(.{ .float = float_fn(float_x, value.as.float) });
                     }
                     break :blk self.initValue(.{ .float_list = list });
                 },
@@ -528,7 +532,7 @@ pub const VM = struct {
                         else => .list,
                     };
                     for (list_x) |value, i| {
-                        list[i] = self.add(value, y);
+                        list[i] = self.binary(int_fn, float_fn, value, y);
                         if (list_type != .list and list_type != list[i].as) list_type = .list;
                     }
                     break :blk self.initValue(switch (list_type) {
@@ -546,7 +550,7 @@ pub const VM = struct {
                         else => .list,
                     };
                     for (list_x) |value, i| {
-                        list[i] = self.add(value, y);
+                        list[i] = self.binary(int_fn, float_fn, value, y);
                         if (list_type != .list and list_type != list[i].as) list_type = .list;
                     }
                     break :blk self.initValue(switch (list_type) {
@@ -567,7 +571,7 @@ pub const VM = struct {
                         else => .list,
                     };
                     for (list_x) |value, i| {
-                        list[i] = self.add(value, list_y[i]);
+                        list[i] = self.binary(int_fn, float_fn, value, list_y[i]);
                         if (list_type != .list and list_type != list[i].as) list_type = .list;
                     }
                     break :blk self.initValue(switch (list_type) {
@@ -582,21 +586,21 @@ pub const VM = struct {
                 .boolean => |bool_y| blk: {
                     const list = self.allocator.alloc(*Value, boolean_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     for (boolean_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .int = @boolToInt(value.as.boolean) + @as(i64, @boolToInt(bool_y)) });
+                        list[i] = self.initValue(.{ .int = int_fn(@boolToInt(value.as.boolean), @as(i64, @boolToInt(bool_y))) });
                     }
                     break :blk self.initValue(.{ .int_list = list });
                 },
                 .int => |int_y| blk: {
                     const list = self.allocator.alloc(*Value, boolean_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     for (boolean_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .int = @boolToInt(value.as.boolean) + int_y });
+                        list[i] = self.initValue(.{ .int = int_fn(@boolToInt(value.as.boolean), int_y) });
                     }
                     break :blk self.initValue(.{ .int_list = list });
                 },
                 .float => |float_y| blk: {
                     const list = self.allocator.alloc(*Value, boolean_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     for (boolean_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .float = @intToFloat(f64, @boolToInt(value.as.boolean)) + float_y });
+                        list[i] = self.initValue(.{ .float = float_fn(@intToFloat(f64, @boolToInt(value.as.boolean)), float_y) });
                     }
                     break :blk self.initValue(.{ .float_list = list });
                 },
@@ -609,7 +613,7 @@ pub const VM = struct {
                         else => .list,
                     };
                     for (boolean_list_x) |value, i| {
-                        list[i] = self.add(value, list_y[i]);
+                        list[i] = self.binary(int_fn, float_fn, value, list_y[i]);
                         if (list_type != .list and list_type != list[i].as) list_type = .list;
                     }
                     break :blk self.initValue(switch (list_type) {
@@ -621,21 +625,21 @@ pub const VM = struct {
                 .boolean_list => |boolean_list_y| blk: {
                     const list = self.allocator.alloc(*Value, boolean_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     for (boolean_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .int = @boolToInt(value.as.boolean) + @as(i64, @boolToInt(boolean_list_y[i].as.boolean)) });
+                        list[i] = self.initValue(.{ .int = int_fn(@boolToInt(value.as.boolean), @as(i64, @boolToInt(boolean_list_y[i].as.boolean))) });
                     }
                     break :blk self.initValue(.{ .int_list = list });
                 },
                 .int_list => |int_list_y| blk: {
                     const list = self.allocator.alloc(*Value, boolean_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     for (boolean_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .int = @boolToInt(value.as.boolean) + int_list_y[i].as.int });
+                        list[i] = self.initValue(.{ .int = int_fn(@boolToInt(value.as.boolean), int_list_y[i].as.int) });
                     }
                     break :blk self.initValue(.{ .int_list = list });
                 },
                 .float_list => |float_list_y| blk: {
                     const list = self.allocator.alloc(*Value, boolean_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     for (boolean_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .float = @intToFloat(f64, @boolToInt(value.as.boolean)) + float_list_y[i].as.float });
+                        list[i] = self.initValue(.{ .float = float_fn(@intToFloat(f64, @boolToInt(value.as.boolean)), float_list_y[i].as.float) });
                     }
                     break :blk self.initValue(.{ .float_list = list });
                 },
@@ -645,21 +649,21 @@ pub const VM = struct {
                 .boolean => |bool_y| blk: {
                     const list = self.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     for (int_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .int = value.as.int + @boolToInt(bool_y) });
+                        list[i] = self.initValue(.{ .int = int_fn(value.as.int, @boolToInt(bool_y)) });
                     }
                     break :blk self.initValue(.{ .int_list = list });
                 },
                 .int => |int_y| blk: {
                     const list = self.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     for (int_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .int = value.as.int + int_y });
+                        list[i] = self.initValue(.{ .int = int_fn(value.as.int, int_y) });
                     }
                     break :blk self.initValue(.{ .int_list = list });
                 },
                 .float => |float_y| blk: {
                     const list = self.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     for (int_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .float = @intToFloat(f64, value.as.int) + float_y });
+                        list[i] = self.initValue(.{ .float = float_fn(@intToFloat(f64, value.as.int), float_y) });
                     }
                     break :blk self.initValue(.{ .float_list = list });
                 },
@@ -672,7 +676,7 @@ pub const VM = struct {
                         else => .list,
                     };
                     for (int_list_x) |value, i| {
-                        list[i] = self.add(value, list_y[i]);
+                        list[i] = self.binary(int_fn, float_fn, value, list_y[i]);
                         if (list_type != .list and list_type != list[i].as) list_type = .list;
                     }
                     break :blk self.initValue(switch (list_type) {
@@ -684,21 +688,21 @@ pub const VM = struct {
                 .boolean_list => |boolean_list_y| blk: {
                     const list = self.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     for (int_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .int = value.as.int + @boolToInt(boolean_list_y[i].as.boolean) });
+                        list[i] = self.initValue(.{ .int = int_fn(value.as.int, @boolToInt(boolean_list_y[i].as.boolean)) });
                     }
                     break :blk self.initValue(.{ .int_list = list });
                 },
                 .int_list => |int_list_y| blk: {
                     const list = self.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     for (int_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .int = value.as.int + int_list_y[i].as.int });
+                        list[i] = self.initValue(.{ .int = int_fn(value.as.int, int_list_y[i].as.int) });
                     }
                     break :blk self.initValue(.{ .int_list = list });
                 },
                 .float_list => |float_list_y| blk: {
                     const list = self.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     for (int_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .float = @intToFloat(f64, value.as.int) + float_list_y[i].as.float });
+                        list[i] = self.initValue(.{ .float = float_fn(@intToFloat(f64, value.as.int), float_list_y[i].as.float) });
                     }
                     break :blk self.initValue(.{ .float_list = list });
                 },
@@ -708,21 +712,21 @@ pub const VM = struct {
                 .boolean => |bool_y| blk: {
                     const list = self.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     for (float_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .float = value.as.float + @intToFloat(f64, @boolToInt(bool_y)) });
+                        list[i] = self.initValue(.{ .float = float_fn(value.as.float, @intToFloat(f64, @boolToInt(bool_y))) });
                     }
                     break :blk self.initValue(.{ .float_list = list });
                 },
                 .int => |int_y| blk: {
                     const list = self.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     for (float_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .float = value.as.float + @intToFloat(f64, int_y) });
+                        list[i] = self.initValue(.{ .float = float_fn(value.as.float, @intToFloat(f64, int_y)) });
                     }
                     break :blk self.initValue(.{ .float_list = list });
                 },
                 .float => |float_y| blk: {
                     const list = self.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     for (float_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .float = value.as.float + float_y });
+                        list[i] = self.initValue(.{ .float = float_fn(value.as.float, float_y) });
                     }
                     break :blk self.initValue(.{ .float_list = list });
                 },
@@ -735,7 +739,7 @@ pub const VM = struct {
                         else => .list,
                     };
                     for (float_list_x) |value, i| {
-                        list[i] = self.add(value, list_y[i]);
+                        list[i] = self.binary(int_fn, float_fn, value, list_y[i]);
                         if (list_type != .list and list_type != list[i].as) list_type = .list;
                     }
                     break :blk self.initValue(switch (list_type) {
@@ -746,21 +750,21 @@ pub const VM = struct {
                 .boolean_list => |boolean_list_y| blk: {
                     const list = self.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     for (float_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .float = value.as.float + @intToFloat(f64, @boolToInt(boolean_list_y[i].as.boolean)) });
+                        list[i] = self.initValue(.{ .float = float_fn(value.as.float, @intToFloat(f64, @boolToInt(boolean_list_y[i].as.boolean))) });
                     }
                     break :blk self.initValue(.{ .float_list = list });
                 },
                 .int_list => |int_list_y| blk: {
                     const list = self.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     for (float_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .float = value.as.float + @intToFloat(f64, int_list_y[i].as.int) });
+                        list[i] = self.initValue(.{ .float = float_fn(value.as.float, @intToFloat(f64, int_list_y[i].as.int)) });
                     }
                     break :blk self.initValue(.{ .float_list = list });
                 },
                 .float_list => |float_list_y| blk: {
                     const list = self.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     for (float_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .float = value.as.float + float_list_y[i].as.float });
+                        list[i] = self.initValue(.{ .float = float_fn(value.as.float, float_list_y[i].as.float) });
                     }
                     break :blk self.initValue(.{ .float_list = list });
                 },
@@ -768,6 +772,14 @@ pub const VM = struct {
             },
             else => unreachable,
         };
+    }
+
+    fn addInt(x: i64, y: i64) i64 {
+        return x + y;
+    }
+
+    fn addFloat(x: f64, y: f64) f64 {
+        return x + y;
     }
 
     fn opAdd(self: *Self) !void {
@@ -778,7 +790,7 @@ pub const VM = struct {
 
         // TODO: Check that all nested lists have equal length
         if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only add numeric values.", .{});
-        const value = self.add(x, y);
+        const value = self.binary(addInt, addFloat, x, y);
         try self.push(value);
     }
 
@@ -816,392 +828,12 @@ pub const VM = struct {
         try self.push(value);
     }
 
-    fn subtract(self: *Self, x: *Value, y: *Value) *Value {
-        return switch (x.as) {
-            .boolean => |bool_x| switch (y.as) {
-                .boolean => |bool_y| self.initValue(.{ .int = @boolToInt(bool_x) - @as(i64, @boolToInt(bool_y)) }),
-                .int => |int_y| self.initValue(.{ .int = @boolToInt(bool_x) - int_y }),
-                .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, @boolToInt(bool_x)) - float_y }),
-                .list => |list_y| blk: {
-                    const list = self.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                    var list_type: ValueType = switch (list_y[0].as) {
-                        .boolean => .int,
-                        .int => .int,
-                        .float => .float,
-                        else => .list,
-                    };
-                    for (list_y) |value, i| {
-                        list[i] = self.add(x, value);
-                        if (list_type != .list and list_type != list[i].as) list_type = .list;
-                    }
-                    break :blk self.initValue(switch (list_type) {
-                        .int => .{ .int_list = list },
-                        .float => .{ .float_list = list },
-                        else => .{ .list = list },
-                    });
-                },
-                .boolean_list => |boolean_list_y| blk: {
-                    const list = self.allocator.alloc(*Value, boolean_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (boolean_list_y) |value, i| {
-                        list[i] = self.initValue(.{ .int = @boolToInt(bool_x) - @as(i64, @boolToInt(value.as.boolean)) });
-                    }
-                    break :blk self.initValue(.{ .int_list = list });
-                },
-                .int_list => |int_list_y| blk: {
-                    const list = self.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (int_list_y) |value, i| {
-                        list[i] = self.initValue(.{ .int = @boolToInt(bool_x) - value.as.int });
-                    }
-                    break :blk self.initValue(.{ .int_list = list });
-                },
-                .float_list => |float_list_y| blk: {
-                    const list = self.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (float_list_y) |value, i| {
-                        list[i] = self.initValue(.{ .float = @intToFloat(f64, @boolToInt(bool_x)) - value.as.float });
-                    }
-                    break :blk self.initValue(.{ .float_list = list });
-                },
-                else => unreachable,
-            },
-            .int => |int_x| switch (y.as) {
-                .boolean => |bool_y| self.initValue(.{ .int = int_x - @as(i64, @boolToInt(bool_y)) }),
-                .int => |int_y| self.initValue(.{ .int = int_x - int_y }),
-                .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, int_x) - float_y }),
-                .list => |list_y| blk: {
-                    const list = self.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                    var list_type: ValueType = switch (list_y[0].as) {
-                        .boolean => .int,
-                        .int => .int,
-                        .float => .float,
-                        else => .list,
-                    };
-                    for (list_y) |value, i| {
-                        list[i] = self.add(x, value);
-                        if (list_type != .list and list_type != list[i].as) list_type = .list;
-                    }
-                    break :blk self.initValue(switch (list_type) {
-                        .int => .{ .int_list = list },
-                        .float => .{ .float_list = list },
-                        else => .{ .list = list },
-                    });
-                },
-                .boolean_list => |boolean_list_y| blk: {
-                    const list = self.allocator.alloc(*Value, boolean_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (boolean_list_y) |value, i| {
-                        list[i] = self.initValue(.{ .int = int_x - @as(i64, @boolToInt(value.as.boolean)) });
-                    }
-                    break :blk self.initValue(.{ .int_list = list });
-                },
-                .int_list => |int_list_y| blk: {
-                    const list = self.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (int_list_y) |value, i| {
-                        list[i] = self.initValue(.{ .int = int_x - value.as.int });
-                    }
-                    break :blk self.initValue(.{ .int_list = list });
-                },
-                .float_list => |float_list_y| blk: {
-                    const list = self.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (float_list_y) |value, i| {
-                        list[i] = self.initValue(.{ .float = @intToFloat(f64, int_x) - value.as.float });
-                    }
-                    break :blk self.initValue(.{ .float_list = list });
-                },
-                else => unreachable,
-            },
-            .float => |float_x| switch (y.as) {
-                .boolean => |bool_y| self.initValue(.{ .float = float_x - @intToFloat(f64, @boolToInt(bool_y)) }),
-                .int => |int_y| self.initValue(.{ .float = float_x - @intToFloat(f64, int_y) }),
-                .float => |float_y| self.initValue(.{ .float = float_x - float_y }),
-                .list => |list_y| blk: {
-                    const list = self.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                    var list_type: ValueType = switch (list_y[0].as) {
-                        .boolean => .float,
-                        .int => .float,
-                        .float => .float,
-                        else => .list,
-                    };
-                    for (list_y) |value, i| {
-                        list[i] = self.add(x, value);
-                        if (list_type != .list and list_type != list[i].as) list_type = .list;
-                    }
-                    break :blk self.initValue(switch (list_type) {
-                        .float => .{ .float_list = list },
-                        else => .{ .list = list },
-                    });
-                },
-                .boolean_list => |boolean_list_y| blk: {
-                    const list = self.allocator.alloc(*Value, boolean_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (boolean_list_y) |value, i| {
-                        list[i] = self.initValue(.{ .float = float_x - @intToFloat(f64, @boolToInt(value.as.boolean)) });
-                    }
-                    break :blk self.initValue(.{ .float_list = list });
-                },
-                .int_list => |int_list_y| blk: {
-                    const list = self.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (int_list_y) |value, i| {
-                        list[i] = self.initValue(.{ .float = float_x - @intToFloat(f64, value.as.int) });
-                    }
-                    break :blk self.initValue(.{ .float_list = list });
-                },
-                .float_list => |float_list_y| blk: {
-                    const list = self.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (float_list_y) |value, i| {
-                        list[i] = self.initValue(.{ .float = float_x - value.as.float });
-                    }
-                    break :blk self.initValue(.{ .float_list = list });
-                },
-                else => unreachable,
-            },
-            .list => |list_x| switch (y.as) {
-                .boolean, .int => blk: {
-                    const list = self.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                    var list_type: ValueType = switch (list_x[0].as) {
-                        .boolean => .int,
-                        .int => .int,
-                        .float => .float,
-                        else => .list,
-                    };
-                    for (list_x) |value, i| {
-                        list[i] = self.add(value, y);
-                        if (list_type != .list and list_type != list[i].as) list_type = .list;
-                    }
-                    break :blk self.initValue(switch (list_type) {
-                        .int => .{ .int_list = list },
-                        .float => .{ .float_list = list },
-                        else => .{ .list = list },
-                    });
-                },
-                .float => blk: {
-                    const list = self.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                    var list_type: ValueType = switch (list_x[0].as) {
-                        .boolean => .float,
-                        .int => .float,
-                        .float => .float,
-                        else => .list,
-                    };
-                    for (list_x) |value, i| {
-                        list[i] = self.add(value, y);
-                        if (list_type != .list and list_type != list[i].as) list_type = .list;
-                    }
-                    break :blk self.initValue(switch (list_type) {
-                        .float => .{ .float_list = list },
-                        else => .{ .list = list },
-                    });
-                },
-                .list,
-                .boolean_list,
-                .int_list,
-                .float_list,
-                => |list_y| blk: {
-                    const list = self.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                    var list_type: ValueType = switch (list_x[0].as) {
-                        .boolean => .int,
-                        .int => .int,
-                        .float => .float,
-                        else => .list,
-                    };
-                    for (list_x) |value, i| {
-                        list[i] = self.add(value, list_y[i]);
-                        if (list_type != .list and list_type != list[i].as) list_type = .list;
-                    }
-                    break :blk self.initValue(switch (list_type) {
-                        .int => .{ .int_list = list },
-                        .float => .{ .float_list = list },
-                        else => .{ .list = list },
-                    });
-                },
-                else => unreachable,
-            },
-            .boolean_list => |boolean_list_x| switch (y.as) {
-                .boolean => |bool_y| blk: {
-                    const list = self.allocator.alloc(*Value, boolean_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (boolean_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .int = @boolToInt(value.as.boolean) - @as(i64, @boolToInt(bool_y)) });
-                    }
-                    break :blk self.initValue(.{ .int_list = list });
-                },
-                .int => |int_y| blk: {
-                    const list = self.allocator.alloc(*Value, boolean_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (boolean_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .int = @boolToInt(value.as.boolean) - int_y });
-                    }
-                    break :blk self.initValue(.{ .int_list = list });
-                },
-                .float => |float_y| blk: {
-                    const list = self.allocator.alloc(*Value, boolean_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (boolean_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .float = @intToFloat(f64, @boolToInt(value.as.boolean)) - float_y });
-                    }
-                    break :blk self.initValue(.{ .float_list = list });
-                },
-                .list => |list_y| blk: {
-                    const list = self.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                    var list_type: ValueType = switch (list_y[0].as) {
-                        .boolean => .int,
-                        .int => .int,
-                        .float => .float,
-                        else => .list,
-                    };
-                    for (boolean_list_x) |value, i| {
-                        list[i] = self.add(value, list_y[i]);
-                        if (list_type != .list and list_type != list[i].as) list_type = .list;
-                    }
-                    break :blk self.initValue(switch (list_type) {
-                        .int => .{ .int_list = list },
-                        .float => .{ .float_list = list },
-                        else => .{ .list = list },
-                    });
-                },
-                .boolean_list => |boolean_list_y| blk: {
-                    const list = self.allocator.alloc(*Value, boolean_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (boolean_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .int = @boolToInt(value.as.boolean) - @as(i64, @boolToInt(boolean_list_y[i].as.boolean)) });
-                    }
-                    break :blk self.initValue(.{ .int_list = list });
-                },
-                .int_list => |int_list_y| blk: {
-                    const list = self.allocator.alloc(*Value, boolean_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (boolean_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .int = @boolToInt(value.as.boolean) - int_list_y[i].as.int });
-                    }
-                    break :blk self.initValue(.{ .int_list = list });
-                },
-                .float_list => |float_list_y| blk: {
-                    const list = self.allocator.alloc(*Value, boolean_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (boolean_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .float = @intToFloat(f64, @boolToInt(value.as.boolean)) - float_list_y[i].as.float });
-                    }
-                    break :blk self.initValue(.{ .float_list = list });
-                },
-                else => unreachable,
-            },
-            .int_list => |int_list_x| switch (y.as) {
-                .boolean => |bool_y| blk: {
-                    const list = self.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (int_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .int = value.as.int - @boolToInt(bool_y) });
-                    }
-                    break :blk self.initValue(.{ .int_list = list });
-                },
-                .int => |int_y| blk: {
-                    const list = self.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (int_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .int = value.as.int - int_y });
-                    }
-                    break :blk self.initValue(.{ .int_list = list });
-                },
-                .float => |float_y| blk: {
-                    const list = self.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (int_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .float = @intToFloat(f64, value.as.int) - float_y });
-                    }
-                    break :blk self.initValue(.{ .float_list = list });
-                },
-                .list => |list_y| blk: {
-                    const list = self.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                    var list_type: ValueType = switch (list_y[0].as) {
-                        .boolean => .int,
-                        .int => .int,
-                        .float => .float,
-                        else => .list,
-                    };
-                    for (int_list_x) |value, i| {
-                        list[i] = self.add(value, list_y[i]);
-                        if (list_type != .list and list_type != list[i].as) list_type = .list;
-                    }
-                    break :blk self.initValue(switch (list_type) {
-                        .int => .{ .int_list = list },
-                        .float => .{ .float_list = list },
-                        else => .{ .list = list },
-                    });
-                },
-                .boolean_list => |boolean_list_y| blk: {
-                    const list = self.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (int_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .int = value.as.int - @boolToInt(boolean_list_y[i].as.boolean) });
-                    }
-                    break :blk self.initValue(.{ .int_list = list });
-                },
-                .int_list => |int_list_y| blk: {
-                    const list = self.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (int_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .int = value.as.int - int_list_y[i].as.int });
-                    }
-                    break :blk self.initValue(.{ .int_list = list });
-                },
-                .float_list => |float_list_y| blk: {
-                    const list = self.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (int_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .float = @intToFloat(f64, value.as.int) - float_list_y[i].as.float });
-                    }
-                    break :blk self.initValue(.{ .float_list = list });
-                },
-                else => unreachable,
-            },
-            .float_list => |float_list_x| switch (y.as) {
-                .boolean => |bool_y| blk: {
-                    const list = self.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (float_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .float = value.as.float - @intToFloat(f64, @boolToInt(bool_y)) });
-                    }
-                    break :blk self.initValue(.{ .float_list = list });
-                },
-                .int => |int_y| blk: {
-                    const list = self.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (float_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .float = value.as.float - @intToFloat(f64, int_y) });
-                    }
-                    break :blk self.initValue(.{ .float_list = list });
-                },
-                .float => |float_y| blk: {
-                    const list = self.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (float_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .float = value.as.float - float_y });
-                    }
-                    break :blk self.initValue(.{ .float_list = list });
-                },
-                .list => |list_y| blk: {
-                    const list = self.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                    var list_type: ValueType = switch (list_y[0].as) {
-                        .boolean => .float,
-                        .int => .float,
-                        .float => .float,
-                        else => .list,
-                    };
-                    for (float_list_x) |value, i| {
-                        list[i] = self.add(value, list_y[i]);
-                        if (list_type != .list and list_type != list[i].as) list_type = .list;
-                    }
-                    break :blk self.initValue(switch (list_type) {
-                        .float => .{ .float_list = list },
-                        else => .{ .list = list },
-                    });
-                },
-                .boolean_list => |boolean_list_y| blk: {
-                    const list = self.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (float_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .float = value.as.float - @intToFloat(f64, @boolToInt(boolean_list_y[i].as.boolean)) });
-                    }
-                    break :blk self.initValue(.{ .float_list = list });
-                },
-                .int_list => |int_list_y| blk: {
-                    const list = self.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (float_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .float = value.as.float - @intToFloat(f64, int_list_y[i].as.int) });
-                    }
-                    break :blk self.initValue(.{ .float_list = list });
-                },
-                .float_list => |float_list_y| blk: {
-                    const list = self.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                    for (float_list_x) |value, i| {
-                        list[i] = self.initValue(.{ .float = value.as.float - float_list_y[i].as.float });
-                    }
-                    break :blk self.initValue(.{ .float_list = list });
-                },
-                else => unreachable,
-            },
-            else => unreachable,
-        };
+    fn subtractInt(x: i64, y: i64) i64 {
+        return x - y;
+    }
+
+    fn subtractFloat(x: f64, y: f64) f64 {
+        return x - y;
     }
 
     fn opSubtract(self: *Self) !void {
@@ -1212,7 +844,7 @@ pub const VM = struct {
 
         // TODO: Check that all nested lists have equal length
         if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only add numeric values.", .{});
-        const value = self.subtract(x, y);
+        const value = self.binary(subtractInt, subtractFloat, x, y);
         try self.push(value);
     }
 
@@ -1227,33 +859,23 @@ pub const VM = struct {
         try self.push(value);
     }
 
+    fn multiplyInt(x: i64, y: i64) i64 {
+        return x * y;
+    }
+
+    fn multiplyFloat(x: f64, y: f64) f64 {
+        return x * y;
+    }
+
     fn opMultiply(self: *Self) !void {
         const x = self.pop();
         defer x.deref(self.allocator);
         const y = self.pop();
         defer y.deref(self.allocator);
 
-        const value = switch (x.as) {
-            .boolean => |bool_x| switch (y.as) {
-                .boolean => |bool_y| self.initValue(.{ .int = @boolToInt(bool_x) * @boolToInt(bool_y) }),
-                .int => |int_y| self.initValue(.{ .int = @boolToInt(bool_x) * int_y }),
-                .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, @boolToInt(bool_x)) * float_y }),
-                else => return self.runtimeError("Can only multiply numeric values.", .{}),
-            },
-            .int => |int_x| switch (y.as) {
-                .boolean => |bool_y| self.initValue(.{ .int = int_x * @boolToInt(bool_y) }),
-                .int => |int_y| self.initValue(.{ .int = int_x * int_y }),
-                .float => |float_y| self.initValue(.{ .float = @intToFloat(f64, int_x) * float_y }),
-                else => return self.runtimeError("Can only multiply numeric values.", .{}),
-            },
-            .float => |float_x| switch (y.as) {
-                .boolean => |bool_y| self.initValue(.{ .float = float_x * @intToFloat(f64, @boolToInt(bool_y)) }),
-                .int => |int_y| self.initValue(.{ .float = float_x * @intToFloat(f64, int_y) }),
-                .float => |float_y| self.initValue(.{ .float = float_x * float_y }),
-                else => return self.runtimeError("Can only multiply numeric values.", .{}),
-            },
-            else => return self.runtimeError("Can only multiply numeric values.", .{}),
-        };
+        // TODO: Check that all nested lists have equal length
+        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only add numeric values.", .{});
+        const value = self.binary(multiplyInt, multiplyFloat, x, y);
         try self.push(value);
     }
 
