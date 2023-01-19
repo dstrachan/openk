@@ -194,6 +194,18 @@ pub const Scanner = struct {
             return self.float();
         }
 
+        const next = self.peek();
+        if (next == 'W') {
+            _ = self.advance();
+        } else if (next == 'w') {
+            _ = self.advance();
+            if (self.peek() == 'f') {
+                defer _ = self.advance();
+                return self.makeToken(.token_float);
+            }
+            return self.makeToken(.token_float);
+        }
+
         if (self.peek() == 'f') {
             defer _ = self.advance();
             return self.makeToken(.token_float);
@@ -217,6 +229,18 @@ pub const Scanner = struct {
         if (self.peek() == 'b') {
             _ = self.advance();
             return if (token_type == .token_bool) self.makeToken(.token_bool) else self.errorToken("Invalid boolean value.");
+        }
+
+        const next = self.peek();
+        if (next == 'W' or next == 'N') {
+            _ = self.advance();
+        } else if (next == 'w' or next == 'n') {
+            _ = self.advance();
+            if (self.peek() == 'f') {
+                defer _ = self.advance();
+                return self.makeToken(.token_float);
+            }
+            return self.makeToken(.token_float);
         }
 
         if (self.peek() == 'f') {

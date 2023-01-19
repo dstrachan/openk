@@ -309,11 +309,33 @@ fn parseBool(str: []const u8) *Value {
 }
 
 fn parseInt(str: []const u8) *Value {
+    if (str.len == 2) {
+        if (str[0] == '0') {
+            if (str[1] == 'N') {
+                return current.vm.initValue(.{ .int = Value.null_int });
+            } else if (str[1] == 'W') {
+                return current.vm.initValue(.{ .int = Value.inf_int });
+            }
+        }
+    } else if (str.len == 3 and str[0] == '-' and str[1] == '0' and str[2] == 'W') {
+        return current.vm.initValue(.{ .int = -Value.inf_int });
+    }
     const int = std.fmt.parseInt(i64, str, 10) catch std.debug.panic("Failed to parse int", .{});
     return current.vm.initValue(.{ .int = int });
 }
 
 fn parseFloat(str: []const u8) *Value {
+    if (str.len == 2) {
+        if (str[0] == '0') {
+            if (str[1] == 'N' or str[1] == 'n') {
+                return current.vm.initValue(.{ .float = Value.null_float });
+            } else if (str[1] == 'W' or str[1] == 'w') {
+                return current.vm.initValue(.{ .float = Value.inf_float });
+            }
+        }
+    } else if (str.len == 3 and str[0] == '-' and str[1] == '0' and (str[2] == 'W' or str[2] == 'w')) {
+        return current.vm.initValue(.{ .float = -Value.inf_float });
+    }
     const float = std.fmt.parseFloat(f64, str) catch std.debug.panic("Failed to parse float", .{});
     return current.vm.initValue(.{ .float = float });
 }

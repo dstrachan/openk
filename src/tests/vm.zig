@@ -1,6 +1,7 @@
 const std = @import("std");
 
 const value_mod = @import("../value.zig");
+const Value = value_mod.Value;
 const ValueFunction = value_mod.ValueFunction;
 const ValueProjection = value_mod.ValueProjection;
 const ValueType = value_mod.ValueType;
@@ -34,14 +35,15 @@ pub const TestValue = union(ValueType) {
 fn compareValues(expected: TestValue, actual: ValueUnion) !void {
     const value_type = @as(ValueType, expected);
     try std.testing.expectEqual(value_type, actual);
-    if (value_type == .float and std.math.isNan(expected.float) and std.math.isNan(actual.float)) {
-        return;
-    }
     switch (value_type) {
         .nil => try std.testing.expectEqual(expected.nil, actual.nil),
         .boolean => try std.testing.expectEqual(expected.boolean, actual.boolean),
         .int => try std.testing.expectEqual(expected.int, actual.int),
-        .float => try std.testing.expectEqual(expected.float, actual.float),
+        .float => {
+            if (!std.math.isNan(expected.float) or !std.math.isNan(actual.float)) {
+                try std.testing.expectEqual(expected.float, actual.float);
+            }
+        },
         .char => try std.testing.expectEqualSlices(u8, &[_]u8{expected.char}, &[_]u8{actual.char}),
         .symbol => try std.testing.expectEqualSlices(u8, expected.symbol, actual.symbol),
         .list => {
@@ -282,4 +284,28 @@ test "vm - list" {
         .{ .int = 20 },
         .{ .int_list = &[_]TestValue{ .{ .int = 0 }, .{ .int = 100 } } },
     } });
+}
+
+test "null int" {
+    try runTest("0N", .{ .int = Value.null_int });
+}
+
+test "inf int" {
+    try runTest("0W", .{ .int = Value.inf_int });
+    try runTest("-0W", .{ .int = -Value.inf_int });
+}
+
+test "null float" {
+    try runTest("0n", .{ .float = Value.null_float });
+    try runTest("0nf", .{ .float = Value.null_float });
+    try runTest("0Nf", .{ .float = Value.null_float });
+}
+
+test "inf float" {
+    try runTest("0w", .{ .float = Value.inf_float });
+    try runTest("0wf", .{ .float = Value.inf_float });
+    try runTest("0Wf", .{ .float = Value.inf_float });
+    try runTest("-0w", .{ .float = -Value.inf_float });
+    try runTest("-0wf", .{ .float = -Value.inf_float });
+    try runTest("-0Wf", .{ .float = -Value.inf_float });
 }
