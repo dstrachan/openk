@@ -48,27 +48,10 @@ pub const ValueUnion = union(ValueType) {
         switch (self) {
             .nil => try writer.writeAll("(::)"),
             .boolean => |boolean| try writer.writeAll(if (boolean) "1b" else "0b"),
-            .int => |int| {
-                if (int == Value.null_int) {
-                    try writer.writeAll("0N");
-                } else if (int == -Value.inf_int) {
-                    try writer.writeAll("-0W");
-                } else if (int == Value.inf_int) {
-                    try writer.writeAll("0W");
-                } else {
-                    try writer.print("{d}", .{int});
-                }
-            },
+            .int => |int| try printInt(writer, int),
             .float => |float| {
-                if (std.math.isNan(float)) {
-                    try writer.writeAll("0n");
-                } else if (float == -Value.inf_float) {
-                    try writer.writeAll("-0w");
-                } else if (float == Value.inf_float) {
-                    try writer.writeAll("0w");
-                } else {
-                    try writer.print("{d}f", .{float});
-                }
+                try printFloat(writer, float);
+                try writer.writeAll("f");
             },
             .char => |char| {
                 try writer.writeAll("\"");
@@ -102,8 +85,11 @@ pub const ValueUnion = union(ValueType) {
                     return;
                 }
                 if (list.len == 1) try writer.writeAll(",");
-                for (list[0 .. list.len - 1]) |value| try writer.print("{d} ", .{value.as.int});
-                try writer.print("{d}", .{list[list.len - 1].as.int});
+                for (list[0 .. list.len - 1]) |value| {
+                    try printInt(writer, value.as.int);
+                    try writer.writeAll(" ");
+                }
+                try printInt(writer, list[list.len - 1].as.int);
             },
             .float_list => |list| {
                 if (list.len == 0) {
@@ -111,8 +97,12 @@ pub const ValueUnion = union(ValueType) {
                     return;
                 }
                 if (list.len == 1) try writer.writeAll(",");
-                for (list[0 .. list.len - 1]) |value| try writer.print("{d} ", .{value.as.float});
-                try writer.print("{d}f", .{list[list.len - 1].as.float});
+                for (list[0 .. list.len - 1]) |value| {
+                    try printFloat(writer, value.as.float);
+                    try writer.writeAll(" ");
+                }
+                try printFloat(writer, list[list.len - 1].as.float);
+                try writer.writeAll("f");
             },
             .char_list => |list| {
                 if (list.len == 1) try writer.writeAll(",");
@@ -148,6 +138,30 @@ pub const ValueUnion = union(ValueType) {
                     try writer.writeAll("]");
                 }
             },
+        }
+    }
+
+    fn printInt(writer: anytype, int: i64) !void {
+        if (int == Value.null_int) {
+            try writer.writeAll("0N");
+        } else if (int == -Value.inf_int) {
+            try writer.writeAll("-0W");
+        } else if (int == Value.inf_int) {
+            try writer.writeAll("0W");
+        } else {
+            try writer.print("{d}", .{int});
+        }
+    }
+
+    fn printFloat(writer: anytype, float: f64) !void {
+        if (std.math.isNan(float)) {
+            try writer.writeAll("0n");
+        } else if (float == -Value.inf_float) {
+            try writer.writeAll("-0w");
+        } else if (float == Value.inf_float) {
+            try writer.writeAll("0w");
+        } else {
+            try writer.print("{d}", .{float});
         }
     }
 

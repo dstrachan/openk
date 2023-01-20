@@ -22,7 +22,7 @@ fn getDataType(comptime x: DataType, comptime y: DataType) DataType {
     };
 }
 
-fn subtract(comptime x: comptime_int, comptime y: comptime_int) comptime_int {
+fn subtract(comptime x: comptime_int, comptime y: comptime_int) comptime_float {
     return x - y;
 }
 
@@ -30,6 +30,7 @@ test "subtract" {
     try verbTest(
         &[_]DataType{ .boolean, .int, .float },
         &[_]comptime_int{ 0, 1, -1 },
+        null,
         getDataType,
         subtract,
         "-",
@@ -44,4 +45,46 @@ test "subtract with null/inf" {
     try runTest("0w-1", .{ .float = Value.inf_float });
     try runTest("0n-1", .{ .float = Value.null_float });
     try runTest("-0w-1", .{ .float = -Value.inf_float });
+
+    try runTest("0N-0N", .{ .int = Value.null_int });
+    try runTest("0N-0W", .{ .int = Value.null_int });
+    try runTest("0N--0W", .{ .int = Value.null_int });
+    try runTest("0N-0n", .{ .float = Value.null_float });
+    try runTest("0N-0w", .{ .float = Value.null_float });
+    try runTest("0N--0w", .{ .float = Value.null_float });
+
+    try runTest("0W-0N", .{ .int = Value.null_int });
+    try runTest("0W-0W", .{ .int = 0 });
+    try runTest("0W--0W", .{ .int = -2 });
+    try runTest("0W-0n", .{ .float = Value.null_float });
+    try runTest("0W-0w", .{ .float = -Value.inf_float });
+    try runTest("0W--0w", .{ .float = Value.inf_float });
+
+    try runTest("-0W-0N", .{ .int = Value.null_int });
+    try runTest("-0W-0W", .{ .int = 2 });
+    try runTest("-0W--0W", .{ .int = 0 });
+    try runTest("-0W-0n", .{ .float = Value.null_float });
+    try runTest("-0W-0w", .{ .float = -Value.inf_float });
+    try runTest("-0W--0w", .{ .float = Value.inf_float });
+
+    try runTest("0n-0N", .{ .float = Value.null_float });
+    try runTest("0n-0W", .{ .float = Value.null_float });
+    try runTest("0n--0W", .{ .float = Value.null_float });
+    try runTest("0n-0n", .{ .float = Value.null_float });
+    try runTest("0n-0w", .{ .float = Value.null_float });
+    try runTest("0n--0w", .{ .float = Value.null_float });
+
+    try runTest("0w-0N", .{ .float = Value.null_float });
+    try runTest("0w-0W", .{ .float = Value.inf_float });
+    try runTest("0w--0W", .{ .float = Value.inf_float });
+    try runTest("0w-0n", .{ .float = Value.null_float });
+    try runTest("0w-0w", .{ .float = Value.null_float });
+    try runTest("0w--0w", .{ .float = Value.inf_float });
+
+    try runTest("-0w-0N", .{ .float = Value.null_float });
+    try runTest("-0w-0W", .{ .float = -Value.inf_float });
+    try runTest("-0w--0W", .{ .float = -Value.inf_float });
+    try runTest("-0w-0n", .{ .float = Value.null_float });
+    try runTest("-0w-0w", .{ .float = -Value.inf_float });
+    try runTest("-0w--0w", .{ .float = Value.null_float });
 }

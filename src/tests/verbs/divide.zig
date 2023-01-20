@@ -1,84 +1,88 @@
 const std = @import("std");
 
 const vm_mod = @import("../vm.zig");
+const verbTest = vm_mod.verbTest;
 const runTest = vm_mod.runTest;
-const TestValue = vm_mod.TestValue;
+const DataType = vm_mod.DataType;
 
-test "boolean division" {
-    try runTest("0b%0b", .{ .float = -std.math.nan(f64) });
-    try runTest("0b%1b", .{ .float = 0 });
-    try runTest("1b%0b", .{ .float = std.math.inf(f64) });
-    try runTest("1b%1b", .{ .float = 1 });
+const value_mod = @import("../../value.zig");
+const Value = value_mod.Value;
 
-    try runTest("0b%0", .{ .float = -std.math.nan(f64) });
-    try runTest("0b%1", .{ .float = 0 });
-    try runTest("0b%-1", .{ .float = 0 });
-    try runTest("1b%0", .{ .float = std.math.inf(f64) });
-    try runTest("1b%1", .{ .float = 1 });
-    try runTest("1b%-1", .{ .float = -1 });
-
-    try runTest("0b%0f", .{ .float = -std.math.nan(f64) });
-    try runTest("0b%1f", .{ .float = 0 });
-    try runTest("0b%-1f", .{ .float = 0 });
-    try runTest("1b%0f", .{ .float = std.math.inf(f64) });
-    try runTest("1b%1f", .{ .float = 1 });
-    try runTest("1b%-1f", .{ .float = -1 });
+fn getDataType(comptime _: DataType, comptime _: DataType) DataType {
+    return .float;
 }
 
-test "int division" {
-    try runTest("0%0b", .{ .float = -std.math.nan(f64) });
-    try runTest("0%1b", .{ .float = 0 });
-    try runTest("1%0b", .{ .float = std.math.inf(f64) });
-    try runTest("1%1b", .{ .float = 1 });
-    try runTest("-1%0b", .{ .float = -std.math.inf(f64) });
-    try runTest("-1%1b", .{ .float = -1 });
-
-    try runTest("0%0", .{ .float = -std.math.nan(f64) });
-    try runTest("0%1", .{ .float = 0 });
-    try runTest("0%-1", .{ .float = 0 });
-    try runTest("1%0", .{ .float = std.math.inf(f64) });
-    try runTest("1%1", .{ .float = 1 });
-    try runTest("1%-1", .{ .float = -1 });
-    try runTest("-1%0", .{ .float = -std.math.inf(f64) });
-    try runTest("-1%1", .{ .float = -1 });
-    try runTest("-1%-1", .{ .float = 1 });
-
-    try runTest("0%0f", .{ .float = -std.math.nan(f64) });
-    try runTest("0%1f", .{ .float = 0 });
-    try runTest("0%-1f", .{ .float = 0 });
-    try runTest("1%0f", .{ .float = std.math.inf(f64) });
-    try runTest("1%1f", .{ .float = 1 });
-    try runTest("1%-1f", .{ .float = -1 });
-    try runTest("-1%0f", .{ .float = -std.math.inf(f64) });
-    try runTest("-1%1f", .{ .float = -1 });
-    try runTest("-1%-1f", .{ .float = 1 });
+fn divide(comptime x: comptime_int, comptime y: comptime_int) comptime_float {
+    if (y == 0) {
+        if (x == 0) unreachable;
+        return std.math.sign(x) * std.math.inf(f64);
+    }
+    return x / y;
 }
 
-test "float division" {
-    try runTest("0f%0b", .{ .float = -std.math.nan(f64) });
-    try runTest("0f%1b", .{ .float = 0 });
-    try runTest("1f%0b", .{ .float = std.math.inf(f64) });
-    try runTest("1f%1b", .{ .float = 1 });
-    try runTest("-1f%0b", .{ .float = -std.math.inf(f64) });
-    try runTest("-1f%1b", .{ .float = -1 });
+fn excludePredicate(comptime x: comptime_int, comptime y: comptime_int) bool {
+    return x == 0 and y == 0;
+}
 
-    try runTest("0f%0", .{ .float = -std.math.nan(f64) });
-    try runTest("0f%1", .{ .float = 0 });
-    try runTest("0f%-1", .{ .float = 0 });
-    try runTest("1f%0", .{ .float = std.math.inf(f64) });
-    try runTest("1f%1", .{ .float = 1 });
-    try runTest("1f%-1", .{ .float = -1 });
-    try runTest("-1f%0", .{ .float = -std.math.inf(f64) });
-    try runTest("-1f%1", .{ .float = -1 });
-    try runTest("-1f%-1", .{ .float = 1 });
+test "divide" {
+    try verbTest(
+        &[_]DataType{ .boolean, .int, .float },
+        &[_]comptime_int{ 0, 1, -1 },
+        excludePredicate,
+        getDataType,
+        divide,
+        "%",
+    );
+}
 
-    try runTest("0f%0f", .{ .float = -std.math.nan(f64) });
-    try runTest("0f%1f", .{ .float = 0 });
-    try runTest("0f%-1f", .{ .float = 0 });
-    try runTest("1f%0f", .{ .float = std.math.inf(f64) });
-    try runTest("1f%1f", .{ .float = 1 });
-    try runTest("1f%-1f", .{ .float = -1 });
-    try runTest("-1f%0f", .{ .float = -std.math.inf(f64) });
-    try runTest("-1f%1f", .{ .float = -1 });
-    try runTest("-1f%-1f", .{ .float = 1 });
+test "divide with null/inf" {
+    try runTest("0W%7", .{ .float = 1317624576693539401 });
+    try runTest("0N%2", .{ .float = Value.null_float });
+    try runTest("-0W%7", .{ .float = -1317624576693539401 });
+
+    try runTest("0w%2", .{ .float = Value.inf_float });
+    try runTest("0n%2", .{ .float = Value.null_float });
+    try runTest("-0w%2", .{ .float = -Value.inf_float });
+
+    try runTest("0N%0N", .{ .float = Value.null_float });
+    try runTest("0N%0W", .{ .float = Value.null_float });
+    try runTest("0N%-0W", .{ .float = Value.null_float });
+    try runTest("0N%0n", .{ .float = Value.null_float });
+    try runTest("0N%0w", .{ .float = Value.null_float });
+    try runTest("0N%-0w", .{ .float = Value.null_float });
+
+    try runTest("0W%0N", .{ .float = Value.null_float });
+    try runTest("0W%0W", .{ .float = 1 });
+    try runTest("0W%-0W", .{ .float = -1 });
+    try runTest("0W%0n", .{ .float = Value.null_float });
+    try runTest("0W%0w", .{ .float = 0 });
+    try runTest("0W%-0w", .{ .float = 0 });
+
+    try runTest("-0W%0N", .{ .float = Value.null_float });
+    try runTest("-0W%0W", .{ .float = -1 });
+    try runTest("-0W%-0W", .{ .float = 1 });
+    try runTest("-0W%0n", .{ .float = Value.null_float });
+    try runTest("-0W%0w", .{ .float = 0 });
+    try runTest("-0W%-0w", .{ .float = 0 });
+
+    try runTest("0n%0N", .{ .float = Value.null_float });
+    try runTest("0n%0W", .{ .float = Value.null_float });
+    try runTest("0n%-0W", .{ .float = Value.null_float });
+    try runTest("0n%0n", .{ .float = Value.null_float });
+    try runTest("0n%0w", .{ .float = Value.null_float });
+    try runTest("0n%-0w", .{ .float = Value.null_float });
+
+    try runTest("0w%0N", .{ .float = Value.null_float });
+    try runTest("0w%0W", .{ .float = Value.inf_float });
+    try runTest("0w%-0W", .{ .float = -Value.inf_float });
+    try runTest("0w%0n", .{ .float = Value.null_float });
+    try runTest("0w%0w", .{ .float = Value.null_float });
+    try runTest("0w%-0w", .{ .float = Value.null_float });
+
+    try runTest("-0w%0N", .{ .float = Value.null_float });
+    try runTest("-0w%0W", .{ .float = -Value.inf_float });
+    try runTest("-0w%-0W", .{ .float = Value.inf_float });
+    try runTest("-0w%0n", .{ .float = Value.null_float });
+    try runTest("-0w%0w", .{ .float = Value.null_float });
+    try runTest("-0w%-0w", .{ .float = Value.null_float });
 }

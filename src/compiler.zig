@@ -235,7 +235,7 @@ fn number() CompilerError!*Node {
                     while (parser.current.token_type == .token_int or parser.current.token_type == .token_float) {
                         if (parser.current.token_type == .token_float) { // switch to parsing floats
                             for (list.items) |value, i| {
-                                list.items[i] = current.vm.initValue(.{ .float = @intToFloat(f64, value.as.int) });
+                                list.items[i] = current.vm.initValue(.{ .float = utils_mod.intToFloat(value.as.int) });
                                 value.deref(current.vm.allocator);
                             }
 
