@@ -90,10 +90,12 @@ test "add with null/inf" {
     try runTest("-0w+-0w", .{ .float = -Value.inf_float });
 }
 
+// TODO: Generate full set of tests but split into multiple files
 // castValue:{(0 -6 6h!(.z.s';`long$;`long$))[type x;x]}
 // getValue:{".{ ",(0 -7 -9 7 9h!({".list = &[_]TestValue{ ",(", "sv getValue'[x])," }"};{".int = ",$[null x;"Value.null_int";0W=x;"Value.inf_int";-0W=x;"-Value.inf_int";-3!x]};{".float = ",$[null x;"Value.null_float";0w=x;"Value.inf_float";-0w=x;"-Value.inf_float";ssr[-3!x;"f";""]]};{".int_list = &[_]TestValue{ ",(", "sv getValue'[x])," }"};{".float_list = &[_]TestValue{ ",(", "sv getValue'[x])," }"}))[type x;x:castValue x]," }"}
-// generate:{enlist["test \"auto-generated ",x,"\" {"],({"    try runTest(\"",x,"\", ",getValue[value x],");"}each x sv'-3!'/:{x cross x}enlist each{x,x cross x}(0N;-0W;0W;0n;-0w;0w)),enlist enlist"}"}
-// generate"+"
+// values:(0N;-0W;0W;0n;-0w;0w)
+// generate:{enlist["test \"auto-generated ",x," ",(-3!y),"\" {"],({"    try runTest(\"",x,"\", ",getValue[value x],");"}each x sv'-3!'/:{x cross x}enlist each{x,x cross x}y),enlist enlist"}"}
+// generate["+";values]
 test "auto-generated +" {
     try runTest("0N+0N", .{ .int = Value.null_int });
     try runTest("0N+-0W", .{ .int = Value.null_int });

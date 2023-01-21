@@ -49,10 +49,7 @@ pub const ValueUnion = union(ValueType) {
             .nil => try writer.writeAll("(::)"),
             .boolean => |boolean| try writer.writeAll(if (boolean) "1b" else "0b"),
             .int => |int| try printInt(writer, int),
-            .float => |float| {
-                try printFloat(writer, float);
-                try writer.writeAll("f");
-            },
+            .float => |float| if (try printFloat(writer, float)) try writer.writeAll("f"),
             .char => |char| {
                 try writer.writeAll("\"");
                 try printChar(writer, char);
@@ -96,13 +93,13 @@ pub const ValueUnion = union(ValueType) {
                     try writer.writeAll("`float$()");
                     return;
                 }
+                var needs_suffix = true;
                 if (list.len == 1) try writer.writeAll(",");
                 for (list[0 .. list.len - 1]) |value| {
-                    try printFloat(writer, value.as.float);
+                    if (!try printFloat(writer, value.as.float)) needs_suffix = false;
                     try writer.writeAll(" ");
                 }
-                try printFloat(writer, list[list.len - 1].as.float);
-                try writer.writeAll("f");
+                if (try printFloat(writer, list[list.len - 1].as.float) and needs_suffix) try writer.writeAll("f");
             },
             .char_list => |list| {
                 if (list.len == 1) try writer.writeAll(",");
@@ -153,15 +150,19 @@ pub const ValueUnion = union(ValueType) {
         }
     }
 
-    fn printFloat(writer: anytype, float: f64) !void {
+    fn printFloat(writer: anytype, float: f64) !bool {
         if (std.math.isNan(float)) {
             try writer.writeAll("0n");
+            return false;
         } else if (float == -Value.inf_float) {
             try writer.writeAll("-0w");
+            return false;
         } else if (float == Value.inf_float) {
             try writer.writeAll("0w");
+            return false;
         } else {
             try writer.print("{d}", .{float});
+            return true;
         }
     }
 
