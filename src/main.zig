@@ -105,6 +105,7 @@ test {
     _ = @import("tests/compiler.zig");
     _ = @import("tests/scanner.zig");
     _ = @import("tests/vm.zig");
+    _ = @import("tests/verbs/+.generated.zig");
     _ = @import("tests/verbs/add.zig");
     _ = @import("tests/verbs/divide.zig");
     _ = @import("tests/verbs/enum.zig");
