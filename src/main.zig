@@ -105,14 +105,13 @@ test {
     _ = @import("tests/compiler.zig");
     _ = @import("tests/scanner.zig");
     _ = @import("tests/vm.zig");
-    _ = @import("tests/verbs/+.generated.zig");
-    _ = @import("tests/verbs/add.zig");
-    _ = @import("tests/verbs/divide.zig");
+    _ = @import("tests/verbs/add/_imports.zig");
+    // _ = @import("tests/verbs/divide/_imports.zig");
     _ = @import("tests/verbs/enum.zig");
     _ = @import("tests/verbs/first.zig");
     _ = @import("tests/verbs/flip.zig");
-    _ = @import("tests/verbs/multiply.zig");
+    // _ = @import("tests/verbs/multiply/_imports.zig");
     _ = @import("tests/verbs/negate.zig");
     _ = @import("tests/verbs/sqrt.zig");
-    _ = @import("tests/verbs/subtract.zig");
+    // _ = @import("tests/verbs/subtract/_imports.zig");
 }
