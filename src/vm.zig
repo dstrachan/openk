@@ -570,17 +570,12 @@ pub const VM = struct {
                         .float_list,
                         => |list_y| blk: {
                             const list = self.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                            var list_type: ValueType = switch (list_x[0].as) {
-                                .boolean => .int,
-                                .int => .int,
-                                .float => .float,
-                                else => .list,
-                            };
+                            var list_type: ?ValueType = null;
                             for (list_x) |value, i| {
                                 list[i] = self.binary(int_fn, float_fn, value, list_y[i]);
-                                if (list_type != .list and list_type != list[i].as) list_type = .list;
+                                if (list_type == null and @as(ValueType, list[0].as) != @as(ValueType, list[i].as)) list_type = .list;
                             }
-                            break :blk self.initValue(switch (list_type) {
+                            break :blk self.initValue(switch (if (list_type) |value_type| value_type else @as(ValueType, list[0].as)) {
                                 .int => .{ .int_list = list },
                                 .float => .{ .float_list = list },
                                 else => .{ .list = list },
