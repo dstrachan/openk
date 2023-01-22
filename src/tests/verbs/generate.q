@@ -45,10 +45,10 @@ generateImports:{[x]
   footer:enlist enlist"}";
   header,("  _ = @import(\"",/:string[1+til x],\:".zig\");"),footer}
 
-tests:(enlist
-  (`add      ;"+"))
-  //(`subtract ;"-");
-  //(`multiply ;"*");
+tests:(
+  (`add      ;"+");
+  (`subtract ;"-");
+  (`multiply ;"*"))
   //(`divide   ;"%"))
 
 .[{[test;char]

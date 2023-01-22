@@ -110,8 +110,8 @@ test {
     _ = @import("tests/verbs/enum.zig");
     _ = @import("tests/verbs/first.zig");
     _ = @import("tests/verbs/flip.zig");
-    // _ = @import("tests/verbs/multiply/_imports.zig");
+    _ = @import("tests/verbs/multiply/_imports.zig");
     _ = @import("tests/verbs/negate.zig");
     _ = @import("tests/verbs/sqrt.zig");
-    // _ = @import("tests/verbs/subtract/_imports.zig");
+    _ = @import("tests/verbs/subtract/_imports.zig");
 }
