@@ -32,6 +32,8 @@ pub const OpCode = enum {
     op_more,
     op_group,
     op_equal,
+    op_not,
+    op_match,
     op_enlist,
     op_merge,
     op_concat,
