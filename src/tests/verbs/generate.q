@@ -67,7 +67,8 @@ tests:(
   (`min      ;"&");
   (`max      ;"|");
   (`less     ;"<");
-  (`more     ;">"))
+  (`more     ;">");
+  (`equal    ;"="))
 
 .[{[test;char]
   -1"Generating tests for ",string test;
