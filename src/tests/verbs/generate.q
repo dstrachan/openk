@@ -56,7 +56,7 @@ header:(
 generateImports:{[x]
   header:enlist["test {"];
   footer:enlist enlist"}";
-  header,("    _ = @import(\"",/:string[1+til x],\:".zig\");"),footer}
+  header,("    _ = @import(\"",/:(-3#'"00",/:string 1+til x),\:".zig\");"),footer}
 
 tests:(
   (`add      ;"+");
@@ -76,7 +76,7 @@ tests:(
   generated:header,/:generate[char;asc values];
   imports:generateImports count generated;
   {[path;test;i]
-    file:` sv path,` sv(`$string i),`zig;
+    file:` sv path,` sv i,`zig;
     file 0:test;
-    }[path]'[enlist[imports],generated;(`$"_imports"),1+til count generated];
+    }[path]'[enlist[imports],generated;(`$"_imports"),`$-3#'"00",/:string 1+til count generated];
   };]peach tests;
