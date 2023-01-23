@@ -41,7 +41,10 @@ fn compareValues(expected: TestValue, actual: ValueUnion) !void {
         .int => try std.testing.expectEqual(expected.int, actual.int),
         .float => {
             if (!std.math.isNan(expected.float) or !std.math.isNan(actual.float)) {
-                try std.testing.expectApproxEqRel(expected.float, actual.float, std.math.sqrt(std.math.floatEps(f64)));
+                if (!std.math.approxEqRel(f64, expected.float, actual.float, std.math.sqrt(std.math.floatEps(f64))) and !std.math.approxEqAbs(f64, expected.float, actual.float, std.math.floatEps(f64))) {
+                    std.debug.print("actual {}, not within absolute or relative tolerance of expected {}\n", .{ actual.float, expected.float });
+                    return error.TestExpectedApproxEq;
+                }
             }
         },
         .char => try std.testing.expectEqualSlices(u8, &[_]u8{expected.char}, &[_]u8{actual.char}),

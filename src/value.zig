@@ -161,7 +161,7 @@ pub const ValueUnion = union(ValueType) {
             try writer.writeAll("0w");
             return false;
         } else {
-            try writer.print("{d}", .{float});
+            try writer.print("{e}", .{float});
             return true;
         }
     }

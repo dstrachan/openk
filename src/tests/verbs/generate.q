@@ -2,6 +2,9 @@ castValue:{[x]
   dict:0 -6 6h!(.z.s';`long$;`long$);
   dict[type x;x]}
 
+getValueBool:{[x]
+  ".boolean = ",$[x;"true";"false"]}
+
 getValueInt:{[x]
   ".int = ",$[null x;"Value.null_int";0W=x;"Value.inf_int";-0W=x;"-Value.inf_int";-3!x]}
 
@@ -9,16 +12,26 @@ getValueFloat:{[x]
   ".float = ",$[null x;"Value.null_float";0w=x;"Value.inf_float";-0w=x;"-Value.inf_float";ssr[-3!x;"f";""]]}
 
 getValueList:{[x]
-  ".list = &[_]TestValue{ ", (", "sv getValue'[x])," }"}
+  ".list = &[_]TestValue{ ",(", "sv getValue'[x])," }"}
+
+getValueBoolList:{[x]
+  ".boolean_list = &[_]TestValue{ ",(", "sv getValue'[x])," }"}
 
 getValueIntList:{[x]
-  ".int_list = &[_]TestValue{ ", (", "sv getValue'[x])," }"}
+  ".int_list = &[_]TestValue{ ",(", "sv getValue'[x])," }"}
 
 getValueFloatList:{[x]
-  ".float_list = &[_]TestValue{ ", (", "sv getValue'[x])," }"}
+  ".float_list = &[_]TestValue{ ",(", "sv getValue'[x])," }"}
 
 getValue:{[x]
-  dict:0 -7 -9 7 9h!(getValueList;getValueInt;getValueFloat;getValueIntList;getValueFloatList);
+  dict:(!). flip(
+    (0h  ;getValueList      );
+    (-1h ;getValueBool      );
+    (1h  ;getValueBoolList  );
+    (-7h ;getValueInt       );
+    (7h  ;getValueIntList   );
+    (-9h ;getValueFloat     );
+    (9h  ;getValueFloatList ));
   ".{ ",dict[type x;x:castValue x]," }"}
 
 generate:{[x;y]
@@ -43,13 +56,18 @@ header:(
 generateImports:{[x]
   header:enlist["test {"];
   footer:enlist enlist"}";
-  header,("  _ = @import(\"",/:string[1+til x],\:".zig\");"),footer}
+  header,("    _ = @import(\"",/:string[1+til x],\:".zig\");"),footer}
 
 tests:(
   (`add      ;"+");
   (`subtract ;"-");
-  (`multiply ;"*"))
-  //(`divide   ;"%"))
+  (`multiply ;"*");
+  (`divide   ;"%");
+  (`concat   ;",");
+  (`min      ;"&");
+  (`max      ;"|");
+  (`less     ;"<");
+  (`more     ;">"))
 
 .[{[test;char]
   -1"Generating tests for ",string test;
