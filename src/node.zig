@@ -4,6 +4,7 @@ const chunk_mod = @import("chunk.zig");
 const OpCode = chunk_mod.OpCode;
 
 const compiler_mod = @import("compiler.zig");
+const Compiler = compiler_mod.Compiler;
 
 const scanner_mod = @import("scanner.zig");
 const Token = scanner_mod.Token;
@@ -49,23 +50,23 @@ pub const Node = struct {
         try writer.writeAll(" }");
     }
 
-    pub fn traverse(self: *Self) void {
-        if (self.rhs) |rhs| traverse(rhs);
-        if (self.lhs) |lhs| traverse(lhs);
-        if (self.name) |name| self.resolveVariable(name);
-        compiler_mod.emitInstruction(self.op_code);
-        if (self.byte) |byte| compiler_mod.emitByte(byte);
+    pub fn traverse(self: *Self, compiler: *Compiler) void {
+        if (self.rhs) |rhs| rhs.traverse(compiler);
+        if (self.lhs) |lhs| lhs.traverse(compiler);
+        if (self.name) |name| self.resolveVariable(name, compiler);
+        compiler.emitInstruction(self.op_code);
+        if (self.byte) |byte| compiler.emitByte(byte);
     }
 
-    fn resolveVariable(self: *Self, name: Token) void {
+    fn resolveVariable(self: *Self, name: Token, compiler: *Compiler) void {
         switch (self.op_code) {
             .op_get_global => {
-                var arg = compiler_mod.resolveLocal(name);
+                var arg = compiler.resolveLocal(name);
                 if (arg) |byte| {
                     self.op_code = .op_get_local;
                     self.byte = byte;
                 } else {
-                    self.byte = compiler_mod.identifierConstant(name);
+                    self.byte = compiler.identifierConstant(name);
                 }
             },
             else => unreachable,

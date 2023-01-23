@@ -46,8 +46,8 @@ pub const CompilerError = error{
     compile_error,
 };
 
-const PrefixParseFn = *const fn () CompilerError!*Node;
-const InfixParseFn = *const fn (*Node) CompilerError!*Node;
+const PrefixParseFn = *const fn (*Compiler) CompilerError!*Node;
+const InfixParseFn = *const fn (*Compiler, *Node) CompilerError!*Node;
 
 const ParseRule = struct {
     prefix: ?PrefixParseFn,
@@ -60,527 +60,22 @@ const FunctionType = enum {
     function_lambda,
 };
 
-var parser: Parser = Parser{};
-var scanner: Scanner = undefined;
-var current: *Compiler = undefined;
+pub fn compile(source: []const u8, vm: *VM) CompilerError!*Value {
+    const scanner = Scanner.init(source);
+    var compiler = Compiler.init(null, .function_script, vm, scanner);
+    errdefer compiler.func.deinit(vm.allocator);
+    compiler.current = &compiler;
 
-pub const Compiler = struct {
-    const Self = @This();
+    compiler.parser.had_error = false;
+    compiler.parser.panic_mode = false;
 
-    vm: *VM,
-    enclosing: ?*Self,
-    func: *ValueFn,
-    function_type: FunctionType,
-    locals: [u8_count]Token = undefined,
-    local_count: u8,
+    compiler.advance();
 
-    pub fn init(enclosing: ?*Self, function_type: FunctionType, vm: *VM) Self {
-        var compiler = Self{
-            .vm = vm,
-            .enclosing = enclosing,
-            .func = ValueFn.init(vm.allocator),
-            .function_type = function_type,
-            .local_count = 0,
-        };
-
-        return compiler;
-    }
-};
-
-fn currentChunk() *Chunk {
-    return current.func.chunk;
-}
-
-fn errorAtCurrent(message: []const u8) void {
-    errorAt(&parser.current, message);
-}
-
-fn errorAtPrevious(message: []const u8) void {
-    errorAt(&parser.previous, message);
-}
-
-fn errorAt(token: *Token, message: []const u8) void {
-    if (parser.panic_mode) return;
-    parser.panic_mode = true;
-    print("[line {d}] Error", .{token.line});
-
-    if (token.token_type == .token_eof) {
-        print(" at end", .{});
-    } else if (token.token_type == .token_error) {
-        // Do nothing.
-    } else {
-        print(" at '{s}'", .{token.lexeme});
-    }
-
-    print(": {s}\n", .{message});
-    parser.had_error = true;
-}
-
-fn advance() void {
-    parser.previous = parser.current;
-
-    while (true) {
-        parser.current = scanner.scanToken();
-        if (parser.current.token_type != .token_error) break;
-
-        errorAtCurrent(parser.current.lexeme);
-    }
-}
-
-fn consume(token_type: TokenType, message: []const u8) void {
-    if (parser.current.token_type == token_type) {
-        advance();
-        return;
-    }
-
-    errorAtCurrent(message);
-}
-
-fn check(token_type: TokenType) bool {
-    return parser.current.token_type == token_type;
-}
-
-fn match(token_type: TokenType) bool {
-    if (!check(token_type)) return false;
-    advance();
-    return true;
-}
-
-pub fn emitByte(byte: u8) void {
-    currentChunk().write(byte, parser.previous);
-}
-
-fn emitBytes(byte1: u8, byte2: u8) void {
-    emitByte(byte1);
-    emitByte(byte2);
-}
-
-pub fn emitInstruction(instruction: OpCode) void {
-    emitByte(@enumToInt(instruction));
-}
-
-fn emitReturn() void {
-    emitByte(@enumToInt(OpCode.op_return));
-}
-
-fn makeConstant(value: *Value) u8 {
-    const constant = currentChunk().addConstant(value);
-    if (constant > std.math.maxInt(u8)) {
-        errorAtPrevious("Too many constants in one chunk.");
-        return 0;
-    }
-
-    return @intCast(u8, constant);
-}
-
-fn getValue(constant: u8) *Value {
-    return currentChunk().constants.items[constant];
-}
-
-fn endCompiler(node: *Node) *ValueFn {
-    const top_node = Node.init(.{ .op_code = .op_return }, current.vm.allocator);
-    top_node.rhs = node;
-    if (node.op_code == .op_pop) {
-        top_node.lhs = Node.init(.{ .op_code = .op_nil }, current.vm.allocator);
-    }
-    top_node.traverse();
-    top_node.deinit(current.vm.allocator);
-
-    const func = current.func;
-    func.local_count = current.local_count;
-    if (current.enclosing) |enclosing| {
-        current = enclosing;
-    }
-
-    return func;
-}
-
-pub fn identifierConstant(name: Token) u8 {
-    const value = current.vm.copySymbol(name.lexeme);
-    return makeConstant(value);
-}
-
-pub fn resolveLocal(name: Token) ?u8 {
-    var i = current.local_count;
-    while (i > 0) {
-        i -= 1;
-        if (std.mem.eql(u8, name.lexeme, current.locals[i].lexeme)) {
-            return i;
-        }
-    }
-
-    return null;
-}
-
-fn addLocal(name: Token) void {
-    if (current.local_count == u8_count) {
-        errorAtPrevious("Too many local variables in function.");
-        return;
-    }
-
-    current.locals[current.local_count] = name;
-    current.local_count += 1;
-}
-
-fn number() CompilerError!*Node {
-    const value = switch (parser.previous.token_type) {
-        .token_bool => parseBool(parser.previous.lexeme),
-        .token_int => blk: {
-            switch (parser.current.token_type) {
-                .token_int => {
-                    var list = std.ArrayList(*Value).init(current.vm.allocator);
-                    defer list.deinit();
-                    list.append(parseInt(parser.previous.lexeme)) catch std.debug.panic("Failed to append item.", .{});
-
-                    while (parser.current.token_type == .token_int or parser.current.token_type == .token_float) {
-                        if (parser.current.token_type == .token_float) { // switch to parsing floats
-                            for (list.items) |value, i| {
-                                list.items[i] = current.vm.initValue(.{ .float = utils_mod.intToFloat(value.as.int) });
-                                value.deref(current.vm.allocator);
-                            }
-
-                            list.append(parseFloat(parser.current.lexeme)) catch std.debug.panic("Failed to append item.", .{});
-                            advance();
-
-                            while (parser.current.token_type == .token_int or parser.current.token_type == .token_float) {
-                                list.append(parseFloat(parser.current.lexeme)) catch std.debug.panic("Failed to append item.", .{});
-                                advance();
-                            }
-
-                            const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
-                            break :blk current.vm.initValue(.{ .float_list = slice });
-                        }
-
-                        list.append(parseInt(parser.current.lexeme)) catch std.debug.panic("Failed to append item.", .{});
-                        advance();
-                    }
-
-                    const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
-                    break :blk current.vm.initValue(.{ .int_list = slice });
-                },
-                .token_float => {
-                    var list = std.ArrayList(*Value).init(current.vm.allocator);
-                    defer list.deinit();
-                    list.append(parseFloat(parser.previous.lexeme)) catch std.debug.panic("Failed to append item.", .{});
-
-                    while (parser.current.token_type == .token_int or parser.current.token_type == .token_float) {
-                        list.append(parseFloat(parser.current.lexeme)) catch std.debug.panic("Failed to append item.", .{});
-                        advance();
-                    }
-
-                    const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
-                    break :blk current.vm.initValue(.{ .float_list = slice });
-                },
-                else => break :blk parseInt(parser.previous.lexeme),
-            }
-        },
-        .token_float => blk: {
-            switch (parser.current.token_type) {
-                .token_int, .token_float => {
-                    var list = std.ArrayList(*Value).init(current.vm.allocator);
-                    defer list.deinit();
-                    list.append(parseFloat(parser.previous.lexeme)) catch std.debug.panic("Failed to append item.", .{});
-
-                    while (parser.current.token_type == .token_int or parser.current.token_type == .token_float) {
-                        list.append(parseFloat(parser.current.lexeme)) catch std.debug.panic("Failed to append item.", .{});
-                        advance();
-                    }
-
-                    const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
-                    break :blk current.vm.initValue(.{ .float_list = slice });
-                },
-                else => break :blk parseFloat(parser.previous.lexeme),
-            }
-        },
-        else => unreachable,
-    };
-    return Node.init(.{ .op_code = .op_constant, .byte = makeConstant(value) }, current.vm.allocator);
-}
-
-fn parseBool(str: []const u8) *Value {
-    if (str.len > 2) {
-        const list = current.vm.allocator.alloc(*Value, str.len - 1) catch std.debug.panic("Failed to create list", .{});
-        for (str[0 .. str.len - 1]) |c, i| {
-            list[i] = current.vm.initValue(.{ .boolean = c == '1' });
-        }
-        return current.vm.initValue(.{ .boolean_list = list });
-    }
-    return current.vm.initValue(.{ .boolean = str[0] == '1' });
-}
-
-fn parseInt(str: []const u8) *Value {
-    if (str.len == 2) {
-        if (str[0] == '0') {
-            if (str[1] == 'N') {
-                return current.vm.initValue(.{ .int = Value.null_int });
-            } else if (str[1] == 'W') {
-                return current.vm.initValue(.{ .int = Value.inf_int });
-            }
-        }
-    } else if (str.len == 3 and str[0] == '-' and str[1] == '0' and str[2] == 'W') {
-        return current.vm.initValue(.{ .int = -Value.inf_int });
-    }
-    const int = std.fmt.parseInt(i64, str, 10) catch std.debug.panic("Failed to parse int", .{});
-    return current.vm.initValue(.{ .int = int });
-}
-
-fn parseFloat(str: []const u8) *Value {
-    if (str.len == 2) {
-        if (str[0] == '0') {
-            if (str[1] == 'N' or str[1] == 'n') {
-                return current.vm.initValue(.{ .float = Value.null_float });
-            } else if (str[1] == 'W' or str[1] == 'w') {
-                return current.vm.initValue(.{ .float = Value.inf_float });
-            }
-        }
-    } else if (str.len == 3 and str[0] == '-' and str[1] == '0' and (str[2] == 'W' or str[2] == 'w')) {
-        return current.vm.initValue(.{ .float = -Value.inf_float });
-    }
-    const float = std.fmt.parseFloat(f64, str) catch std.debug.panic("Failed to parse float", .{});
-    return current.vm.initValue(.{ .float = float });
-}
-
-fn symbol() CompilerError!*Node {
-    const value = switch (parser.current.token_type) {
-        .token_symbol => blk: {
-            if (parser.current.follows_whitespace) break :blk current.vm.copySymbol(parser.previous.lexeme[1..parser.previous.lexeme.len]);
-
-            var list = std.ArrayList(*Value).init(current.vm.allocator);
-            defer list.deinit();
-            list.append(current.vm.copySymbol(parser.previous.lexeme[1..parser.previous.lexeme.len])) catch std.debug.panic("Failed to append item.", .{});
-
-            while (parser.current.token_type == .token_symbol and !parser.current.follows_whitespace) {
-                list.append(current.vm.copySymbol(parser.current.lexeme[1..parser.current.lexeme.len])) catch std.debug.panic("Failed to append item.", .{});
-                advance();
-            }
-
-            const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
-            break :blk current.vm.initValue(.{ .symbol_list = slice });
-        },
-        else => current.vm.copySymbol(parser.previous.lexeme[1..parser.previous.lexeme.len]),
-    };
-    return Node.init(.{ .op_code = .op_constant, .byte = makeConstant(value) }, current.vm.allocator);
-}
-
-fn char() CompilerError!*Node {
-    const value = current.vm.initValue(.{ .char = parser.previous.lexeme[parser.previous.lexeme.len - 2] });
-    return Node.init(.{ .op_code = .op_constant, .byte = makeConstant(value) }, current.vm.allocator);
-}
-
-fn string() CompilerError!*Node {
-    var list = std.ArrayList(*Value).init(current.vm.allocator);
-    defer list.deinit();
-
-    var is_escaped = false;
-    for (parser.previous.lexeme[1 .. parser.previous.lexeme.len - 1]) |c| {
-        if (c == '\\' and !is_escaped) {
-            is_escaped = true;
-            continue;
-        }
-        is_escaped = false;
-        list.append(current.vm.initValue(.{ .char = c })) catch std.debug.panic("Failed to append item", .{});
-    }
-
-    const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create string", .{});
-    const value = current.vm.initValue(.{ .char_list = slice });
-    return Node.init(.{ .op_code = .op_constant, .byte = makeConstant(value) }, current.vm.allocator);
-}
-
-fn variable() CompilerError!*Node {
-    const name = parser.previous;
-
-    if (match(.token_double_colon)) {
-        const arg = identifierConstant(name);
-        const node = Node.init(.{ .op_code = .op_set_global, .byte = arg }, current.vm.allocator);
-        node.rhs = try expression();
-        return node;
-    }
-
-    if (current.function_type == .function_script) {
-        const arg = identifierConstant(name);
-        if (match(.token_colon)) {
-            const node = Node.init(.{ .op_code = .op_set_global, .byte = arg }, current.vm.allocator);
-            node.rhs = try expression();
-            return node;
-        } else {
-            return Node.init(.{ .op_code = .op_get_global, .byte = arg }, current.vm.allocator);
-        }
-    } else {
-        if (match(.token_colon)) {
-            const arg = resolveLocal(name) orelse blk: {
-                addLocal(name);
-                break :blk current.local_count - 1;
-            };
-            const node = Node.init(.{ .op_code = .op_set_local, .byte = arg }, current.vm.allocator);
-            node.rhs = try expression();
-            return node;
-        } else {
-            return Node.init(.{ .op_code = .op_get_global, .name = name }, current.vm.allocator);
-        }
-    }
-}
-
-fn call(node: *Node) CompilerError!*Node {
-    const call_node = Node.init(.{ .op_code = .op_call, .byte = 0b0 }, current.vm.allocator);
-    call_node.lhs = node;
-
-    if (!check(.token_right_bracket)) {
-        var arg_count: u8 = 0;
-        var arg_indices = std.bit_set.IntegerBitSet(8).initEmpty();
-        while (match(.token_semicolon)) {
-            arg_count += 1;
-        }
-
-        if (!check(.token_right_bracket)) {
-            arg_indices.set(arg_count);
-            arg_count += 1;
-            var top_node = try expression();
-            var rhs = &top_node.*.rhs;
-            var should_continue = match(.token_semicolon);
-            while (should_continue) {
-                if (check(.token_right_bracket)) break;
-
-                arg_count += 1;
-                if (arg_count > 8) {
-                    errorAtCurrent("Can't have more than 8 arguments.");
-                    return CompilerError.compile_error;
-                }
-
-                if (match(.token_semicolon)) continue;
-                arg_indices.set(arg_count - 1);
-
-                const arg_node = try expression();
-                while (rhs.* != null) {
-                    rhs = &rhs.*.?.rhs;
-                }
-                rhs.* = arg_node;
-
-                should_continue = match(.token_semicolon);
-            }
-
-            call_node.byte = arg_indices.mask;
-            call_node.rhs = top_node;
-        }
-    }
-    consume(.token_right_bracket, "Expect ']' after arguments.");
-
-    return call_node;
-}
-
-fn binary(node: *Node) CompilerError!*Node {
-    const current_node = Node.init(.{
-        .op_code = switch (parser.previous.token_type) {
-            .token_plus => .op_add,
-            .token_minus => .op_subtract,
-            .token_star => .op_multiply,
-            .token_percent => .op_divide,
-            .token_ampersand => unreachable,
-            .token_pipe => unreachable,
-            .token_less => unreachable,
-            .token_greater => unreachable,
-            .token_equal => unreachable,
-            .token_tilde => unreachable,
-            .token_bang => .op_dict,
-            .token_comma => .op_merge,
-            .token_at => unreachable,
-            .token_question => unreachable,
-            .token_caret => unreachable,
-            .token_hash => unreachable,
-            .token_underscore => unreachable,
-            .token_dollar => unreachable,
-            .token_dot => unreachable,
-            else => unreachable,
-        },
-    }, current.vm.allocator);
-    errdefer current_node.deinit(current.vm.allocator);
-
-    current_node.lhs = node;
-    current_node.rhs = try parsePrecedence(getRule(parser.previous.token_type).precedence, true);
-    return current_node;
-}
-
-fn grouping() CompilerError!*Node {
-    const first_node = try expression();
-    if (match(.token_right_paren)) {
-        return first_node;
-    }
-
-    if (check(.token_semicolon)) {
-        var list = std.ArrayList(*Node).init(current.vm.allocator);
-        defer list.deinit();
-        errdefer for (list.items) |node| node.deinit(current.vm.allocator);
-
-        var all_constants = first_node.op_code == .op_constant;
-        var value_type: ValueType = if (all_constants) getValue(first_node.byte.?).as else .list;
-
-        list.append(first_node) catch std.debug.panic("Failed to append item.", .{});
-        while (match(.token_semicolon)) {
-            const node = try expression();
-            all_constants = if (all_constants and node.op_code == .op_constant) true else false;
-            if (all_constants and value_type != getValue(node.byte.?).as) {
-                value_type = .list;
-            }
-            list.append(node) catch std.debug.panic("Failed to append item.", .{});
-        }
-        consume(.token_right_paren, "Expect ')' after list.");
-
-        return createList(list, value_type, all_constants);
-    }
-
-    errorAtCurrent("Expect ')' after expression.");
-    return CompilerError.compile_error;
-}
-
-// TODO: Reuse constant slots
-fn createList(nodes: std.ArrayList(*Node), value_type: ValueType, all_constants: bool) *Node {
-    if (all_constants) {
-        const list_type: ValueType = switch (value_type) {
-            .boolean => .boolean_list,
-            .int => .int_list,
-            .float => .float_list,
-            .char => .char_list,
-            .symbol => .symbol_list,
-            else => .list,
-        };
-        const list = current.vm.allocator.alloc(*Value, nodes.items.len) catch std.debug.panic("Failed to create list.", .{});
-        for (nodes.items) |node, i| {
-            list[i] = getValue(node.byte.?).ref();
-            node.deinit(current.vm.allocator);
-        }
-        const value = switch (list_type) {
-            .boolean_list => current.vm.initValue(.{ .boolean_list = list }),
-            .int_list => current.vm.initValue(.{ .int_list = list }),
-            .float_list => current.vm.initValue(.{ .float_list = list }),
-            .char_list => current.vm.initValue(.{ .char_list = list }),
-            .symbol_list => current.vm.initValue(.{ .symbol_list = list }),
-            .list => current.vm.initValue(.{ .list = list }),
-            else => unreachable,
-        };
-        return Node.init(.{ .op_code = .op_constant, .byte = makeConstant(value) }, current.vm.allocator);
-    }
-
-    const bottom_node = Node.init(.{ .op_code = .op_concat }, current.vm.allocator);
-    bottom_node.rhs = nodes.items[nodes.items.len - 1];
-    bottom_node.lhs = nodes.items[nodes.items.len - 2];
-    var prev_node = bottom_node;
-
-    var i = nodes.items.len - 2;
-    while (i > 0) : (i -= 1) {
-        const node = Node.init(.{ .op_code = .op_merge }, current.vm.allocator);
-        node.lhs = nodes.items[i - 1];
-        node.rhs = prev_node;
-        prev_node = node;
-    }
-
-    return prev_node;
-}
-
-fn block() CompilerError!*Node {
-    var top_node = try expression();
+    var top_node = try compiler.expression();
     {
-        errdefer top_node.deinit(current.vm.allocator);
-        while (!check(.token_right_brace) and !check(.token_eof)) {
-            const node = try expression();
+        errdefer top_node.deinit(vm.allocator);
+        while (!compiler.check(.token_eof)) {
+            const node = try compiler.expression();
             var rhs = &node.rhs;
             while (rhs.* != null) {
                 rhs = &rhs.*.?.rhs;
@@ -590,112 +85,649 @@ fn block() CompilerError!*Node {
         }
     }
 
-    consume(.token_right_brace, "Expect '}' after block.");
+    compiler.consume(.token_eof, "Expect eof.");
 
-    return top_node;
+    const func = compiler.endCompiler(top_node);
+    return if (compiler.parser.had_error) CompilerError.compile_error else compiler.current.vm.initValue(.{ .function = func });
 }
 
-fn function() CompilerError!*Node {
-    var compiler = Compiler.init(current, .function_lambda, current.vm);
-    errdefer compiler.func.deinit(current.vm.allocator);
-    current = &compiler;
+pub const Compiler = struct {
+    const Self = @This();
 
-    const start_index = @ptrToInt(scanner.start) - @ptrToInt(scanner.source.ptr) - 1;
+    current: *Self = undefined,
 
-    if (match(.token_left_bracket)) {
-        var should_continue = !check(.token_right_bracket);
-        while (should_continue) {
-            current.func.arity += 1;
-            if (current.func.arity > 8) {
-                errorAtCurrent("Can't have more than 8 parameters.");
-                return CompilerError.compile_error;
+    vm: *VM,
+    scanner: Scanner,
+    parser: Parser,
+    enclosing: ?*Self,
+    func: *ValueFn,
+    function_type: FunctionType,
+    locals: [u8_count]Token = undefined,
+    local_count: u8,
+
+    pub fn init(enclosing: ?*Self, function_type: FunctionType, vm: *VM, scanner: Scanner) Self {
+        var compiler = Self{
+            .vm = vm,
+            .scanner = scanner,
+            .parser = Parser{},
+            .enclosing = enclosing,
+            .func = ValueFn.init(vm.allocator),
+            .function_type = function_type,
+            .local_count = 0,
+        };
+
+        return compiler;
+    }
+
+    fn currentChunk(self: *Self) *Chunk {
+        return self.current.func.chunk;
+    }
+
+    fn errorAtCurrent(self: *Self, message: []const u8) void {
+        self.errorAt(&self.parser.current, message);
+    }
+
+    fn errorAtPrevious(self: *Self, message: []const u8) void {
+        self.errorAt(&self.parser.previous, message);
+    }
+
+    fn errorAt(self: *Self, token: *Token, message: []const u8) void {
+        if (self.parser.panic_mode) return;
+        self.parser.panic_mode = true;
+        print("[line {d}] Error", .{token.line});
+
+        if (token.token_type == .token_eof) {
+            print(" at end", .{});
+        } else if (token.token_type == .token_error) {
+            // Do nothing.
+        } else {
+            print(" at '{s}'", .{token.lexeme});
+        }
+
+        print(": {s}\n", .{message});
+        self.parser.had_error = true;
+    }
+
+    fn advance(self: *Self) void {
+        self.parser.previous = self.parser.current;
+
+        while (true) {
+            self.parser.current = self.scanner.scanToken();
+            if (self.parser.current.token_type != .token_error) break;
+
+            self.errorAtCurrent(self.parser.current.lexeme);
+        }
+    }
+
+    fn consume(self: *Self, token_type: TokenType, message: []const u8) void {
+        if (self.parser.current.token_type == token_type) {
+            self.advance();
+            return;
+        }
+
+        self.errorAtCurrent(message);
+    }
+
+    fn check(self: *Self, token_type: TokenType) bool {
+        return self.parser.current.token_type == token_type;
+    }
+
+    fn match(self: *Self, token_type: TokenType) bool {
+        if (!self.check(token_type)) return false;
+        self.advance();
+        return true;
+    }
+
+    pub fn emitByte(self: *Self, byte: u8) void {
+        self.currentChunk().write(byte, self.parser.previous);
+    }
+
+    fn emitBytes(_: *Self, byte1: u8, byte2: u8) void {
+        emitByte(byte1);
+        emitByte(byte2);
+    }
+
+    pub fn emitInstruction(self: *Self, instruction: OpCode) void {
+        self.emitByte(@enumToInt(instruction));
+    }
+
+    fn emitReturn(_: *Self) void {
+        emitByte(@enumToInt(OpCode.op_return));
+    }
+
+    fn makeConstant(self: *Self, value: *Value) u8 {
+        const constant = self.currentChunk().addConstant(value);
+        if (constant > std.math.maxInt(u8)) {
+            self.errorAtPrevious("Too many constants in one chunk.");
+            return 0;
+        }
+
+        return @intCast(u8, constant);
+    }
+
+    fn getValue(self: *Self, constant: u8) *Value {
+        return self.currentChunk().constants.items[constant];
+    }
+
+    fn endCompiler(self: *Self, node: *Node) *ValueFn {
+        const top_node = Node.init(.{ .op_code = .op_return }, self.current.vm.allocator);
+        top_node.rhs = node;
+        if (node.op_code == .op_pop) {
+            top_node.lhs = Node.init(.{ .op_code = .op_nil }, self.current.vm.allocator);
+        }
+        top_node.traverse(self);
+        top_node.deinit(self.current.vm.allocator);
+
+        const func = self.current.func;
+        func.local_count = self.current.local_count;
+        if (self.current.enclosing) |enclosing| {
+            self.current = enclosing;
+        }
+
+        return func;
+    }
+
+    pub fn identifierConstant(self: *Self, name: Token) u8 {
+        const value = self.current.vm.copySymbol(name.lexeme);
+        return self.makeConstant(value);
+    }
+
+    pub fn resolveLocal(self: *Self, name: Token) ?u8 {
+        var i = self.current.local_count;
+        while (i > 0) {
+            i -= 1;
+            if (std.mem.eql(u8, name.lexeme, self.current.locals[i].lexeme)) {
+                return i;
             }
+        }
 
-            consume(.token_identifier, "Expect parameter name.");
+        return null;
+    }
 
-            var i = current.local_count;
-            while (i > 0) {
-                i -= 1;
-                const local = current.locals[i];
-                if (std.mem.eql(u8, parser.previous.lexeme, local.lexeme)) {
-                    errorAtPrevious("Duplicate parameter name.");
-                    return CompilerError.compile_error;
+    fn addLocal(self: *Self, name: Token) void {
+        if (self.current.local_count == u8_count) {
+            errorAtPrevious("Too many local variables in function.");
+            return;
+        }
+
+        self.current.locals[self.current.local_count] = name;
+        self.current.local_count += 1;
+    }
+
+    fn number(self: *Self) CompilerError!*Node {
+        const value = switch (self.parser.previous.token_type) {
+            .token_bool => self.parseBool(self.parser.previous.lexeme),
+            .token_int => blk: {
+                switch (self.parser.current.token_type) {
+                    .token_int => {
+                        var list = std.ArrayList(*Value).init(self.current.vm.allocator);
+                        defer list.deinit();
+                        list.append(self.parseInt(self.parser.previous.lexeme)) catch std.debug.panic("Failed to append item.", .{});
+
+                        while (self.parser.current.token_type == .token_int or self.parser.current.token_type == .token_float) {
+                            if (self.parser.current.token_type == .token_float) { // switch to parsing floats
+                                for (list.items) |value, i| {
+                                    list.items[i] = self.current.vm.initValue(.{ .float = utils_mod.intToFloat(value.as.int) });
+                                    value.deref(self.current.vm.allocator);
+                                }
+
+                                list.append(self.parseFloat(self.parser.current.lexeme)) catch std.debug.panic("Failed to append item.", .{});
+                                self.advance();
+
+                                while (self.parser.current.token_type == .token_int or self.parser.current.token_type == .token_float) {
+                                    list.append(self.parseFloat(self.parser.current.lexeme)) catch std.debug.panic("Failed to append item.", .{});
+                                    self.advance();
+                                }
+
+                                const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                                break :blk self.current.vm.initValue(.{ .float_list = slice });
+                            }
+
+                            list.append(self.parseInt(self.parser.current.lexeme)) catch std.debug.panic("Failed to append item.", .{});
+                            self.advance();
+                        }
+
+                        const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                        break :blk self.current.vm.initValue(.{ .int_list = slice });
+                    },
+                    .token_float => {
+                        var list = std.ArrayList(*Value).init(self.current.vm.allocator);
+                        defer list.deinit();
+                        list.append(self.parseFloat(self.parser.previous.lexeme)) catch std.debug.panic("Failed to append item.", .{});
+
+                        while (self.parser.current.token_type == .token_int or self.parser.current.token_type == .token_float) {
+                            list.append(self.parseFloat(self.parser.current.lexeme)) catch std.debug.panic("Failed to append item.", .{});
+                            self.advance();
+                        }
+
+                        const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                        break :blk self.current.vm.initValue(.{ .float_list = slice });
+                    },
+                    else => break :blk self.parseInt(self.parser.previous.lexeme),
+                }
+            },
+            .token_float => blk: {
+                switch (self.parser.current.token_type) {
+                    .token_int, .token_float => {
+                        var list = std.ArrayList(*Value).init(self.current.vm.allocator);
+                        defer list.deinit();
+                        list.append(self.parseFloat(self.parser.previous.lexeme)) catch std.debug.panic("Failed to append item.", .{});
+
+                        while (self.parser.current.token_type == .token_int or self.parser.current.token_type == .token_float) {
+                            list.append(self.parseFloat(self.parser.current.lexeme)) catch std.debug.panic("Failed to append item.", .{});
+                            self.advance();
+                        }
+
+                        const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                        break :blk self.current.vm.initValue(.{ .float_list = slice });
+                    },
+                    else => break :blk self.parseFloat(self.parser.previous.lexeme),
+                }
+            },
+            else => unreachable,
+        };
+        return Node.init(.{ .op_code = .op_constant, .byte = self.makeConstant(value) }, self.current.vm.allocator);
+    }
+
+    fn parseBool(self: *Self, str: []const u8) *Value {
+        if (str.len > 2) {
+            const list = self.current.vm.allocator.alloc(*Value, str.len - 1) catch std.debug.panic("Failed to create list", .{});
+            for (str[0 .. str.len - 1]) |c, i| {
+                list[i] = self.current.vm.initValue(.{ .boolean = c == '1' });
+            }
+            return self.current.vm.initValue(.{ .boolean_list = list });
+        }
+        return self.current.vm.initValue(.{ .boolean = str[0] == '1' });
+    }
+
+    fn parseInt(self: *Self, str: []const u8) *Value {
+        if (str.len == 2) {
+            if (str[0] == '0') {
+                if (str[1] == 'N') {
+                    return self.current.vm.initValue(.{ .int = Value.null_int });
+                } else if (str[1] == 'W') {
+                    return self.current.vm.initValue(.{ .int = Value.inf_int });
                 }
             }
-
-            addLocal(parser.previous);
-
-            should_continue = match(.token_semicolon);
+        } else if (str.len == 3 and str[0] == '-' and str[1] == '0' and str[2] == 'W') {
+            return self.current.vm.initValue(.{ .int = -Value.inf_int });
         }
-        consume(.token_right_bracket, "Expect ']' after parameters.");
+        const int = std.fmt.parseInt(i64, str, 10) catch std.debug.panic("Failed to parse int", .{});
+        return self.current.vm.initValue(.{ .int = int });
     }
 
-    const node = try block();
+    fn parseFloat(self: *Self, str: []const u8) *Value {
+        if (str.len == 2) {
+            if (str[0] == '0') {
+                if (str[1] == 'N' or str[1] == 'n') {
+                    return self.current.vm.initValue(.{ .float = Value.null_float });
+                } else if (str[1] == 'W' or str[1] == 'w') {
+                    return self.current.vm.initValue(.{ .float = Value.inf_float });
+                }
+            }
+        } else if (str.len == 3 and str[0] == '-' and str[1] == '0' and (str[2] == 'W' or str[2] == 'w')) {
+            return self.current.vm.initValue(.{ .float = -Value.inf_float });
+        }
+        const float = std.fmt.parseFloat(f64, str) catch std.debug.panic("Failed to parse float", .{});
+        return self.current.vm.initValue(.{ .float = float });
+    }
 
-    const end_index = std.math.min(@ptrToInt(scanner.start) - @ptrToInt(scanner.source.ptr), scanner.source.len);
-    current.func.name = current.vm.allocator.dupe(u8, scanner.source[start_index..end_index]) catch std.debug.panic("Failed to create function", .{});
+    fn symbol(self: *Self) CompilerError!*Node {
+        const value = switch (self.parser.current.token_type) {
+            .token_symbol => blk: {
+                if (self.parser.current.follows_whitespace) break :blk self.current.vm.copySymbol(self.parser.previous.lexeme[1..self.parser.previous.lexeme.len]);
 
-    const func = endCompiler(node);
-    const value = current.vm.initValue(.{ .function = func });
-    return Node.init(.{ .op_code = .op_constant, .byte = makeConstant(value) }, current.vm.allocator);
-}
+                var list = std.ArrayList(*Value).init(self.current.vm.allocator);
+                defer list.deinit();
+                list.append(self.current.vm.copySymbol(self.parser.previous.lexeme[1..self.parser.previous.lexeme.len])) catch std.debug.panic("Failed to append item.", .{});
 
-fn pop() CompilerError!*Node {
-    return Node.init(.{ .op_code = .op_pop }, current.vm.allocator);
-}
+                while (self.parser.current.token_type == .token_symbol and !self.parser.current.follows_whitespace) {
+                    list.append(self.current.vm.copySymbol(self.parser.current.lexeme[1..self.parser.current.lexeme.len])) catch std.debug.panic("Failed to append item.", .{});
+                    self.advance();
+                }
 
-fn unary() CompilerError!*Node {
-    const node = Node.init(.{
-        .op_code = switch (parser.previous.token_type) {
-            .token_plus => .op_flip,
-            .token_minus => .op_negate,
-            .token_star => .op_first,
-            .token_percent => .op_sqrt,
-            .token_ampersand => unreachable,
-            .token_pipe => unreachable,
-            .token_less => unreachable,
-            .token_greater => unreachable,
-            .token_equal => unreachable,
-            .token_tilde => unreachable,
-            .token_bang => .op_key,
-            .token_comma => .op_enlist,
-            .token_at => unreachable,
-            .token_question => unreachable,
-            .token_caret => unreachable,
-            .token_hash => unreachable,
-            .token_underscore => unreachable,
-            .token_dollar => unreachable,
-            .token_dot => unreachable,
-            else => unreachable,
-        },
-    }, current.vm.allocator);
-    node.rhs = try parsePrecedence(getRule(parser.previous.token_type).precedence, true);
-    return node;
-}
+                const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                break :blk self.current.vm.initValue(.{ .symbol_list = slice });
+            },
+            else => self.current.vm.copySymbol(self.parser.previous.lexeme[1..self.parser.previous.lexeme.len]),
+        };
+        return Node.init(.{ .op_code = .op_constant, .byte = self.makeConstant(value) }, self.current.vm.allocator);
+    }
 
-fn parsePrecedence(precedence: Precedence, should_advance: bool) CompilerError!*Node {
-    if (should_advance) advance();
-    const prefixRule = getRule(parser.previous.token_type).prefix orelse {
-        errorAtPrevious("Expect prefix expression.");
+    fn char(self: *Self) CompilerError!*Node {
+        const value = self.current.vm.initValue(.{ .char = self.parser.previous.lexeme[self.parser.previous.lexeme.len - 2] });
+        return Node.init(.{ .op_code = .op_constant, .byte = self.makeConstant(value) }, self.current.vm.allocator);
+    }
+
+    fn string(self: *Self) CompilerError!*Node {
+        var list = std.ArrayList(*Value).init(self.current.vm.allocator);
+        defer list.deinit();
+
+        var is_escaped = false;
+        for (self.parser.previous.lexeme[1 .. self.parser.previous.lexeme.len - 1]) |c| {
+            if (c == '\\' and !is_escaped) {
+                is_escaped = true;
+                continue;
+            }
+            is_escaped = false;
+            list.append(self.current.vm.initValue(.{ .char = c })) catch std.debug.panic("Failed to append item", .{});
+        }
+
+        const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create string", .{});
+        const value = self.current.vm.initValue(.{ .char_list = slice });
+        return Node.init(.{ .op_code = .op_constant, .byte = self.makeConstant(value) }, self.current.vm.allocator);
+    }
+
+    fn variable(self: *Self) CompilerError!*Node {
+        const name = self.parser.previous;
+
+        if (self.match(.token_double_colon)) {
+            const arg = self.identifierConstant(name);
+            const node = Node.init(.{ .op_code = .op_set_global, .byte = arg }, self.current.vm.allocator);
+            node.rhs = try self.expression();
+            return node;
+        }
+
+        if (self.current.function_type == .function_script) {
+            const arg = self.identifierConstant(name);
+            if (self.match(.token_colon)) {
+                const node = Node.init(.{ .op_code = .op_set_global, .byte = arg }, self.current.vm.allocator);
+                node.rhs = try self.expression();
+                return node;
+            } else {
+                return Node.init(.{ .op_code = .op_get_global, .byte = arg }, self.current.vm.allocator);
+            }
+        } else {
+            if (self.match(.token_colon)) {
+                const arg = self.resolveLocal(name) orelse blk: {
+                    self.addLocal(name);
+                    break :blk self.current.local_count - 1;
+                };
+                const node = Node.init(.{ .op_code = .op_set_local, .byte = arg }, self.current.vm.allocator);
+                node.rhs = try self.expression();
+                return node;
+            } else {
+                return Node.init(.{ .op_code = .op_get_global, .name = name }, self.current.vm.allocator);
+            }
+        }
+    }
+
+    fn call(self: *Self, node: *Node) CompilerError!*Node {
+        const call_node = Node.init(.{ .op_code = .op_call, .byte = 0b0 }, self.current.vm.allocator);
+        call_node.lhs = node;
+
+        if (!self.check(.token_right_bracket)) {
+            var arg_count: u8 = 0;
+            var arg_indices = std.bit_set.IntegerBitSet(8).initEmpty();
+            while (self.match(.token_semicolon)) {
+                arg_count += 1;
+            }
+
+            if (!self.check(.token_right_bracket)) {
+                arg_indices.set(arg_count);
+                arg_count += 1;
+                var top_node = try self.expression();
+                var rhs = &top_node.*.rhs;
+                var should_continue = self.match(.token_semicolon);
+                while (should_continue) {
+                    if (self.check(.token_right_bracket)) break;
+
+                    arg_count += 1;
+                    if (arg_count > 8) {
+                        self.errorAtCurrent("Can't have more than 8 arguments.");
+                        return CompilerError.compile_error;
+                    }
+
+                    if (self.match(.token_semicolon)) continue;
+                    arg_indices.set(arg_count - 1);
+
+                    const arg_node = try self.expression();
+                    while (rhs.* != null) {
+                        rhs = &rhs.*.?.rhs;
+                    }
+                    rhs.* = arg_node;
+
+                    should_continue = self.match(.token_semicolon);
+                }
+
+                call_node.byte = arg_indices.mask;
+                call_node.rhs = top_node;
+            }
+        }
+        self.consume(.token_right_bracket, "Expect ']' after arguments.");
+
+        return call_node;
+    }
+
+    fn binary(self: *Self, node: *Node) CompilerError!*Node {
+        const current_node = Node.init(.{
+            .op_code = switch (self.parser.previous.token_type) {
+                .token_plus => .op_add,
+                .token_minus => .op_subtract,
+                .token_star => .op_multiply,
+                .token_percent => .op_divide,
+                .token_ampersand => .op_min,
+                .token_pipe => .op_max,
+                .token_less => .op_less,
+                .token_greater => .op_more,
+                .token_equal => unreachable,
+                .token_tilde => unreachable,
+                .token_bang => .op_dict,
+                .token_comma => .op_merge,
+                .token_at => unreachable,
+                .token_question => unreachable,
+                .token_caret => unreachable,
+                .token_hash => unreachable,
+                .token_underscore => unreachable,
+                .token_dollar => unreachable,
+                .token_dot => unreachable,
+                else => unreachable,
+            },
+        }, self.current.vm.allocator);
+        errdefer current_node.deinit(self.current.vm.allocator);
+
+        current_node.lhs = node;
+        current_node.rhs = try self.parsePrecedence(self.getRule(self.parser.previous.token_type).precedence, true);
+        return current_node;
+    }
+
+    fn grouping(self: *Self) CompilerError!*Node {
+        const first_node = try self.expression();
+        if (self.match(.token_right_paren)) {
+            return first_node;
+        }
+
+        if (self.check(.token_semicolon)) {
+            var list = std.ArrayList(*Node).init(self.current.vm.allocator);
+            defer list.deinit();
+            errdefer for (list.items) |node| node.deinit(self.current.vm.allocator);
+
+            var all_constants = first_node.op_code == .op_constant;
+            var value_type: ValueType = if (all_constants) self.getValue(first_node.byte.?).as else .list;
+
+            list.append(first_node) catch std.debug.panic("Failed to append item.", .{});
+            while (self.match(.token_semicolon)) {
+                const node = try self.expression();
+                all_constants = if (all_constants and node.op_code == .op_constant) true else false;
+                if (all_constants and value_type != self.getValue(node.byte.?).as) {
+                    value_type = .list;
+                }
+                list.append(node) catch std.debug.panic("Failed to append item.", .{});
+            }
+            self.consume(.token_right_paren, "Expect ')' after list.");
+
+            return self.createList(list, value_type, all_constants);
+        }
+
+        self.errorAtCurrent("Expect ')' after expression.");
         return CompilerError.compile_error;
-    };
-    var node = try prefixRule();
+    }
 
-    while (@enumToInt(precedence) <= @enumToInt(getRule(parser.current.token_type).precedence)) {
-        advance();
-        const infixRule = getRule(parser.previous.token_type).infix orelse {
-            errorAtPrevious("Expect infix expression.");
+    // TODO: Reuse constant slots
+    fn createList(self: *Self, nodes: std.ArrayList(*Node), value_type: ValueType, all_constants: bool) *Node {
+        if (all_constants) {
+            const list_type: ValueType = switch (value_type) {
+                .boolean => .boolean_list,
+                .int => .int_list,
+                .float => .float_list,
+                .char => .char_list,
+                .symbol => .symbol_list,
+                else => .list,
+            };
+            const list = self.current.vm.allocator.alloc(*Value, nodes.items.len) catch std.debug.panic("Failed to create list.", .{});
+            for (nodes.items) |node, i| {
+                list[i] = self.getValue(node.byte.?).ref();
+                node.deinit(self.current.vm.allocator);
+            }
+            const value = switch (list_type) {
+                .boolean_list => self.current.vm.initValue(.{ .boolean_list = list }),
+                .int_list => self.current.vm.initValue(.{ .int_list = list }),
+                .float_list => self.current.vm.initValue(.{ .float_list = list }),
+                .char_list => self.current.vm.initValue(.{ .char_list = list }),
+                .symbol_list => self.current.vm.initValue(.{ .symbol_list = list }),
+                .list => self.current.vm.initValue(.{ .list = list }),
+                else => unreachable,
+            };
+            return Node.init(.{ .op_code = .op_constant, .byte = self.makeConstant(value) }, self.current.vm.allocator);
+        }
+
+        const bottom_node = Node.init(.{ .op_code = .op_concat }, self.current.vm.allocator);
+        bottom_node.rhs = nodes.items[nodes.items.len - 1];
+        bottom_node.lhs = nodes.items[nodes.items.len - 2];
+        var prev_node = bottom_node;
+
+        var i = nodes.items.len - 2;
+        while (i > 0) : (i -= 1) {
+            const node = Node.init(.{ .op_code = .op_merge }, self.current.vm.allocator);
+            node.lhs = nodes.items[i - 1];
+            node.rhs = prev_node;
+            prev_node = node;
+        }
+
+        return prev_node;
+    }
+
+    fn block(self: *Self) CompilerError!*Node {
+        var top_node = try self.expression();
+        {
+            errdefer top_node.deinit(self.current.vm.allocator);
+            while (!self.check(.token_right_brace) and !self.check(.token_eof)) {
+                const node = try self.expression();
+                var rhs = &node.rhs;
+                while (rhs.* != null) {
+                    rhs = &rhs.*.?.rhs;
+                }
+                rhs.* = top_node;
+                top_node = node;
+            }
+        }
+
+        self.consume(.token_right_brace, "Expect '}' after block.");
+
+        return top_node;
+    }
+
+    fn function(self: *Self) CompilerError!*Node {
+        var compiler = Compiler.init(self.current, .function_lambda, self.current.vm, self.scanner);
+        errdefer compiler.func.deinit(self.current.vm.allocator);
+        self.current = &compiler;
+
+        const start_index = @ptrToInt(self.scanner.start) - @ptrToInt(self.scanner.source.ptr) - 1;
+
+        if (self.match(.token_left_bracket)) {
+            var should_continue = !self.check(.token_right_bracket);
+            while (should_continue) {
+                self.current.func.arity += 1;
+                if (self.current.func.arity > 8) {
+                    self.errorAtCurrent("Can't have more than 8 parameters.");
+                    return CompilerError.compile_error;
+                }
+
+                self.consume(.token_identifier, "Expect parameter name.");
+
+                var i = self.current.local_count;
+                while (i > 0) {
+                    i -= 1;
+                    const local = self.current.locals[i];
+                    if (std.mem.eql(u8, self.parser.previous.lexeme, local.lexeme)) {
+                        self.errorAtPrevious("Duplicate parameter name.");
+                        return CompilerError.compile_error;
+                    }
+                }
+
+                self.addLocal(self.parser.previous);
+
+                should_continue = self.match(.token_semicolon);
+            }
+            self.consume(.token_right_bracket, "Expect ']' after parameters.");
+        }
+
+        const node = try self.block();
+
+        const end_index = std.math.min(@ptrToInt(self.scanner.start) - @ptrToInt(self.scanner.source.ptr), self.scanner.source.len);
+        self.current.func.name = self.current.vm.allocator.dupe(u8, self.scanner.source[start_index..end_index]) catch std.debug.panic("Failed to create function", .{});
+
+        const func = self.endCompiler(node);
+        const value = self.current.vm.initValue(.{ .function = func });
+        return Node.init(.{ .op_code = .op_constant, .byte = self.makeConstant(value) }, self.current.vm.allocator);
+    }
+
+    fn pop(self: *Self) CompilerError!*Node {
+        return Node.init(.{ .op_code = .op_pop }, self.current.vm.allocator);
+    }
+
+    fn unary(self: *Self) CompilerError!*Node {
+        const node = Node.init(.{
+            .op_code = switch (self.parser.previous.token_type) {
+                .token_plus => .op_flip,
+                .token_minus => .op_negate,
+                .token_star => .op_first,
+                .token_percent => .op_sqrt,
+                .token_ampersand => unreachable,
+                .token_pipe => unreachable,
+                .token_less => unreachable,
+                .token_greater => unreachable,
+                .token_equal => unreachable,
+                .token_tilde => unreachable,
+                .token_bang => .op_key,
+                .token_comma => .op_enlist,
+                .token_at => unreachable,
+                .token_question => unreachable,
+                .token_caret => unreachable,
+                .token_hash => unreachable,
+                .token_underscore => unreachable,
+                .token_dollar => unreachable,
+                .token_dot => unreachable,
+                else => unreachable,
+            },
+        }, self.current.vm.allocator);
+        node.rhs = try self.parsePrecedence(self.getRule(self.parser.previous.token_type).precedence, true);
+        return node;
+    }
+
+    fn parsePrecedence(self: *Self, precedence: Precedence, should_advance: bool) CompilerError!*Node {
+        if (should_advance) self.advance();
+        const prefixRule = self.getRule(self.parser.previous.token_type).prefix orelse {
+            self.errorAtPrevious("Expect prefix expression.");
             return CompilerError.compile_error;
         };
-        node = try infixRule(node);
+        var node = try prefixRule(self);
+
+        while (@enumToInt(precedence) <= @enumToInt(self.getRule(self.parser.current.token_type).precedence)) {
+            self.advance();
+            const infixRule = self.getRule(self.parser.previous.token_type).infix orelse {
+                self.errorAtPrevious("Expect infix expression.");
+                return CompilerError.compile_error;
+            };
+            node = try infixRule(self, node);
+        }
+
+        return node;
     }
 
-    return node;
-}
-
-fn getRule(token_type: TokenType) ParseRule {
-    return switch (token_type) {
-        // zig fmt: off
+    fn getRule(_: *Self, token_type: TokenType) ParseRule {
+        return switch (token_type) {
+            // zig fmt: off
         .token_left_paren    => ParseRule{ .prefix = grouping, .infix = null,   .precedence = .prec_none      },
         .token_right_paren   => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
         .token_left_brace    => ParseRule{ .prefix = function, .infix = null,   .precedence = .prec_none      },
@@ -734,40 +766,10 @@ fn getRule(token_type: TokenType) ParseRule {
         .token_error         => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
         .token_eof           => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
         // zig fmt: on
-    };
-}
-
-fn expression() CompilerError!*Node {
-    return try parsePrecedence(.prec_secondary, true);
-}
-
-pub fn compile(source: []const u8, vm: *VM) CompilerError!*Value {
-    scanner = Scanner.init(source);
-    var compiler = Compiler.init(null, .function_script, vm);
-    errdefer compiler.func.deinit(vm.allocator);
-    current = &compiler;
-
-    parser.had_error = false;
-    parser.panic_mode = false;
-
-    advance();
-
-    var top_node = try expression();
-    {
-        errdefer top_node.deinit(vm.allocator);
-        while (!check(.token_eof)) {
-            const node = try expression();
-            var rhs = &node.rhs;
-            while (rhs.* != null) {
-                rhs = &rhs.*.?.rhs;
-            }
-            rhs.* = top_node;
-            top_node = node;
-        }
+        };
     }
 
-    consume(.token_eof, "Expect eof.");
-
-    const func = endCompiler(top_node);
-    return if (parser.had_error) CompilerError.compile_error else current.vm.initValue(.{ .function = func });
-}
+    fn expression(self: *Self) CompilerError!*Node {
+        return try self.parsePrecedence(.prec_secondary, true);
+    }
+};
