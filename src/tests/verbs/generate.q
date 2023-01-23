@@ -38,11 +38,12 @@ generate:{[x;y]
   header:enlist["test \"auto-generated ",x,"\" {"];
   footer:enlist enlist"}";
   c:(1+count y)*count inputs:enlist each{x,x cross x}y;
-  header,/:(c cut{"    try runTest(\"",x,"\", ",getValue[value x],");"}each x sv'-3!'/:{x cross x}inputs),\:footer}
+  header,/:(c cut{"    try runTest(",(-3!x),", ",getValue[value x],");"}each x sv'-3!'/:{x cross x}inputs),\:footer}
 
 dir:first` vs`$ssr[":",string .z.f;"\\";"/"]
 
-values:(0b;1b;0N;-0W;-1;0;1;0W;0n;-0w;-1f;0f;1f;0w)
+numberValues:(0b;1b;0N;-0W;-1;0;1;0W;0n;-0w;-1f;0f;1f;0w)
+allValues:numberValues,(" ";"a";`;`symbol)
 
 header:(
   "const value_mod = @import(\"../../../value.zig\");";
@@ -59,22 +60,23 @@ generateImports:{[x]
   header,("    _ = @import(\"",/:(-3#'"00",/:string 1+til x),\:".zig\");"),footer}
 
 tests:(
-  (`add      ;"+");
-  (`subtract ;"-");
-  (`multiply ;"*");
-  (`divide   ;"%");
-  (`concat   ;",");
-  (`min      ;"&");
-  (`max      ;"|");
-  (`less     ;"<");
-  (`more     ;">");
-  (`equal    ;"="))
+  (`add      ;"+" ;numberValues );
+  (`subtract ;"-" ;numberValues );
+  (`multiply ;"*" ;numberValues );
+  (`divide   ;"%" ;numberValues );
+  (`concat   ;"," ;numberValues );
+  (`min      ;"&" ;numberValues );
+  (`max      ;"|" ;numberValues );
+  (`less     ;"<" ;numberValues );
+  (`more     ;">" ;numberValues );
+  (`equal    ;"=" ;numberValues );
+  (`match    ;"~" ;allValues ))
 
-.[{[test;char]
+.[{[test;char;inputs]
   -1"Generating tests for ",string test;
   if[not()~k:key path:` sv dir,test;
     hdel each(` sv'path,/:k),path];
-  generated:header,/:generate[char;asc values];
+  generated:header,/:generate[char;asc inputs];
   imports:generateImports count generated;
   {[path;test;i]
     file:` sv path,` sv i,`zig;
