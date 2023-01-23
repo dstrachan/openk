@@ -248,6 +248,8 @@ pub const VM = struct {
                 .op_less => try self.opLess(),
                 .op_descend => try self.opDescend(),
                 .op_more => try self.opMore(),
+                .op_group => try self.opGroup(),
+                .op_equal => try self.opEqual(),
                 .op_enlist => try self.opEnlist(),
                 .op_merge => try self.opMerge(),
                 .op_concat => try self.opConcat(),
@@ -1707,7 +1709,7 @@ pub const VM = struct {
         _ = self;
     }
 
-    fn lessMore(self: *Self, bool_fn: BinaryFn(bool, bool), int_fn: BinaryFn(i64, bool), float_fn: BinaryFn(f64, bool), x: *Value, y: *Value) *Value {
+    fn booleanVerb(self: *Self, bool_fn: BinaryFn(bool, bool), int_fn: BinaryFn(i64, bool), float_fn: BinaryFn(f64, bool), x: *Value, y: *Value) *Value {
         return switch (x.as) {
             .boolean => |bool_x| switch (y.as) {
                 .boolean => |bool_y| self.initValue(.{ .boolean = bool_fn(bool_x, bool_y) }),
@@ -1717,7 +1719,7 @@ pub const VM = struct {
                     const list = self.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                     var list_type: ?ValueType = null;
                     for (list_y) |value, i| {
-                        list[i] = self.lessMore(bool_fn, int_fn, float_fn, x, value);
+                        list[i] = self.booleanVerb(bool_fn, int_fn, float_fn, x, value);
                         if (list_type == null and @as(ValueType, list[0].as) != @as(ValueType, list[i].as)) list_type = .list;
                     }
                     break :blk self.initValue(switch (if (list_type) |list_type_value| list_type_value else @as(ValueType, list[0].as)) {
@@ -1756,7 +1758,7 @@ pub const VM = struct {
                     const list = self.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                     var list_type: ?ValueType = null;
                     for (list_y) |value, i| {
-                        list[i] = self.lessMore(bool_fn, int_fn, float_fn, x, value);
+                        list[i] = self.booleanVerb(bool_fn, int_fn, float_fn, x, value);
                         if (list_type == null and @as(ValueType, list[0].as) != @as(ValueType, list[i].as)) list_type = .list;
                     }
                     break :blk self.initValue(switch (if (list_type) |list_type_value| list_type_value else @as(ValueType, list[0].as)) {
@@ -1795,7 +1797,7 @@ pub const VM = struct {
                     const list = self.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                     var list_type: ?ValueType = null;
                     for (list_y) |value, i| {
-                        list[i] = self.lessMore(bool_fn, int_fn, float_fn, x, value);
+                        list[i] = self.booleanVerb(bool_fn, int_fn, float_fn, x, value);
                         if (list_type == null and @as(ValueType, list[0].as) != @as(ValueType, list[i].as)) list_type = .list;
                     }
                     break :blk self.initValue(switch (if (list_type) |list_type_value| list_type_value else @as(ValueType, list[0].as)) {
@@ -1831,7 +1833,7 @@ pub const VM = struct {
                     const list = self.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     var list_type: ?ValueType = null;
                     for (list_x) |value, i| {
-                        list[i] = self.lessMore(bool_fn, int_fn, float_fn, value, y);
+                        list[i] = self.booleanVerb(bool_fn, int_fn, float_fn, value, y);
                         if (list_type == null and @as(ValueType, list[0].as) != @as(ValueType, list[i].as)) list_type = .list;
                     }
                     break :blk self.initValue(switch (if (list_type) |list_type_value| list_type_value else @as(ValueType, list[0].as)) {
@@ -1843,7 +1845,7 @@ pub const VM = struct {
                     const list = self.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     var list_type: ?ValueType = null;
                     for (list_x) |value, i| {
-                        list[i] = self.lessMore(bool_fn, int_fn, float_fn, value, list_y[i]);
+                        list[i] = self.booleanVerb(bool_fn, int_fn, float_fn, value, list_y[i]);
                         if (list_type == null and @as(ValueType, list[0].as) != @as(ValueType, list[i].as)) list_type = .list;
                     }
                     break :blk self.initValue(switch (if (list_type) |list_type_value| list_type_value else @as(ValueType, list[0].as)) {
@@ -1879,7 +1881,7 @@ pub const VM = struct {
                     const list = self.allocator.alloc(*Value, bool_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     var list_type: ?ValueType = null;
                     for (bool_list_x) |value, i| {
-                        list[i] = self.lessMore(bool_fn, int_fn, float_fn, value, list_y[i]);
+                        list[i] = self.booleanVerb(bool_fn, int_fn, float_fn, value, list_y[i]);
                         if (list_type == null and @as(ValueType, list[0].as) != @as(ValueType, list[i].as)) list_type = .list;
                     }
                     break :blk self.initValue(switch (if (list_type) |list_type_value| list_type_value else @as(ValueType, list[0].as)) {
@@ -1936,7 +1938,7 @@ pub const VM = struct {
                     const list = self.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     var list_type: ?ValueType = null;
                     for (int_list_x) |value, i| {
-                        list[i] = self.lessMore(bool_fn, int_fn, float_fn, value, list_y[i]);
+                        list[i] = self.booleanVerb(bool_fn, int_fn, float_fn, value, list_y[i]);
                         if (list_type == null and @as(ValueType, list[0].as) != @as(ValueType, list[i].as)) list_type = .list;
                     }
                     break :blk self.initValue(switch (if (list_type) |list_type_value| list_type_value else @as(ValueType, list[0].as)) {
@@ -1993,7 +1995,7 @@ pub const VM = struct {
                     const list = self.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                     var list_type: ?ValueType = null;
                     for (float_list_x) |value, i| {
-                        list[i] = self.lessMore(bool_fn, int_fn, float_fn, value, list_y[i]);
+                        list[i] = self.booleanVerb(bool_fn, int_fn, float_fn, value, list_y[i]);
                         if (list_type == null and @as(ValueType, list[0].as) != @as(ValueType, list[i].as)) list_type = .list;
                     }
                     break :blk self.initValue(switch (if (list_type) |list_type_value| list_type_value else @as(ValueType, list[0].as)) {
@@ -2049,7 +2051,7 @@ pub const VM = struct {
 
         // TODO: Check that all nested lists have equal length
         if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only add numeric values.", .{});
-        const value = self.lessMore(lessBool, lessInt, lessFloat, x, y);
+        const value = self.booleanVerb(lessBool, lessInt, lessFloat, x, y);
         try self.push(value);
     }
 
@@ -2078,7 +2080,36 @@ pub const VM = struct {
 
         // TODO: Check that all nested lists have equal length
         if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only add numeric values.", .{});
-        const value = self.lessMore(moreBool, moreInt, moreFloat, x, y);
+        const value = self.booleanVerb(moreBool, moreInt, moreFloat, x, y);
+        try self.push(value);
+    }
+
+    fn opGroup(self: *Self) !void {
+        _ = self;
+    }
+
+    fn equalBool(x: bool, y: bool) bool {
+        return x == y;
+    }
+
+    fn equalInt(x: i64, y: i64) bool {
+        return x == y;
+    }
+
+    fn equalFloat(x: f64, y: f64) bool {
+        if (std.math.isNan(x) and std.math.isNan(y)) return true;
+        return x == y;
+    }
+
+    fn opEqual(self: *Self) !void {
+        const x = self.pop();
+        defer x.deref(self.allocator);
+        const y = self.pop();
+        defer y.deref(self.allocator);
+
+        // TODO: Check that all nested lists have equal length
+        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only add numeric values.", .{});
+        const value = self.booleanVerb(equalBool, equalInt, equalFloat, x, y);
         try self.push(value);
     }
 
