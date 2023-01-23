@@ -97,6 +97,8 @@ pub fn disassembleInstruction(chunk: *const Chunk, offset: usize) usize {
         .op_less => simpleInstruction(.op_less, offset),
         .op_descend => simpleInstruction(.op_descend, offset),
         .op_more => simpleInstruction(.op_more, offset),
+        .op_group => simpleInstruction(.op_group, offset),
+        .op_equal => simpleInstruction(.op_equal, offset),
         .op_enlist => simpleInstruction(.op_enlist, offset),
         .op_merge => simpleInstruction(.op_merge, offset),
         .op_concat => simpleInstruction(.op_concat, offset),

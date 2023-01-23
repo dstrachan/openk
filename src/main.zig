@@ -109,6 +109,7 @@ test {
     _ = @import("tests/verbs/add/_imports.zig");
     _ = @import("tests/verbs/concat/_imports.zig");
     _ = @import("tests/verbs/divide/_imports.zig");
+    _ = @import("tests/verbs/equal/_imports.zig");
     _ = @import("tests/verbs/less/_imports.zig");
     _ = @import("tests/verbs/max/_imports.zig");
     _ = @import("tests/verbs/min/_imports.zig");
