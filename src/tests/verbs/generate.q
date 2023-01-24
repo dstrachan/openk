@@ -70,7 +70,7 @@ tests:(
   (`less     ;"<" ;numberValues );
   (`more     ;">" ;numberValues );
   (`equal    ;"=" ;numberValues );
-  (`match    ;"~" ;allValues ))
+  (`match    ;"~" ;allValues    ))
 
 .[{[test;char;inputs]
   -1"Generating tests for ",string test;
