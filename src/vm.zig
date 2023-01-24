@@ -250,6 +250,8 @@ pub const VM = struct {
                 .op_more => try self.opMore(),
                 .op_group => try self.opGroup(),
                 .op_equal => try self.opEqual(),
+                .op_not => try self.opNot(),
+                .op_match => try self.opMatch(),
                 .op_enlist => try self.opEnlist(),
                 .op_merge => try self.opMerge(),
                 .op_concat => try self.opConcat(),
@@ -851,7 +853,7 @@ pub const VM = struct {
         defer y.deref(self.allocator);
 
         // TODO: Check that all nested lists have equal length
-        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only add numeric values.", .{});
+        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only subtract numeric values.", .{});
         const value = self.binary(subtractInt, subtractFloat, x, y);
         try self.push(value);
     }
@@ -883,7 +885,7 @@ pub const VM = struct {
         defer y.deref(self.allocator);
 
         // TODO: Check that all nested lists have equal length
-        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only add numeric values.", .{});
+        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only multiply numeric values.", .{});
         const value = self.binary(multiplyInt, multiplyFloat, x, y);
         try self.push(value);
     }
@@ -1313,7 +1315,7 @@ pub const VM = struct {
         defer y.deref(self.allocator);
 
         // TODO: Check that all nested lists have equal length
-        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only add numeric values.", .{});
+        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only divide numeric values.", .{});
         const value = self.divide(x, y);
         try self.push(value);
     }
@@ -1670,7 +1672,7 @@ pub const VM = struct {
         defer y.deref(self.allocator);
 
         // TODO: Check that all nested lists have equal length
-        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only add numeric values.", .{});
+        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only calculate min of numeric values.", .{});
         const value = self.minMax(minBool, minInt, minFloat, x, y);
         try self.push(value);
     }
@@ -1700,7 +1702,7 @@ pub const VM = struct {
         defer y.deref(self.allocator);
 
         // TODO: Check that all nested lists have equal length
-        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only add numeric values.", .{});
+        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only calculate max of numeric values.", .{});
         const value = self.minMax(maxBool, maxInt, maxFloat, x, y);
         try self.push(value);
     }
@@ -2050,7 +2052,7 @@ pub const VM = struct {
         defer y.deref(self.allocator);
 
         // TODO: Check that all nested lists have equal length
-        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only add numeric values.", .{});
+        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only compare numeric values.", .{});
         const value = self.booleanVerb(lessBool, lessInt, lessFloat, x, y);
         try self.push(value);
     }
@@ -2079,7 +2081,7 @@ pub const VM = struct {
         defer y.deref(self.allocator);
 
         // TODO: Check that all nested lists have equal length
-        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only add numeric values.", .{});
+        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only compare numeric values.", .{});
         const value = self.booleanVerb(moreBool, moreInt, moreFloat, x, y);
         try self.push(value);
     }
@@ -2108,8 +2110,22 @@ pub const VM = struct {
         defer y.deref(self.allocator);
 
         // TODO: Check that all nested lists have equal length
-        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only add numeric values.", .{});
+        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only compare numeric values.", .{});
         const value = self.booleanVerb(equalBool, equalInt, equalFloat, x, y);
+        try self.push(value);
+    }
+
+    fn opNot(self: *Self) !void {
+        _ = self;
+    }
+
+    fn opMatch(self: *Self) !void {
+        const x = self.pop();
+        defer x.deref(self.allocator);
+        const y = self.pop();
+        defer y.deref(self.allocator);
+
+        const value = self.initValue(.{ .boolean = x.eql(y) });
         try self.push(value);
     }
 

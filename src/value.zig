@@ -270,6 +270,78 @@ pub const Value = struct {
     pub fn format(self: Self, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
         try writer.print("{} [{d}]", .{ self.as, self.reference_count });
     }
+
+    pub fn eql(x: *Self, y: *Self) bool {
+        return switch (x.as) {
+            .nil => y.as == .nil,
+            .boolean => |bool_x| y.as == .boolean and bool_x == y.as.boolean,
+            .int => |int_x| y.as == .int and int_x == y.as.int,
+            .float => |float_x| y.as == .float and (std.math.isNan(float_x) and std.math.isNan(y.as.float) or float_x == y.as.float),
+            .char => |char_x| y.as == .char and char_x == y.as.char,
+            .symbol => |symbol_x| y.as == .symbol and std.mem.eql(u8, symbol_x, y.as.symbol),
+            .list => |list_x| switch (y.as) {
+                .list => |list_y| {
+                    if (list_x.len != list_y.len) return false;
+                    for (list_x) |value, i| {
+                        if (!value.eql(list_y[i])) return false;
+                    }
+                    return true;
+                },
+                else => false,
+            },
+            .boolean_list => |list_x| switch (y.as) {
+                .boolean_list => |list_y| {
+                    if (list_x.len != list_y.len) return false;
+                    for (list_x) |value, i| {
+                        if (!value.eql(list_y[i])) return false;
+                    }
+                    return true;
+                },
+                else => false,
+            },
+            .int_list => |list_x| switch (y.as) {
+                .int_list => |list_y| {
+                    if (list_x.len != list_y.len) return false;
+                    for (list_x) |value, i| {
+                        if (!value.eql(list_y[i])) return false;
+                    }
+                    return true;
+                },
+                else => false,
+            },
+            .float_list => |list_x| switch (y.as) {
+                .float_list => |list_y| {
+                    if (list_x.len != list_y.len) return false;
+                    for (list_x) |value, i| {
+                        if (!value.eql(list_y[i])) return false;
+                    }
+                    return true;
+                },
+                else => false,
+            },
+            .char_list => |list_x| switch (y.as) {
+                .char_list => |list_y| {
+                    if (list_x.len != list_y.len) return false;
+                    for (list_x) |value, i| {
+                        if (!value.eql(list_y[i])) return false;
+                    }
+                    return true;
+                },
+                else => false,
+            },
+            .symbol_list => |list_x| switch (y.as) {
+                .symbol_list => |list_y| {
+                    if (list_x.len != list_y.len) return false;
+                    for (list_x) |value, i| {
+                        if (!value.eql(list_y[i])) return false;
+                    }
+                    return true;
+                },
+                else => false,
+            },
+            else => false,
+        };
+    }
 };
 
 pub const ValueFunction = struct {
