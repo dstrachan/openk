@@ -654,10 +654,8 @@ test "fill list" {
         .list = &[_]TestValue{
             .{ .char = 'a' },
             .{ .char_list = &[_]TestValue{
-                .{
-                    .{ .char = 'b' },
-                    .{ .char = 'a' },
-                },
+                .{ .char = 'b' },
+                .{ .char = 'a' },
             } },
         },
     });
@@ -665,22 +663,82 @@ test "fill list" {
         .list = &[_]TestValue{
             .{ .symbol = "test" },
             .{ .symbol_list = &[_]TestValue{
-                .{
-                    .{ .symbol = "symbol" },
-                    .{ .symbol = "test" },
-                },
+                .{ .symbol = "symbol" },
+                .{ .symbol = "test" },
             } },
         },
     });
-    // TODO: list -> list
-    // TODO: list -> boolean_list
-    // TODO: list -> int_list
-    // TODO: list -> float_list
-    // TODO: list -> char_list
-    // TODO: list -> symbol_list
-    // TODO: boolean_list -> list
-    // TODO: int_list -> list
-    // TODO: float_list -> list
-    // TODO: char_list -> list
-    // TODO: symbol_list -> list
+    try runTest("(2;3f)^(0n;0N)", .{
+        .float_list = &[_]TestValue{
+            .{ .float = 2 },
+            .{ .float = 3 },
+        },
+    });
+    try runTest("(1b;(2;3f);(\"a\";`a`b`c`d`e))^(0N;(0n;0N);(\" \";`a``c``e))", .{
+        .list = &[_]TestValue{
+            .{ .int = 1 },
+            .{
+                .float_list = &[_]TestValue{
+                    .{ .float = 2 },
+                    .{ .float = 3 },
+                },
+            },
+            .{
+                .list = &[_]TestValue{
+                    .{ .char = 'a' },
+                    .{
+                        .symbol_list = &[_]TestValue{
+                            .{ .symbol = "a" },
+                            .{ .symbol = "b" },
+                            .{ .symbol = "c" },
+                            .{ .symbol = "d" },
+                            .{ .symbol = "e" },
+                        },
+                    },
+                },
+            },
+        },
+    });
+    try runTest("(1b;2;3f)^010b", .{
+        .list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .int = 1 },
+            .{ .float = 0 },
+        },
+    });
+    try runTest("(1b;2;3f)^0 0N 2", .{
+        .list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 2 },
+            .{ .float = 2 },
+        },
+    });
+    try runTest("(1b;2;3f)^0 0n 2", .{
+        .float_list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = 2 },
+            .{ .float = 2 },
+        },
+    });
+    try runTest("010b^(0b;0N;0n)", .{
+        .list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .int = 1 },
+            .{ .float = 0 },
+        },
+    });
+    try runTest("0 1 2^(0b;0N;0n)", .{
+        .list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 1 },
+            .{ .float = 2 },
+        },
+    });
+    try runTest("0 1 2f^(0b;0N;0n)", .{
+        .float_list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = 1 },
+            .{ .float = 2 },
+        },
+    });
 }

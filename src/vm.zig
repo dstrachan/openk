@@ -1137,8 +1137,6 @@ pub const VM = struct {
                 .boolean_list => unreachable,
                 .int_list => unreachable,
                 .float_list => unreachable,
-                .char_list => unreachable,
-                .symbol_list => unreachable,
                 else => return self.runtimeError("Incompatible types.", .{}),
             },
             .boolean_list => |bool_list_x| switch (y.as) {
@@ -1262,7 +1260,6 @@ pub const VM = struct {
             },
             .char_list => |char_list_x| switch (y.as) {
                 .boolean, .int, .float, .char, .symbol => return self.runtimeError("List lengths must match.", .{}),
-                .list => unreachable,
                 .char_list => |char_list_y| blk: {
                     if (char_list_x.len != char_list_y.len) return self.runtimeError("List lengths must match.", .{});
 
@@ -1276,7 +1273,6 @@ pub const VM = struct {
             },
             .symbol_list => |symbol_list_x| switch (y.as) {
                 .boolean, .int, .float, .char, .symbol => return self.runtimeError("List lengths must match.", .{}),
-                .list => unreachable,
                 .symbol_list => |symbol_list_y| blk: {
                     if (symbol_list_x.len != symbol_list_y.len) return self.runtimeError("List lengths must match.", .{});
 
