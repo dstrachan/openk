@@ -403,7 +403,7 @@ pub const VM = struct {
         const y = self.pop();
         defer y.deref(self.allocator);
 
-        const value = verbs.divide(self, x, y);
+        const value = try verbs.divide(self, x, y);
         try self.push(value);
     }
 
@@ -426,28 +426,13 @@ pub const VM = struct {
         return self.monadicVerb();
     }
 
-    fn minBool(x: bool, y: bool) bool {
-        return x and y;
-    }
-
-    fn minInt(x: i64, y: i64) i64 {
-        return std.math.min(x, y);
-    }
-
-    fn minFloat(x: f64, y: f64) f64 {
-        if (std.math.isNan(x) or std.math.isNan(y)) return Value.null_float;
-        return std.math.min(x, y);
-    }
-
     fn opMin(self: *Self) !void {
         const x = self.pop();
         defer x.deref(self.allocator);
         const y = self.pop();
         defer y.deref(self.allocator);
 
-        // TODO: Check that all nested lists have equal length
-        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only calculate min of numeric values.", .{});
-        const value = minMax(self, minBool, minInt, minFloat, x, y);
+        const value = try verbs.min(self, x, y);
         try self.push(value);
     }
 
@@ -1260,6 +1245,7 @@ fn minMax(self: *VM, bool_fn: BinaryFn(bool, bool), int_fn: BinaryFn(i64, i64), 
         else => unreachable,
     };
 }
+
 fn booleanVerb(self: *VM, bool_fn: BinaryFn(bool, bool), int_fn: BinaryFn(i64, bool), float_fn: BinaryFn(f64, bool), x: *Value, y: *Value) *Value {
     return switch (x.as) {
         .boolean => |bool_x| switch (y.as) {

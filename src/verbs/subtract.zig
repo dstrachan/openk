@@ -15,7 +15,7 @@ pub const SubtractError = error{
     length_mismatch,
 };
 
-fn runtimeError(comptime err: SubtractError) !*Value {
+fn runtimeError(comptime err: SubtractError) SubtractError!*Value {
     switch (err) {
         SubtractError.incompatible_types => print("Incompatible types.\n", .{}),
         SubtractError.length_mismatch => print("List lengths must match.\n", .{}),

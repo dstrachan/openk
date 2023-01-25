@@ -15,7 +15,7 @@ pub const SqrtError = error{
     invalid_type,
 };
 
-fn runtimeError(comptime err: SqrtError) !*Value {
+fn runtimeError(comptime err: SqrtError) SqrtError!*Value {
     switch (err) {
         SqrtError.length_mismatch => print("Can only sqrt values of equal length.\n", .{}),
         SqrtError.invalid_type => print("Can only sqrt list values.", .{}),

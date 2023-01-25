@@ -15,7 +15,7 @@ pub const MultiplyError = error{
     length_mismatch,
 };
 
-fn runtimeError(comptime err: MultiplyError) !*Value {
+fn runtimeError(comptime err: MultiplyError) MultiplyError!*Value {
     switch (err) {
         MultiplyError.incompatible_types => print("Incompatible types.\n", .{}),
         MultiplyError.length_mismatch => print("List lengths must match.\n", .{}),

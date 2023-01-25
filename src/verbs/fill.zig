@@ -15,7 +15,7 @@ pub const FillError = error{
     length_mismatch,
 };
 
-fn runtimeError(comptime err: FillError) !*Value {
+fn runtimeError(comptime err: FillError) FillError!*Value {
     switch (err) {
         FillError.incompatible_types => print("Incompatible types.\n", .{}),
         FillError.length_mismatch => print("List lengths must match.\n", .{}),

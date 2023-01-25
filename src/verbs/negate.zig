@@ -14,7 +14,7 @@ pub const NegateError = error{
     invalid_type,
 };
 
-fn runtimeError(comptime err: NegateError) !*Value {
+fn runtimeError(comptime err: NegateError) NegateError!*Value {
     switch (err) {
         NegateError.invalid_type => print("Can only flip list values.", .{}),
     }

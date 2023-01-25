@@ -15,7 +15,7 @@ pub const TilError = error{
     invalid_type,
 };
 
-fn runtimeError(comptime err: TilError) !*Value {
+fn runtimeError(comptime err: TilError) TilError!*Value {
     switch (err) {
         TilError.length_mismatch => print("Can only flip values of equal length.\n", .{}),
         TilError.invalid_type => print("Can only flip list values.", .{}),

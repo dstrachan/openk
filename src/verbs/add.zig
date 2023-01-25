@@ -15,7 +15,7 @@ pub const AddError = error{
     length_mismatch,
 };
 
-fn runtimeError(comptime err: AddError) !*Value {
+fn runtimeError(comptime err: AddError) AddError!*Value {
     switch (err) {
         AddError.incompatible_types => print("Incompatible types.\n", .{}),
         AddError.length_mismatch => print("List lengths must match.\n", .{}),

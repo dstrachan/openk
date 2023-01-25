@@ -15,7 +15,7 @@ pub const FlipError = error{
     invalid_type,
 };
 
-fn runtimeError(comptime err: FlipError) !*Value {
+fn runtimeError(comptime err: FlipError) FlipError!*Value {
     switch (err) {
         FlipError.length_mismatch => print("Can only flip values of equal length.\n", .{}),
         FlipError.invalid_type => print("Can only flip list values.", .{}),
