@@ -412,19 +412,7 @@ pub const VM = struct {
         defer x.deref(self.allocator);
 
         const value = switch (x.as) {
-            .int => |int_x| blk: {
-                const list = self.allocator.alloc(*Value, std.math.absCast(int_x)) catch std.debug.panic("Failed to create list.", .{});
-                if (int_x < 0) {
-                    for (list) |_, i| {
-                        list[i] = self.initValue(.{ .int = int_x + @intCast(i64, i) });
-                    }
-                } else {
-                    for (list) |_, i| {
-                        list[i] = self.initValue(.{ .int = @intCast(i64, i) });
-                    }
-                }
-                break :blk self.initValue(.{ .int_list = list });
-            },
+            .int => try verbs.til(self, x),
             else => unreachable,
         };
         try self.push(value);
