@@ -506,33 +506,11 @@ pub const VM = struct {
         try self.push(value);
     }
 
-    fn enlist(self: *Self, x: *Value) []*Value {
-        const list = self.allocator.alloc(*Value, 1) catch std.debug.panic("Failed to create list.", .{});
-        list[0] = x.ref();
-        return list;
-    }
-
     fn opEnlist(self: *Self) !void {
         const x = self.pop();
         defer x.deref(self.allocator);
 
-        const value = switch (x.as) {
-            .nil => self.initValue(.{ .list = self.enlist(x) }),
-            .boolean => self.initValue(.{ .boolean_list = self.enlist(x) }),
-            .int => self.initValue(.{ .int_list = self.enlist(x) }),
-            .float => self.initValue(.{ .float_list = self.enlist(x) }),
-            .char => self.initValue(.{ .char_list = self.enlist(x) }),
-            .symbol => self.initValue(.{ .symbol_list = self.enlist(x) }),
-            .list,
-            .boolean_list,
-            .int_list,
-            .float_list,
-            .char_list,
-            .symbol_list,
-            => self.initValue(.{ .list = self.enlist(x) }),
-            .function => self.initValue(.{ .list = self.enlist(x) }),
-            .projection => self.initValue(.{ .list = self.enlist(x) }),
-        };
+        const value = try verbs.enlist(self, x);
         try self.push(value);
     }
 

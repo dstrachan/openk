@@ -1,5 +1,6 @@
 pub const add = @import("verbs/add.zig").add;
 pub const divide = @import("verbs/divide.zig").divide;
+pub const enlist = @import("verbs/enlist.zig").enlist;
 pub const equal = @import("verbs/equal.zig").equal;
 pub const fill = @import("verbs/fill.zig").fill;
 pub const first = @import("verbs/first.zig").first;
