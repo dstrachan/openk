@@ -361,24 +361,13 @@ pub const VM = struct {
         try self.push(value);
     }
 
-    fn subtractInt(x: i64, y: i64) i64 {
-        if (x == Value.null_int or y == Value.null_int) return Value.null_int;
-        return x -% y;
-    }
-
-    fn subtractFloat(x: f64, y: f64) f64 {
-        return x - y;
-    }
-
     fn opSubtract(self: *Self) !void {
         const x = self.pop();
         defer x.deref(self.allocator);
         const y = self.pop();
         defer y.deref(self.allocator);
 
-        // TODO: Check that all nested lists have equal length
-        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only subtract numeric values.", .{});
-        const value = binary(self, subtractInt, subtractFloat, x, y);
+        const value = try verbs.subtract(self, x, y);
         try self.push(value);
     }
 
