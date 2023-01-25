@@ -375,10 +375,7 @@ pub const VM = struct {
         const x = self.pop();
         defer x.deref(self.allocator);
 
-        const value = switch (x.as) {
-            .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => x.ref(),
-            .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list| list[0].ref(),
-        };
+        const value = try verbs.first(self, x);
         try self.push(value);
     }
 
