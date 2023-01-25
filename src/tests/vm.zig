@@ -95,6 +95,18 @@ pub fn runTest(input: []const u8, expected: TestValue) !void {
     try compareValues(expected, result.as);
 }
 
+pub fn runTestError(input: []const u8, expected: anyerror) !void {
+    var vm = VM.init(std.testing.allocator);
+    defer vm.deinit();
+
+    const result = vm.interpret(input) catch |err| {
+        try std.testing.expectEqual(expected, err);
+        return;
+    };
+    result.deref(std.testing.allocator);
+    try std.testing.expect(false);
+}
+
 pub const DataType = enum {
     boolean,
     int,
