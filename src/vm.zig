@@ -454,28 +454,13 @@ pub const VM = struct {
         return self.monadicVerb();
     }
 
-    fn lessBool(x: bool, y: bool) bool {
-        return @boolToInt(x) < @boolToInt(y);
-    }
-
-    fn lessInt(x: i64, y: i64) bool {
-        return x < y;
-    }
-
-    fn lessFloat(x: f64, y: f64) bool {
-        if (std.math.isNan(x)) return !std.math.isNan(y);
-        return x < y;
-    }
-
     fn opLess(self: *Self) !void {
         const x = self.pop();
         defer x.deref(self.allocator);
         const y = self.pop();
         defer y.deref(self.allocator);
 
-        // TODO: Check that all nested lists have equal length
-        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only compare numeric values.", .{});
-        const value = booleanVerb(self, lessBool, lessInt, lessFloat, x, y);
+        const value = try verbs.less(self, x, y);
         try self.push(value);
     }
 
