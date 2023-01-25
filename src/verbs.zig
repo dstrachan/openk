@@ -1,4 +1,5 @@
 pub const add = @import("verbs/add.zig").add;
+pub const divide = @import("verbs/divide.zig").divide;
 pub const fill = @import("verbs/fill.zig").fill;
 pub const first = @import("verbs/first.zig").first;
 pub const flip = @import("verbs/flip.zig").flip;
