@@ -6,6 +6,7 @@ pub const flip = @import("verbs/flip.zig").flip;
 pub const less = @import("verbs/less.zig").less;
 pub const max = @import("verbs/max.zig").max;
 pub const min = @import("verbs/min.zig").min;
+pub const more = @import("verbs/more.zig").more;
 pub const multiply = @import("verbs/multiply.zig").multiply;
 pub const negate = @import("verbs/negate.zig").negate;
 pub const sqrt = @import("verbs/sqrt.zig").sqrt;

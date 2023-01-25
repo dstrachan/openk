@@ -468,28 +468,13 @@ pub const VM = struct {
         return self.monadicVerb();
     }
 
-    fn moreBool(x: bool, y: bool) bool {
-        return @boolToInt(x) > @boolToInt(y);
-    }
-
-    fn moreInt(x: i64, y: i64) bool {
-        return x > y;
-    }
-
-    fn moreFloat(x: f64, y: f64) bool {
-        if (std.math.isNan(y)) return !std.math.isNan(x);
-        return x > y;
-    }
-
     fn opMore(self: *Self) !void {
         const x = self.pop();
         defer x.deref(self.allocator);
         const y = self.pop();
         defer y.deref(self.allocator);
 
-        // TODO: Check that all nested lists have equal length
-        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only compare numeric values.", .{});
-        const value = booleanVerb(self, moreBool, moreInt, moreFloat, x, y);
+        const value = try verbs.more(self, x, y);
         try self.push(value);
     }
 
