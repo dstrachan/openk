@@ -23,6 +23,16 @@ fn runtimeError(comptime err: SubtractError) !*Value {
     return err;
 }
 
+// TODO: Add tests to implement these functions inline
+fn subtractInt(x: i64, y: i64) i64 {
+    if (x == Value.null_int or y == Value.null_int) return Value.null_int;
+    return x -% y;
+}
+
+fn subtractFloat(x: f64, y: f64) f64 {
+    return x - y;
+}
+
 pub fn subtract(vm: *VM, x: *Value, y: *Value) SubtractError!*Value {
     return switch (x.as) {
         .boolean => |bool_x| switch (y.as) {
