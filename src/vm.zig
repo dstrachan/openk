@@ -358,9 +358,7 @@ pub const VM = struct {
         const y = self.pop();
         defer y.deref(self.allocator);
 
-        // TODO: Check that all nested lists have equal length
-        if (!areAllNumericValues(x) or !areAllNumericValues(y)) return self.runtimeError("Can only add numeric values.", .{});
-        const value = binary(self, addInt, addFloat, x, y);
+        const value = try verbs.add(self, x, y);
         try self.push(value);
     }
 
