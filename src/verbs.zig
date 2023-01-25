@@ -3,6 +3,7 @@ pub const divide = @import("verbs/divide.zig").divide;
 pub const fill = @import("verbs/fill.zig").fill;
 pub const first = @import("verbs/first.zig").first;
 pub const flip = @import("verbs/flip.zig").flip;
+pub const max = @import("verbs/max.zig").max;
 pub const min = @import("verbs/min.zig").min;
 pub const multiply = @import("verbs/multiply.zig").multiply;
 pub const negate = @import("verbs/negate.zig").negate;
