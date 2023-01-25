@@ -502,7 +502,7 @@ pub const VM = struct {
         const y = self.pop();
         defer y.deref(self.allocator);
 
-        const value = self.initValue(.{ .boolean = x.eql(y) });
+        const value = try verbs.match(self, x, y);
         try self.push(value);
     }
 

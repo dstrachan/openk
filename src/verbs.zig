@@ -5,6 +5,7 @@ pub const fill = @import("verbs/fill.zig").fill;
 pub const first = @import("verbs/first.zig").first;
 pub const flip = @import("verbs/flip.zig").flip;
 pub const less = @import("verbs/less.zig").less;
+pub const match = @import("verbs/match.zig").match;
 pub const max = @import("verbs/max.zig").max;
 pub const min = @import("verbs/min.zig").min;
 pub const more = @import("verbs/more.zig").more;
