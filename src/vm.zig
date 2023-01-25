@@ -389,57 +389,12 @@ pub const VM = struct {
         try self.push(value);
     }
 
-    fn sqrt(self: *Self, x: *Value) *Value {
-        return switch (x.as) {
-            .boolean => |bool_x| self.initValue(.{ .float = if (bool_x) 1 else std.math.inf(f64) }),
-            .int => |int_x| self.initValue(.{ .float = std.math.sqrt(utils_mod.intToFloat(int_x)) }),
-            .float => |float_x| self.initValue(.{ .float = std.math.sqrt(float_x) }),
-            .list => |list_x| blk: {
-                const list = self.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                var list_type = ValueType.float_list;
-                for (list_x) |value, i| {
-                    const sqrt_value = self.sqrt(value);
-                    if (list_type != .list and sqrt_value.as != .float) list_type = .list;
-                    list[i] = sqrt_value;
-                }
-                break :blk self.initValue(if (list_type == .float_list) .{ .float_list = list } else .{ .list = list });
-            },
-            .boolean_list => |boolean_list_x| blk: {
-                const list = self.allocator.alloc(*Value, boolean_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (boolean_list_x) |value, i| {
-                    list[i] = self.initValue(.{ .float = if (value.as.boolean) 1 else std.math.inf(f64) });
-                }
-                break :blk self.initValue(.{ .float_list = list });
-            },
-            .int_list => |int_list_x| blk: {
-                const list = self.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_x) |value, i| {
-                    list[i] = self.initValue(.{ .float = std.math.sqrt(utils_mod.intToFloat(value.as.int)) });
-                }
-                break :blk self.initValue(.{ .float_list = list });
-            },
-            .float_list => |float_list_x| blk: {
-                const list = self.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_x) |value, i| {
-                    list[i] = self.initValue(.{ .float = std.math.sqrt(value.as.float) });
-                }
-                break :blk self.initValue(.{ .float_list = list });
-            },
-            else => unreachable,
-        };
-    }
-
     fn opSqrt(self: *Self) !void {
         const x = self.pop();
         defer x.deref(self.allocator);
 
-        // Workaround for try self.sqrt(x) with !*Value return type not working as expected
-        if (areAllNumericValues(x)) {
-            const value = self.sqrt(x);
-            try self.push(value);
-        } else {
-            return self.runtimeError("Can only calculate square root of numeric values.", .{});
-        }
+        const value = try verbs.sqrt(self, x);
+        try self.push(value);
     }
 
     fn opDivide(self: *Self) !void {
