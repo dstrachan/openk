@@ -343,15 +343,6 @@ pub const VM = struct {
         try self.push(value);
     }
 
-    fn addInt(x: i64, y: i64) i64 {
-        if (x == Value.null_int or y == Value.null_int) return Value.null_int;
-        return x +% y;
-    }
-
-    fn addFloat(x: f64, y: f64) f64 {
-        return x + y;
-    }
-
     fn opAdd(self: *Self) !void {
         const x = self.pop();
         defer x.deref(self.allocator);
@@ -366,33 +357,7 @@ pub const VM = struct {
         const x = self.pop();
         defer x.deref(self.allocator);
 
-        const value = switch (x.as) {
-            .boolean => |bool_x| self.initValue(.{ .int = if (bool_x) -1 else 0 }),
-            .int => |int_x| self.initValue(.{ .int = -int_x }),
-            .float => |float_x| self.initValue(.{ .float = -float_x }),
-            .boolean_list => |bool_list_x| blk: {
-                const list = self.allocator.alloc(*Value, bool_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_x) |value, i| {
-                    list[i] = self.initValue(.{ .int = if (value.as.boolean) -1 else 0 });
-                }
-                break :blk self.initValue(.{ .int_list = list });
-            },
-            .int_list => |int_list_x| blk: {
-                const list = self.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_x) |value, i| {
-                    list[i] = self.initValue(.{ .int = -value.as.int });
-                }
-                break :blk self.initValue(.{ .int_list = list });
-            },
-            .float_list => |float_list_x| blk: {
-                const list = self.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_x) |value, i| {
-                    list[i] = self.initValue(.{ .float = -value.as.float });
-                }
-                break :blk self.initValue(.{ .int_list = list });
-            },
-            else => return self.runtimeError("Can only negate numeric values.", .{}),
-        };
+        const value = try verbs.negate(self, x);
         try self.push(value);
     }
 
