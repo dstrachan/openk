@@ -20,6 +20,7 @@ const ValueType = value_mod.ValueType;
 const ValueUnion = value_mod.ValueUnion;
 
 const verbs = @import("verbs.zig");
+const mergeAtoms = @import("verbs/merge.zig").mergeAtoms;
 
 const debug_trace_execution = @import("builtin").mode == .Debug and !@import("builtin").is_test;
 const frames_max = 64;
@@ -514,122 +515,13 @@ pub const VM = struct {
         try self.push(value);
     }
 
-    fn mergeAtoms(self: *Self, x: *Value, y: *Value) []*Value {
-        const list = self.allocator.alloc(*Value, 2) catch std.debug.panic("Failed to create list.", .{});
-        list[0] = x.ref();
-        list[1] = y.ref();
-        return list;
-    }
-
-    fn mergeAtomList(self: *Self, x: *Value, y: []*Value) []*Value {
-        const list = self.allocator.alloc(*Value, y.len + 1) catch std.debug.panic("Failed to create list.", .{});
-        list[0] = x.ref();
-        for (y) |value| _ = value.ref();
-        std.mem.copy(*Value, list[1..], y);
-        return list;
-    }
-
-    fn mergeListAtom(self: *Self, x: []*Value, y: *Value) []*Value {
-        const list = self.allocator.alloc(*Value, x.len + 1) catch std.debug.panic("Failed to create list.", .{});
-        for (x) |value| _ = value.ref();
-        std.mem.copy(*Value, list, x);
-        list[list.len - 1] = y.ref();
-        return list;
-    }
-
-    fn mergeLists(self: *Self, x: []*Value, y: []*Value) []*Value {
-        const list = self.allocator.alloc(*Value, x.len + y.len) catch std.debug.panic("Failed to create list.", .{});
-        for (x) |value| _ = value.ref();
-        std.mem.copy(*Value, list, x);
-        for (y) |value| _ = value.ref();
-        std.mem.copy(*Value, list[x.len..], y);
-        return list;
-    }
-
     fn opMerge(self: *Self) !void {
         const x = self.pop();
         defer x.deref(self.allocator);
         const y = self.pop();
         defer y.deref(self.allocator);
 
-        const value = switch (x.as) {
-            .nil => switch (y.as) {
-                .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = self.mergeAtoms(x, y) }),
-                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_y| self.initValue(.{ .list = self.mergeAtomList(x, list_y) }),
-            },
-            .boolean => switch (y.as) {
-                .boolean => self.initValue(.{ .boolean_list = self.mergeAtoms(x, y) }),
-                .boolean_list => |list_y| self.initValue(.{ .boolean_list = self.mergeAtomList(x, list_y) }),
-                .nil, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = self.mergeAtoms(x, y) }),
-                .list, .int_list, .float_list, .char_list, .symbol_list => |list_y| self.initValue(.{ .list = self.mergeAtomList(x, list_y) }),
-            },
-            .int => switch (y.as) {
-                .int => self.initValue(.{ .int_list = self.mergeAtoms(x, y) }),
-                .int_list => |list_y| self.initValue(.{ .int_list = self.mergeAtomList(x, list_y) }),
-                .nil, .boolean, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = self.mergeAtoms(x, y) }),
-                .list, .boolean_list, .float_list, .char_list, .symbol_list => |list_y| self.initValue(.{ .list = self.mergeAtomList(x, list_y) }),
-            },
-            .float => switch (y.as) {
-                .float => self.initValue(.{ .float_list = self.mergeAtoms(x, y) }),
-                .float_list => |list_y| self.initValue(.{ .float_list = self.mergeAtomList(x, list_y) }),
-                .nil, .boolean, .int, .char, .symbol, .function, .projection => self.initValue(.{ .list = self.mergeAtoms(x, y) }),
-                .list, .boolean_list, .int_list, .char_list, .symbol_list => |list_y| self.initValue(.{ .list = self.mergeAtomList(x, list_y) }),
-            },
-            .char => switch (y.as) {
-                .char => self.initValue(.{ .char_list = self.mergeAtoms(x, y) }),
-                .char_list => |list_y| self.initValue(.{ .char_list = self.mergeAtomList(x, list_y) }),
-                .nil, .boolean, .int, .float, .symbol, .function, .projection => self.initValue(.{ .list = self.mergeAtoms(x, y) }),
-                .list, .boolean_list, .int_list, .float_list, .symbol_list => |list_y| self.initValue(.{ .list = self.mergeAtomList(x, list_y) }),
-            },
-            .symbol => switch (y.as) {
-                .symbol => self.initValue(.{ .symbol_list = self.mergeAtoms(x, y) }),
-                .symbol_list => |list_y| self.initValue(.{ .symbol_list = self.mergeAtomList(x, list_y) }),
-                .nil, .boolean, .int, .float, .char, .function, .projection => self.initValue(.{ .list = self.mergeAtoms(x, y) }),
-                .list, .boolean_list, .int_list, .float_list, .char_list => |list_y| self.initValue(.{ .list = self.mergeAtomList(x, list_y) }),
-            },
-            .function => switch (y.as) {
-                .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = self.mergeAtoms(x, y) }),
-                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_y| self.initValue(.{ .list = self.mergeAtomList(x, list_y) }),
-            },
-            .projection => switch (y.as) {
-                .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = self.mergeAtoms(x, y) }),
-                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_y| self.initValue(.{ .list = self.mergeAtomList(x, list_y) }),
-            },
-            .list => |list_x| switch (y.as) {
-                .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = self.mergeListAtom(list_x, y) }),
-                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_y| self.initValue(.{ .list = self.mergeLists(list_x, list_y) }),
-            },
-            .boolean_list => |list_x| switch (y.as) {
-                .boolean => self.initValue(.{ .boolean_list = self.mergeListAtom(list_x, y) }),
-                .boolean_list => |list_y| self.initValue(.{ .boolean_list = self.mergeLists(list_x, list_y) }),
-                .nil, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = self.mergeListAtom(list_x, y) }),
-                .list, .int_list, .float_list, .char_list, .symbol_list => |list_y| self.initValue(.{ .list = self.mergeLists(list_x, list_y) }),
-            },
-            .int_list => |list_x| switch (y.as) {
-                .int => self.initValue(.{ .int_list = self.mergeListAtom(list_x, y) }),
-                .int_list => |list_y| self.initValue(.{ .int_list = self.mergeLists(list_x, list_y) }),
-                .nil, .boolean, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = self.mergeListAtom(list_x, y) }),
-                .list, .boolean_list, .float_list, .char_list, .symbol_list => |list_y| self.initValue(.{ .list = self.mergeLists(list_x, list_y) }),
-            },
-            .float_list => |list_x| switch (y.as) {
-                .float => self.initValue(.{ .float_list = self.mergeListAtom(list_x, y) }),
-                .float_list => |list_y| self.initValue(.{ .float_list = self.mergeLists(list_x, list_y) }),
-                .nil, .boolean, .int, .char, .symbol, .function, .projection => self.initValue(.{ .list = self.mergeListAtom(list_x, y) }),
-                .list, .boolean_list, .int_list, .char_list, .symbol_list => |list_y| self.initValue(.{ .list = self.mergeLists(list_x, list_y) }),
-            },
-            .char_list => |list_x| switch (y.as) {
-                .char => self.initValue(.{ .char_list = self.mergeListAtom(list_x, y) }),
-                .char_list => |list_y| self.initValue(.{ .char_list = self.mergeLists(list_x, list_y) }),
-                .nil, .boolean, .int, .float, .symbol, .function, .projection => self.initValue(.{ .list = self.mergeListAtom(list_x, y) }),
-                .list, .boolean_list, .int_list, .float_list, .symbol_list => |list_y| self.initValue(.{ .list = self.mergeLists(list_x, list_y) }),
-            },
-            .symbol_list => |list_x| switch (y.as) {
-                .symbol => self.initValue(.{ .symbol_list = self.mergeListAtom(list_x, y) }),
-                .symbol_list => |list_y| self.initValue(.{ .symbol_list = self.mergeLists(list_x, list_y) }),
-                .nil, .boolean, .int, .float, .char, .function, .projection => self.initValue(.{ .list = self.mergeListAtom(list_x, y) }),
-                .list, .boolean_list, .int_list, .float_list, .char_list => |list_y| self.initValue(.{ .list = self.mergeLists(list_x, list_y) }),
-            },
-        };
+        const value = try verbs.merge(self, x, y);
         try self.push(value);
     }
 
@@ -648,32 +540,32 @@ pub const VM = struct {
 
         const value = switch (x.as) {
             .nil => switch (y.as) {
-                .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = self.mergeAtoms(x, y) }),
+                .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
                 .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
             },
             .boolean => switch (y.as) {
-                .boolean => self.initValue(.{ .boolean_list = self.mergeAtoms(x, y) }),
-                .nil, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = self.mergeAtoms(x, y) }),
+                .boolean => self.initValue(.{ .boolean_list = mergeAtoms(self, x, y) }),
+                .nil, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
                 .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
             },
             .int => switch (y.as) {
-                .int => self.initValue(.{ .int_list = self.mergeAtoms(x, y) }),
-                .nil, .boolean, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = self.mergeAtoms(x, y) }),
+                .int => self.initValue(.{ .int_list = mergeAtoms(self, x, y) }),
+                .nil, .boolean, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
                 .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
             },
             .float => switch (y.as) {
-                .float => self.initValue(.{ .float_list = self.mergeAtoms(x, y) }),
-                .nil, .boolean, .int, .char, .symbol, .function, .projection => self.initValue(.{ .list = self.mergeAtoms(x, y) }),
+                .float => self.initValue(.{ .float_list = mergeAtoms(self, x, y) }),
+                .nil, .boolean, .int, .char, .symbol, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
                 .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
             },
             .char => switch (y.as) {
-                .char => self.initValue(.{ .char_list = self.mergeAtoms(x, y) }),
-                .nil, .boolean, .int, .float, .symbol, .function, .projection => self.initValue(.{ .list = self.mergeAtoms(x, y) }),
+                .char => self.initValue(.{ .char_list = mergeAtoms(self, x, y) }),
+                .nil, .boolean, .int, .float, .symbol, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
                 .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
             },
             .symbol => switch (y.as) {
-                .symbol => self.initValue(.{ .symbol_list = self.mergeAtoms(x, y) }),
-                .nil, .boolean, .int, .float, .char, .function, .projection => self.initValue(.{ .list = self.mergeAtoms(x, y) }),
+                .symbol => self.initValue(.{ .symbol_list = mergeAtoms(self, x, y) }),
+                .nil, .boolean, .int, .float, .char, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
                 .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
             },
             .list,
@@ -687,11 +579,11 @@ pub const VM = struct {
                 .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
             },
             .function => switch (y.as) {
-                .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = self.mergeAtoms(x, y) }),
+                .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
                 .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
             },
             .projection => switch (y.as) {
-                .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = self.mergeAtoms(x, y) }),
+                .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
                 .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
             },
         };
