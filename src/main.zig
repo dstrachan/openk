@@ -106,7 +106,6 @@ test {
     _ = @import("tests/scanner.zig");
     _ = @import("tests/vm.zig");
 
-    // _ = @import("tests/verbs/add/_imports.zig");
     // _ = @import("tests/verbs/concat/_imports.zig");
     // _ = @import("tests/verbs/divide/_imports.zig");
     // _ = @import("tests/verbs/equal/_imports.zig");
@@ -118,6 +117,7 @@ test {
     // _ = @import("tests/verbs/multiply/_imports.zig");
     // _ = @import("tests/verbs/subtract/_imports.zig");
 
+    _ = @import("tests/verbs/add.zig");
     _ = @import("tests/verbs/enum.zig");
     _ = @import("tests/verbs/fill.zig");
     _ = @import("tests/verbs/first.zig");

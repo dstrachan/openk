@@ -7,6 +7,7 @@ const FillError = @import("../../verbs/fill.zig").FillError;
 
 test "fill boolean" {
     try runTest("1b^0b", .{ .boolean = false });
+    try runTest("1b^`boolean$()", .{ .boolean_list = &[_]TestValue{} });
     try runTest("1b^00000b", .{
         .boolean_list = &[_]TestValue{
             .{ .boolean = false },
@@ -18,6 +19,7 @@ test "fill boolean" {
     });
 
     try runTest("1^0b", .{ .int = 0 });
+    try runTest("1^`boolean$()", .{ .int_list = &[_]TestValue{} });
     try runTest("1^00000b", .{
         .int_list = &[_]TestValue{
             .{ .int = 0 },
@@ -29,6 +31,7 @@ test "fill boolean" {
     });
 
     try runTest("1f^0b", .{ .float = 0 });
+    try runTest("1f^`boolean$()", .{ .float_list = &[_]TestValue{} });
     try runTest("1f^00000b", .{
         .float_list = &[_]TestValue{
             .{ .float = 0 },
@@ -40,6 +43,7 @@ test "fill boolean" {
     });
 
     try runTest("\"a\"^0b", .{ .char = 0 });
+    try runTest("\"a\"^`boolean$()", .{ .char_list = &[_]TestValue{} });
     try runTest("\"a\"^00000b", .{
         .char_list = &[_]TestValue{
             .{ .char = 0 },
@@ -51,11 +55,14 @@ test "fill boolean" {
     });
 
     try runTestError("`symbol^0b", FillError.incompatible_types);
+    try runTestError("`symbol^`boolean$()", FillError.incompatible_types);
     try runTestError("`symbol^00000b", FillError.incompatible_types);
 
-    try runTestError("()^0b", FillError.length_mismatch);
-    try runTestError("(1b;2;3f)^0b", FillError.length_mismatch);
+    try runTestError("()^0b", FillError.incompatible_types);
+    try runTestError("(1b;2;3f)^0b", FillError.incompatible_types);
+    try runTest("()^`boolean$()", .{ .list = &[_]TestValue{} });
     try runTestError("()^010b", FillError.length_mismatch);
+    try runTestError("(1b;2;3f;\"a\")^`boolean$()", FillError.length_mismatch);
     try runTest("(1b;2;3f;\"a\")^0101b", .{
         .list = &[_]TestValue{
             .{ .boolean = false },
@@ -67,7 +74,8 @@ test "fill boolean" {
     try runTestError("(1b;2;3f)^0101b", FillError.length_mismatch);
     try runTestError("(1b;2;3f;`symbol)^0101b", FillError.incompatible_types);
 
-    try runTestError("11111b^0b", FillError.length_mismatch);
+    try runTestError("11111b^0b", FillError.incompatible_types);
+    try runTestError("11111b^`boolean$()", FillError.length_mismatch);
     try runTest("11111b^00000b", .{
         .boolean_list = &[_]TestValue{
             .{ .boolean = false },
@@ -79,7 +87,8 @@ test "fill boolean" {
     });
     try runTestError("11111b^000000b", FillError.length_mismatch);
 
-    try runTestError("5 4 3 2 1^0b", FillError.length_mismatch);
+    try runTestError("5 4 3 2 1^0b", FillError.incompatible_types);
+    try runTestError("5 4 3 2 1^`boolean$()", FillError.length_mismatch);
     try runTest("5 4 3 2 1^00000b", .{
         .int_list = &[_]TestValue{
             .{ .int = 0 },
@@ -91,7 +100,8 @@ test "fill boolean" {
     });
     try runTestError("5 4 3 2 1^000000b", FillError.length_mismatch);
 
-    try runTestError("5 4 3 2 1f^0b", FillError.length_mismatch);
+    try runTestError("5 4 3 2 1f^0b", FillError.incompatible_types);
+    try runTestError("5 4 3 2 1f^`boolean$()", FillError.length_mismatch);
     try runTest("5 4 3 2 1f^00000b", .{
         .float_list = &[_]TestValue{
             .{ .float = 0 },
@@ -103,7 +113,8 @@ test "fill boolean" {
     });
     try runTestError("5 4 3 2 1f^000000b", FillError.length_mismatch);
 
-    try runTestError("\"abcde\"^0b", FillError.length_mismatch);
+    try runTestError("\"abcde\"^0b", FillError.incompatible_types);
+    try runTestError("\"abcde\"^`boolean$()", FillError.length_mismatch);
     try runTest("\"abcde\"^00000b", .{
         .char_list = &[_]TestValue{
             .{ .char = 0 },
@@ -115,11 +126,13 @@ test "fill boolean" {
     });
     try runTestError("\"abcde\"^000000b", FillError.length_mismatch);
 
-    try runTestError("`a`b`c`d`e^0b", FillError.length_mismatch);
+    try runTestError("`a`b`c`d`e^0b", FillError.incompatible_types);
+    try runTestError("`a`b`c`d`e^`boolean$()", FillError.incompatible_types);
     try runTestError("`a`b`c`d`e^00000b", FillError.incompatible_types);
     try runTestError("`a`b`c`d`e^000000b", FillError.incompatible_types);
 }
 
+// TODO: `int$()
 test "fill int" {
     try runTest("1b^0", .{ .int = 0 });
     try runTest("1b^0N", .{ .int = 1 });
@@ -212,8 +225,8 @@ test "fill int" {
     try runTestError("`symbol^1 2 3 4 5", FillError.incompatible_types);
     try runTestError("`symbol^1 0N 3 0N 5", FillError.incompatible_types);
 
-    try runTestError("()^0", FillError.length_mismatch);
-    try runTestError("(1b;2;3f)^0", FillError.length_mismatch);
+    try runTestError("()^0", FillError.incompatible_types);
+    try runTestError("(1b;2;3f)^0", FillError.incompatible_types);
     try runTestError("()^0 0N", FillError.length_mismatch);
     try runTest("(1b;2)^0 0N", .{
         .int_list = &[_]TestValue{
@@ -242,7 +255,7 @@ test "fill int" {
     try runTestError("(1b;2;3f;4;\"a\")^1 0N 3 0N 5 6", FillError.length_mismatch);
     try runTestError("(1b;2;3f;4;`symbol)^1 0N 3 0N 5", FillError.incompatible_types);
 
-    try runTestError("10011b^1", FillError.length_mismatch);
+    try runTestError("10011b^1", FillError.incompatible_types);
     try runTest("10011b^1 2 3 4 5", .{
         .int_list = &[_]TestValue{
             .{ .int = 1 },
@@ -263,7 +276,7 @@ test "fill int" {
     });
     try runTestError("10011b^1 0N 3 0N 5 6", FillError.length_mismatch);
 
-    try runTestError("5 4 3 2 1^1", FillError.length_mismatch);
+    try runTestError("5 4 3 2 1^1", FillError.incompatible_types);
     try runTest("5 4 3 2 1^1 2 3 4 5", .{
         .int_list = &[_]TestValue{
             .{ .int = 1 },
@@ -284,7 +297,7 @@ test "fill int" {
     });
     try runTestError("5 4 3 2 1^1 0N 3 0N 5 6", FillError.length_mismatch);
 
-    try runTestError("5 4 3 2 1f^1", FillError.length_mismatch);
+    try runTestError("5 4 3 2 1f^1", FillError.incompatible_types);
     try runTest("5 4 3 2 1f^1 2 3 4 5", .{
         .float_list = &[_]TestValue{
             .{ .float = 1 },
@@ -305,7 +318,7 @@ test "fill int" {
     });
     try runTestError("5 4 3 2 1f^1 0N 3 0N 5 6", FillError.length_mismatch);
 
-    try runTestError("\"abcde\"^1", FillError.length_mismatch);
+    try runTestError("\"abcde\"^1", FillError.incompatible_types);
     try runTest("\"abcde\"^1 2 3 256 -256", .{
         .char_list = &[_]TestValue{
             .{ .char = 1 },
@@ -326,12 +339,13 @@ test "fill int" {
     });
     try runTestError("\"abcde\"^1 0N 3 0N 5 6", FillError.length_mismatch);
 
-    try runTestError("`a`b`c`d`e^1", FillError.length_mismatch);
+    try runTestError("`a`b`c`d`e^1", FillError.incompatible_types);
     try runTestError("`a`b`c`d`e^1 2 3 4 5", FillError.incompatible_types);
     try runTestError("`a`b`c`d`e^1 0N 3 0N 5", FillError.incompatible_types);
     try runTestError("`a`b`c`d`e^1 0N 3 0N 5 6", FillError.incompatible_types);
 }
 
+// TODO: `float$()
 test "fill float" {
     try runTest("1b^0f", .{ .float = 0 });
     try runTest("1b^0n", .{ .float = 1 });
@@ -432,8 +446,8 @@ test "fill float" {
     try runTestError("`symbol^1 2 3 4 5f", FillError.incompatible_types);
     try runTestError("`symbol^1 0n 3 0n 5", FillError.incompatible_types);
 
-    try runTestError("()^0f", FillError.length_mismatch);
-    try runTestError("(1b;2;3f)^0f", FillError.length_mismatch);
+    try runTestError("()^0f", FillError.incompatible_types);
+    try runTestError("(1b;2;3f)^0f", FillError.incompatible_types);
     try runTestError("()^0 0n", FillError.length_mismatch);
     try runTest("(1b;2)^0 0n", .{
         .float_list = &[_]TestValue{
@@ -462,7 +476,7 @@ test "fill float" {
     try runTestError("(1b;2;3f;4;\"a\")^1 0n 3 0n 5 6", FillError.length_mismatch);
     try runTestError("(1b;2;3f;4;`symbol)^1 0n 3 0n 5", FillError.incompatible_types);
 
-    try runTestError("10011b^1", FillError.length_mismatch);
+    try runTestError("10011b^1", FillError.incompatible_types);
     try runTest("10011b^1 2 3 4 5f", .{
         .float_list = &[_]TestValue{
             .{ .float = 1 },
@@ -483,7 +497,7 @@ test "fill float" {
     });
     try runTestError("10011b^1 0n 3 0n 5 6", FillError.length_mismatch);
 
-    try runTestError("5 4 3 2 1^1f", FillError.length_mismatch);
+    try runTestError("5 4 3 2 1^1f", FillError.incompatible_types);
     try runTest("5 4 3 2 1^1 2 3 4 5f", .{
         .float_list = &[_]TestValue{
             .{ .float = 1 },
@@ -504,7 +518,7 @@ test "fill float" {
     });
     try runTestError("5 4 3 2 1^1 0n 3 0n 5 6", FillError.length_mismatch);
 
-    try runTestError("5 4 3 2 1f^1f", FillError.length_mismatch);
+    try runTestError("5 4 3 2 1f^1f", FillError.incompatible_types);
     try runTest("5 4 3 2 1f^1 2 3 4 5f", .{
         .float_list = &[_]TestValue{
             .{ .float = 1 },
@@ -525,7 +539,7 @@ test "fill float" {
     });
     try runTestError("5 4 3 2 1f^1 0n 3 0n 5 6", FillError.length_mismatch);
 
-    try runTestError("\"abcde\"^1f", FillError.length_mismatch);
+    try runTestError("\"abcde\"^1f", FillError.incompatible_types);
     try runTest("\"abcdefg\"^0 256 -256 1.4 1.5 -1.4 -1.5", .{
         .char_list = &[_]TestValue{
             .{ .char = 0 },
@@ -550,12 +564,13 @@ test "fill float" {
     });
     try runTestError("\"abcdefg\"^0n 256 -256 1.4 1.5 -1.4 -1.5 6", FillError.length_mismatch);
 
-    try runTestError("`a`b`c`d`e^1f", FillError.length_mismatch);
+    try runTestError("`a`b`c`d`e^1f", FillError.incompatible_types);
     try runTestError("`a`b`c`d`e^1 2 3 4 5f", FillError.incompatible_types);
     try runTestError("`a`b`c`d`e^1 0n 3 0n 5", FillError.incompatible_types);
     try runTestError("`a`b`c`d`e^1 0n 3 0n 5 6", FillError.incompatible_types);
 }
 
+// TODO: `char$()
 test "fill char" {
     try runTest("1b^\"a\"", .{ .char = 'a' });
     try runTest("1b^\" \"", .{ .char = 1 });
@@ -734,8 +749,8 @@ test "fill char" {
     try runTestError("`symbol^\"abcde\"", FillError.incompatible_types);
     try runTestError("`symbol^\"a c e\"", FillError.incompatible_types);
 
-    try runTestError("()^\"a\"", FillError.length_mismatch);
-    try runTestError("(1b;2;3f)^\"a\"", FillError.length_mismatch);
+    try runTestError("()^\"a\"", FillError.incompatible_types);
+    try runTestError("(1b;2;3f)^\"a\"", FillError.incompatible_types);
     try runTestError("()^\"abcde\"", FillError.length_mismatch);
     try runTest("(1b;2;3f;4;5f)^\"abcde\"", .{
         .char_list = &[_]TestValue{
@@ -767,7 +782,7 @@ test "fill char" {
     });
     try runTestError("(1b;2;3f;4;`symbol)^\"a c e\"", FillError.incompatible_types);
 
-    try runTestError("10011b^\"a\"", FillError.length_mismatch);
+    try runTestError("10011b^\"a\"", FillError.incompatible_types);
     try runTest("10011b^\"abcde\"", .{
         .char_list = &[_]TestValue{
             .{ .char = 'a' },
@@ -788,7 +803,7 @@ test "fill char" {
     });
     try runTestError("10011b^\"a c ef\"", FillError.length_mismatch);
 
-    try runTestError("5 4 3 2 1^\"a\"", FillError.length_mismatch);
+    try runTestError("5 4 3 2 1^\"a\"", FillError.incompatible_types);
     try runTest("5 4 3 2 1^\"abcde\"", .{
         .char_list = &[_]TestValue{
             .{ .char = 'a' },
@@ -827,7 +842,7 @@ test "fill char" {
     });
     try runTestError("5 4 3 2 1^\"a c ef\"", FillError.length_mismatch);
 
-    try runTestError("5 4 3 2 1f^\"a\"", FillError.length_mismatch);
+    try runTestError("5 4 3 2 1f^\"a\"", FillError.incompatible_types);
     try runTest("5 4 3 2 1f^\"abcde\"", .{
         .char_list = &[_]TestValue{
             .{ .char = 'a' },
@@ -866,7 +881,7 @@ test "fill char" {
     });
     try runTestError("-1 256 256 -1 -1f^\"a c ef\"", FillError.length_mismatch);
 
-    try runTestError("\"54321\"^\"a\"", FillError.length_mismatch);
+    try runTestError("\"54321\"^\"a\"", FillError.incompatible_types);
     try runTest("\"54321\"^\"abcde\"", .{
         .char_list = &[_]TestValue{
             .{ .char = 'a' },
@@ -887,12 +902,13 @@ test "fill char" {
     });
     try runTestError("\"54321\"^\"a c ef\"", FillError.length_mismatch);
 
-    try runTestError("`a`b`c`d`e^\"a\"", FillError.length_mismatch);
+    try runTestError("`a`b`c`d`e^\"a\"", FillError.incompatible_types);
     try runTestError("`a`b`c`d`e^\"abcde\"", FillError.incompatible_types);
     try runTestError("`a`b`c`d`e^\"a c e\"", FillError.incompatible_types);
     try runTestError("`a`b`c`d`e^\"a c ef\"", FillError.incompatible_types);
 }
 
+// TODO: `symbol$()
 test "fill symbol" {
     try runTestError("1b^`symbol", FillError.incompatible_types);
     try runTestError("1b^`", FillError.incompatible_types);
@@ -935,35 +951,35 @@ test "fill symbol" {
         },
     });
 
-    try runTestError("()^`symbol", FillError.length_mismatch);
-    try runTestError("(1b;2;3f;4;5f)^`symbol", FillError.length_mismatch);
+    try runTestError("()^`symbol", FillError.incompatible_types);
+    try runTestError("(1b;2;3f;4;5f)^`symbol", FillError.incompatible_types);
     try runTestError("()^`a`b`c`d`e", FillError.incompatible_types);
     try runTestError("(1b;2;3f;4;5f)^`a`b`c`d`e", FillError.incompatible_types);
     try runTestError("(1b;2;3f;4;5f)^`a``c``e", FillError.incompatible_types);
     try runTestError("(1b;2;3f;4;\"a\")^`a``c``e", FillError.incompatible_types);
     try runTestError("(1b;2;3f;4;`symbol)^`a``c``e", FillError.incompatible_types);
 
-    try runTestError("10011b^`symbol", FillError.length_mismatch);
+    try runTestError("10011b^`symbol", FillError.incompatible_types);
     try runTestError("10011b^`a`b`c`d`e", FillError.incompatible_types);
     try runTestError("10011b^`a``c``e", FillError.incompatible_types);
     try runTestError("10011b^`a``c``e`f", FillError.incompatible_types);
 
-    try runTestError("5 4 3 2 1^`symbol", FillError.length_mismatch);
+    try runTestError("5 4 3 2 1^`symbol", FillError.incompatible_types);
     try runTestError("5 4 3 2 1^`a`b`c`d`e", FillError.incompatible_types);
     try runTestError("5 4 3 2 1^`a``c``e", FillError.incompatible_types);
     try runTestError("5 4 3 2 1^`a``c``e`f", FillError.incompatible_types);
 
-    try runTestError("5 4 3 2 1f^`symbol", FillError.length_mismatch);
+    try runTestError("5 4 3 2 1f^`symbol", FillError.incompatible_types);
     try runTestError("5 4 3 2 1f^`a`b`c`d`e", FillError.incompatible_types);
     try runTestError("5 4 3 2 1f^`a``c``e", FillError.incompatible_types);
     try runTestError("5 4 3 2 1f^`a``c``e`f", FillError.incompatible_types);
 
-    try runTestError("\"54321\"^`symbol", FillError.length_mismatch);
+    try runTestError("\"54321\"^`symbol", FillError.incompatible_types);
     try runTestError("\"54321\"^`a`b`c`d`e", FillError.incompatible_types);
     try runTestError("\"54321\"^`a``c``e", FillError.incompatible_types);
     try runTestError("\"54321\"^`a``c``e`f", FillError.incompatible_types);
 
-    try runTestError("`5`4`3`2`1^`symbol", FillError.length_mismatch);
+    try runTestError("`5`4`3`2`1^`symbol", FillError.incompatible_types);
     try runTest("`5`4`3`2`1^`a`b`c`d`e", .{
         .symbol_list = &[_]TestValue{
             .{ .symbol = "a" },
@@ -985,6 +1001,7 @@ test "fill symbol" {
     try runTestError("`5`4`3`2`1^`a``c``e`f", FillError.length_mismatch);
 }
 
+// TODO: ()
 test "fill list" {
     try runTest("1b^(0b;1;0N;1f;0n;\"a\";\" \")", .{
         .list = &[_]TestValue{
