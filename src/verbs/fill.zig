@@ -77,7 +77,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
             .list => |list_y| blk: {
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
-                var list_type: ?ValueType = null;
+                var list_type: ?ValueType = if (list_y.len == 0) .list else null;
                 for (list_y) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try fill(vm, x, value);
@@ -126,7 +126,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
             .list => |list_y| blk: {
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
-                var list_type: ?ValueType = null;
+                var list_type: ?ValueType = if (list_y.len == 0) .list else null;
                 for (list_y) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try fill(vm, x, value);
@@ -264,7 +264,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
 
                 const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
-                var list_type: ?ValueType = null;
+                var list_type: ?ValueType = if (int_list_y.len == 0) .list else null;
                 for (int_list_y) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try fill(vm, list_x[i], value);
@@ -280,7 +280,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
 
                 const list = vm.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
-                var list_type: ?ValueType = null;
+                var list_type: ?ValueType = if (float_list_y.len == 0) .list else null;
                 for (float_list_y) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try fill(vm, list_x[i], value);
@@ -296,11 +296,16 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
 
                 const list = vm.allocator.alloc(*Value, char_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
+                var list_type: ?ValueType = if (char_list_y.len == 0) .list else null;
                 for (char_list_y) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try fill(vm, list_x[i], value);
+                    if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(.{ .char_list = list });
+                break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
+                    .char => .{ .char_list = list },
+                    else => .{ .list = list },
+                });
             },
             else => return runtimeError(FillError.incompatible_types),
         },
@@ -360,7 +365,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
 
                 const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
-                var list_type: ?ValueType = null;
+                var list_type: ?ValueType = if (int_list_y.len == 0) .list else null;
                 for (int_list_y) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try fill(vm, int_list_x[i], value);
