@@ -1,8 +1,5 @@
 const std = @import("std");
 
-const utils_mod = @import("utils.zig");
-const print = utils_mod.print;
-
 const vm_mod = @import("vm.zig");
 const VM = vm_mod.VM;
 
@@ -18,16 +15,16 @@ pub fn main() !void {
     defer vm.deinit();
 
     switch (args.len) {
-        1 => repl(vm),
+        1 => try repl(vm),
         2 => runFile(vm, args[1], allocator),
         else => {
-            print("Usage: z [path]\n", .{});
+            try std.io.getStdErr().writer().print("Usage: {s} [path]\n", .{args[0]});
             std.process.exit(1);
         },
     }
 }
 
-fn repl(vm: *VM) void {
+fn repl(vm: *VM) !void {
     const stdin = std.io.getStdIn().reader();
     const stdout = std.io.getStdOut().writer();
 
@@ -55,7 +52,7 @@ fn repl(vm: *VM) void {
 
         const result = vm.interpret(line[0..i]) catch continue;
         defer result.deref(vm.allocator);
-        print("{}\n", .{result.as});
+        try stdout.print("{}\n", .{result.as});
     }
 }
 
