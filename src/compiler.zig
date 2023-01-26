@@ -21,6 +21,7 @@ const value_mod = @import("value.zig");
 const Value = value_mod.Value;
 const ValueFn = value_mod.ValueFunction;
 const ValueType = value_mod.ValueType;
+const ValueUnion = value_mod.ValueUnion;
 
 const vm_mod = @import("vm.zig");
 const VM = vm_mod.VM;
@@ -526,8 +527,47 @@ pub const Compiler = struct {
         }, self.current.vm.allocator);
         errdefer current_node.deinit(self.current.vm.allocator);
 
+        var prev_token = self.parser.previous;
+
         current_node.lhs = node;
         current_node.rhs = try self.parsePrecedence(self.getRule(self.parser.previous.token_type).precedence, true);
+
+        // TODO: Reuse constant slot
+        if (current_node.op_code == .op_cast and current_node.lhs.?.op_code == .op_constant and current_node.rhs.?.op_code == .op_constant) {
+            const rhs = self.getValue(current_node.rhs.?.byte.?);
+            if (rhs.as == .list and rhs.as.list.len == 0) {
+                const lhs = self.getValue(current_node.lhs.?.byte.?);
+                if (lhs.as != .symbol) {
+                    self.errorAt(&prev_token, "Expected symbol as left-hand argument to cast.");
+                    return CompilerError.compile_error;
+                }
+
+                const list = &[_]*Value{};
+                const value_union: ?ValueUnion = switch (lhs.as.symbol.len) {
+                    0 => .{ .symbol_list = list },
+                    else => switch (lhs.as.symbol[0]) {
+                        'b' => if (std.mem.eql(u8, lhs.as.symbol, "boolean")) .{ .boolean_list = list } else null,
+                        'i' => if (std.mem.eql(u8, lhs.as.symbol, "int")) .{ .int_list = list } else null,
+                        'f' => if (std.mem.eql(u8, lhs.as.symbol, "float")) .{ .float_list = list } else null,
+                        'c' => if (std.mem.eql(u8, lhs.as.symbol, "char")) .{ .char_list = list } else null,
+                        's' => if (std.mem.eql(u8, lhs.as.symbol, "symbol")) .{ .symbol_list = list } else null,
+                        else => null,
+                    },
+                };
+                if (value_union == null) {
+                    self.errorAt(&prev_token, "Invalid cast type.");
+                    return CompilerError.compile_error;
+                }
+
+                current_node.op_code = .op_constant;
+                current_node.byte = self.makeConstant(self.vm.initValue(value_union.?));
+                current_node.lhs.?.deinit(self.vm.allocator);
+                current_node.lhs = null;
+                current_node.rhs.?.deinit(self.vm.allocator);
+                current_node.rhs = null;
+            }
+        }
+
         return current_node;
     }
 
