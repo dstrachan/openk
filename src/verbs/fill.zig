@@ -232,7 +232,6 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
             else => return runtimeError(FillError.incompatible_types),
         },
         .list => |list_x| switch (y.as) {
-            .boolean, .int, .float, .char, .symbol => return runtimeError(FillError.length_mismatch),
             .list => |list_y| blk: {
                 if (list_x.len != list_y.len) return runtimeError(FillError.length_mismatch);
 
@@ -306,7 +305,6 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
             else => return runtimeError(FillError.incompatible_types),
         },
         .boolean_list => |bool_list_x| switch (y.as) {
-            .boolean, .int, .float, .char, .symbol => return runtimeError(FillError.length_mismatch),
             .list => |list_y| blk: {
                 if (bool_list_x.len != list_y.len) return runtimeError(FillError.length_mismatch);
 
@@ -357,7 +355,6 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
             else => return runtimeError(FillError.incompatible_types),
         },
         .int_list => |int_list_x| switch (y.as) {
-            .boolean, .int, .float, .char, .symbol => return runtimeError(FillError.length_mismatch),
             .list => |int_list_y| blk: {
                 if (int_list_x.len != int_list_y.len) return runtimeError(FillError.length_mismatch);
 
@@ -413,7 +410,6 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
             else => return runtimeError(FillError.incompatible_types),
         },
         .float_list => |float_list_x| switch (y.as) {
-            .boolean, .int, .float, .char, .symbol => return runtimeError(FillError.length_mismatch),
             .list => |list_y| blk: {
                 if (float_list_x.len != list_y.len) return runtimeError(FillError.length_mismatch);
 
@@ -464,7 +460,6 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
             else => return runtimeError(FillError.incompatible_types),
         },
         .char_list => |char_list_x| switch (y.as) {
-            .boolean, .int, .float, .char, .symbol => return runtimeError(FillError.length_mismatch),
             .list => |list_y| blk: {
                 if (char_list_x.len != list_y.len) return runtimeError(FillError.length_mismatch);
 
@@ -515,7 +510,6 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
             else => return runtimeError(FillError.incompatible_types),
         },
         .symbol_list => |symbol_list_x| switch (y.as) {
-            .boolean, .int, .float, .char, .symbol => return runtimeError(FillError.length_mismatch),
             .list => |list_y| blk: {
                 if (symbol_list_x.len != list_y.len) return runtimeError(FillError.length_mismatch);
 
