@@ -21,6 +21,10 @@ fn runTest(input: []const u8, expected: []const TokenType) !void {
     }
 }
 
+test "scanner - subtraction" {
+    try runTest("\"a\"-0b", &[_]TokenType{ .token_char, .token_minus, .token_bool });
+}
+
 test "scanner - bool" {
     try runTest("0b", &[_]TokenType{.token_bool});
     try runTest("1b", &[_]TokenType{.token_bool});
