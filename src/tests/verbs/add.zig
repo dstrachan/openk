@@ -304,8 +304,8 @@ test "add int" {
             .{ .float = 5 },
             .{ .float = 5 },
             .{ .float = Value.null_float },
-            .{ .float = Value.inf_float },
-            .{ .float = -Value.inf_float },
+            .{ .float = Value.inf_int },
+            .{ .float = -Value.inf_int },
         },
     });
     try runTestError("5 4 3 2 1f+0 1 0N 0W -0W 2", AddError.length_mismatch);
@@ -616,8 +616,8 @@ test "add list" {
             .{ .float = 1 },
             .{ .float = 2 },
             .{ .float = Value.null_float },
-            .{ .float = Value.inf_float },
-            .{ .float = -Value.inf_float },
+            .{ .float = Value.inf_int },
+            .{ .float = -Value.inf_int },
             .{ .float = 2 },
             .{ .float = Value.null_float },
             .{ .float = Value.inf_float },
