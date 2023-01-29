@@ -107,6 +107,7 @@ pub const Scanner = struct {
                     .token_float,
                     .token_char,
                     .token_string,
+                    .token_symbol,
                     .token_right_bracket,
                     .token_right_paren,
                     => self.makeToken(.token_minus),
