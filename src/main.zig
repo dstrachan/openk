@@ -111,7 +111,6 @@ test {
     // _ = @import("tests/verbs/max/_imports.zig");
     // _ = @import("tests/verbs/min/_imports.zig");
     // _ = @import("tests/verbs/more/_imports.zig");
-    // _ = @import("tests/verbs/multiply/_imports.zig");
 
     _ = @import("tests/verbs/add.zig");
     _ = @import("tests/verbs/enum.zig");
