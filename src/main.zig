@@ -111,13 +111,13 @@ test {
     // _ = @import("tests/verbs/max/_imports.zig");
     // _ = @import("tests/verbs/min/_imports.zig");
     // _ = @import("tests/verbs/more/_imports.zig");
-    // _ = @import("tests/verbs/multiply/_imports.zig");
 
     _ = @import("tests/verbs/add.zig");
     _ = @import("tests/verbs/enum.zig");
     _ = @import("tests/verbs/fill.zig");
     _ = @import("tests/verbs/first.zig");
     _ = @import("tests/verbs/flip.zig");
+    _ = @import("tests/verbs/multiply.zig");
     _ = @import("tests/verbs/negate.zig");
     _ = @import("tests/verbs/sqrt.zig");
     _ = @import("tests/verbs/subtract.zig");
