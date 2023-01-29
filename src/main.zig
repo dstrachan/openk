@@ -120,4 +120,5 @@ test {
     _ = @import("tests/verbs/flip.zig");
     _ = @import("tests/verbs/negate.zig");
     _ = @import("tests/verbs/sqrt.zig");
+    _ = @import("tests/verbs/subtract.zig");
 }
