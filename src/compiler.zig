@@ -573,8 +573,7 @@ pub const Compiler = struct {
 
     fn grouping(self: *Self) CompilerError!*Node {
         if (self.match(.token_right_paren)) {
-            const list = self.current.vm.allocator.alloc(*Value, 0) catch std.debug.panic("Failed to create list.", .{});
-            const value = self.current.vm.initValue(.{ .list = list });
+            const value = self.current.vm.initValue(.{ .list = &[_]*Value{} });
             return Node.init(.{ .op_code = .op_constant, .byte = self.makeConstant(value) }, self.current.vm.allocator);
         }
 

@@ -641,7 +641,13 @@ pub const VM = struct {
     }
 
     fn opApply1(self: *Self) !void {
-        return self.dyadicVerb();
+        const x = self.pop();
+        defer x.deref(self.allocator);
+        const y = self.pop();
+        defer y.deref(self.allocator);
+
+        const value = try verbs.apply1(self, x, y);
+        try self.push(value);
     }
 
     fn opValue(self: *Self) !void {
