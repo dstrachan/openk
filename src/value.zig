@@ -6,6 +6,9 @@ const Chunk = chunk_mod.Chunk;
 const utils_mod = @import("utils.zig");
 const print = utils_mod.print;
 
+const vm_mod = @import("vm.zig");
+const VM = vm_mod.VM;
+
 pub const ValueType = enum {
     nil,
     list,
@@ -195,6 +198,29 @@ pub const Value = struct {
         };
         print("init value {}\n", .{self});
         return self;
+    }
+
+    pub fn copyNull(self: *Self, vm: *VM) *Self {
+        return switch (self.as) {
+            .nil => vm.initValue(.nil),
+            .boolean => vm.initValue(.{ .boolean = false }),
+            .int => vm.initValue(.{ .int = Value.null_int }),
+            .float => vm.initValue(.{ .float = Value.null_float }),
+            .char => vm.initValue(.{ .char = ' ' }),
+            .symbol => vm.copySymbol(""),
+            .list => |list_self| blk: {
+                const list = vm.allocator.alloc(*Value, 1) catch std.debug.panic("Failed to create list.", .{});
+                list[0] = list_self[0].copyNull(vm);
+                break :blk vm.initValue(.{ .list = list });
+            },
+            .boolean_list => vm.initValue(.{ .boolean_list = &[_]*Value{} }),
+            .int_list => vm.initValue(.{ .int_list = &[_]*Value{} }),
+            .float_list => vm.initValue(.{ .float_list = &[_]*Value{} }),
+            .char_list => vm.initValue(.{ .char_list = &[_]*Value{} }),
+            .symbol_list => vm.initValue(.{ .symbol_list = &[_]*Value{} }),
+            .function => unreachable,
+            .projection => unreachable,
+        };
     }
 
     pub fn ref(self: *Self) *Self {
