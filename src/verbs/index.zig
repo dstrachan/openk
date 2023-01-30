@@ -21,7 +21,7 @@ fn runtimeError(comptime err: ApplyError) ApplyError!*Value {
     return err;
 }
 
-pub fn apply1(vm: *VM, x: *Value, y: *Value) ApplyError!*Value {
+pub fn index(vm: *VM, x: *Value, y: *Value) ApplyError!*Value {
     return switch (x.as) {
         .list => |list_x| switch (y.as) {
             .boolean => |bool_y| if (list_x.len <= @boolToInt(bool_y)) list_x[0].copyNull(vm) else list_x[@boolToInt(bool_y)].ref(),
@@ -32,7 +32,7 @@ pub fn apply1(vm: *VM, x: *Value, y: *Value) ApplyError!*Value {
                 var list_type: ?ValueType = if (list_y.len == 0) .list else null;
                 for (list_y) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
-                    list[i] = try apply1(vm, x, value);
+                    list[i] = try index(vm, x, value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
                 break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
@@ -55,7 +55,7 @@ pub fn apply1(vm: *VM, x: *Value, y: *Value) ApplyError!*Value {
                 var list_type: ?ValueType = if (list_y.len == 0) .list else null;
                 for (list_y) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
-                    list[i] = try apply1(vm, x, value);
+                    list[i] = try index(vm, x, value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
                 break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
@@ -88,7 +88,7 @@ pub fn apply1(vm: *VM, x: *Value, y: *Value) ApplyError!*Value {
                 var list_type: ?ValueType = if (list_y.len == 0) .list else null;
                 for (list_y) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
-                    list[i] = try apply1(vm, x, value);
+                    list[i] = try index(vm, x, value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
                 break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
@@ -121,7 +121,7 @@ pub fn apply1(vm: *VM, x: *Value, y: *Value) ApplyError!*Value {
                 var list_type: ?ValueType = if (list_y.len == 0) .list else null;
                 for (list_y) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
-                    list[i] = try apply1(vm, x, value);
+                    list[i] = try index(vm, x, value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
                 break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
@@ -154,7 +154,7 @@ pub fn apply1(vm: *VM, x: *Value, y: *Value) ApplyError!*Value {
                 var list_type: ?ValueType = if (list_y.len == 0) .list else null;
                 for (list_y) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
-                    list[i] = try apply1(vm, x, value);
+                    list[i] = try index(vm, x, value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
                 break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
@@ -187,7 +187,7 @@ pub fn apply1(vm: *VM, x: *Value, y: *Value) ApplyError!*Value {
                 var list_type: ?ValueType = if (list_y.len == 0) .list else null;
                 for (list_y) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
-                    list[i] = try apply1(vm, x, value);
+                    list[i] = try index(vm, x, value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
                 break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
@@ -211,6 +211,8 @@ pub fn apply1(vm: *VM, x: *Value, y: *Value) ApplyError!*Value {
             },
             else => runtimeError(ApplyError.incompatible_types),
         },
+        .function => unreachable,
+        .projection => unreachable,
         else => runtimeError(ApplyError.incompatible_types),
     };
 }

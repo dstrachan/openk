@@ -641,12 +641,23 @@ pub const VM = struct {
     }
 
     fn opApply1(self: *Self) !void {
-        const x = self.pop();
+        var x = self.pop();
+        if (x.as == .symbol) {
+            const global = self.globals.get(x.as.symbol) orelse return self.runtimeError("Undefined variable '{s}'", .{x.as.symbol});
+            x.deref(self.allocator);
+            x = global.ref();
+        }
+
+        if (x.as == .function or x.as == .projection) {
+            try self.callValue(x, std.bit_set.IntegerBitSet(8){ .mask = 1 });
+            return;
+        }
         defer x.deref(self.allocator);
+
         const y = self.pop();
         defer y.deref(self.allocator);
 
-        const value = try verbs.apply1(self, x, y);
+        const value = try verbs.index(self, x, y);
         try self.push(value);
     }
 

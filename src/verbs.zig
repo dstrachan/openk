@@ -16,4 +16,4 @@ pub const negate = @import("verbs/negate.zig").negate;
 pub const sqrt = @import("verbs/sqrt.zig").sqrt;
 pub const subtract = @import("verbs/subtract.zig").subtract;
 pub const til = @import("verbs/til.zig").til;
-pub const apply1 = @import("verbs/apply1.zig").apply1;
+pub const index = @import("verbs/index.zig").index;
