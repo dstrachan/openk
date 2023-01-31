@@ -488,7 +488,11 @@ pub const VM = struct {
     }
 
     fn opWhere(self: *Self) !void {
-        return self.monadicVerb();
+        const x = self.pop();
+        defer x.deref(self.allocator);
+
+        const value = try verbs.where(self, x);
+        try self.push(value);
     }
 
     fn opMin(self: *Self) !void {
