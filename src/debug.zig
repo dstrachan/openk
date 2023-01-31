@@ -7,6 +7,10 @@ const OpCode = chunk_mod.OpCode;
 const utils_mod = @import("utils.zig");
 const print = utils_mod.print;
 
+pub const debug_log_messages = @import("builtin").mode == .Debug and !@import("builtin").is_test;
+pub const debug_trace_execution = @import("builtin").mode == .Debug and !@import("builtin").is_test;
+pub const debug_show_memory_allocations = false;
+
 const Sign = enum {
     positive,
     negative,

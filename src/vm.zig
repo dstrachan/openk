@@ -22,7 +22,6 @@ const ValueUnion = value_mod.ValueUnion;
 const verbs = @import("verbs.zig");
 const mergeAtoms = @import("verbs/merge.zig").mergeAtoms;
 
-const debug_trace_execution = @import("builtin").mode == .Debug and !@import("builtin").is_test;
 const frames_max = 64;
 const stack_max = frames_max * 256;
 
@@ -114,7 +113,7 @@ pub const VM = struct {
     pub fn interpret(self: *Self, source: []const u8) !*Value {
         const value = compiler_mod.compile(source, self) catch return error.interpret_compile_error;
 
-        if (comptime debug_trace_execution) debug_mod.disassembleChunk(value.as.function.chunk, "script");
+        if (comptime debug_mod.debug_trace_execution) debug_mod.disassembleChunk(value.as.function.chunk, "script");
 
         try self.call(value, std.bit_set.IntegerBitSet(8).initEmpty());
         return self.run() catch |e| {
@@ -234,7 +233,7 @@ pub const VM = struct {
     fn run(self: *Self) !*Value {
         while (true) {
             self.frame = &self.frames[self.frame_count - 1];
-            if (comptime debug_trace_execution) {
+            if (comptime debug_mod.debug_trace_execution) {
                 self.printStack();
                 _ = debug_mod.disassembleInstruction(self.frame.value.as.function.chunk, self.frame.ip);
             }
