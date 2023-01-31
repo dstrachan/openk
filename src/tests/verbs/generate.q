@@ -64,7 +64,7 @@ tests:(
   (`subtract ;"-" ;numberValues );
   (`multiply ;"*" ;numberValues );
   (`divide   ;"%" ;numberValues );
-  (`concat   ;"," ;numberValues );
+  (`merge    ;"," ;numberValues );
   (`min      ;"&" ;numberValues );
   (`max      ;"|" ;numberValues );
   (`less     ;"<" ;numberValues );
