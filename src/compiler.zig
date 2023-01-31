@@ -26,8 +26,6 @@ const ValueUnion = value_mod.ValueUnion;
 const vm_mod = @import("vm.zig");
 const VM = vm_mod.VM;
 
-const debug_print_code = @import("builtin").mode == .Debug and !@import("builtin").is_test;
-
 const u8_count = std.math.maxInt(u8) + 1;
 
 pub const Parser = struct {
@@ -561,9 +559,9 @@ pub const Compiler = struct {
 
                 current_node.op_code = .op_constant;
                 current_node.byte = self.makeConstant(self.vm.initValue(value_union.?));
-                current_node.lhs.?.deinit(self.vm.allocator);
+                current_node.lhs.?.deinit(self.current.vm.allocator);
                 current_node.lhs = null;
-                current_node.rhs.?.deinit(self.vm.allocator);
+                current_node.rhs.?.deinit(self.current.vm.allocator);
                 current_node.rhs = null;
             }
         }
@@ -644,7 +642,9 @@ pub const Compiler = struct {
         var i = nodes.items.len - 2;
         while (i > 0) : (i -= 1) {
             const node = Node.init(.{ .op_code = .op_merge }, self.current.vm.allocator);
-            node.lhs = nodes.items[i - 1];
+            const temp_node = Node.init(.{ .op_code = .op_enlist }, self.current.vm.allocator);
+            temp_node.rhs = nodes.items[i - 1];
+            node.lhs = temp_node;
             node.rhs = prev_node;
             prev_node = node;
         }
@@ -767,6 +767,39 @@ pub const Compiler = struct {
             node = try infixRule(self, node);
         }
 
+        switch (self.parser.previous.token_type) {
+            .token_right_paren,
+            .token_right_brace,
+            .token_right_bracket,
+            .token_identifier,
+            .token_bool,
+            .token_int,
+            .token_float,
+            .token_char,
+            .token_string,
+            .token_symbol,
+            => switch (self.parser.current.token_type) {
+                .token_left_paren,
+                .token_left_brace,
+                .token_left_bracket,
+                .token_identifier,
+                .token_bool,
+                .token_int,
+                .token_float,
+                .token_char,
+                .token_string,
+                .token_symbol,
+                => {
+                    const temp_node = Node.init(.{ .op_code = .op_apply_1 }, self.current.vm.allocator);
+                    temp_node.lhs = node;
+                    temp_node.rhs = try self.parsePrecedence(.prec_secondary, true);
+                    node = temp_node;
+                },
+                else => {},
+            },
+            else => {},
+        }
+
         return node;
     }
 
@@ -804,9 +837,9 @@ pub const Compiler = struct {
         .token_bool          => ParseRule{ .prefix = number,   .infix = null,   .precedence = .prec_none      },
         .token_int           => ParseRule{ .prefix = number,   .infix = null,   .precedence = .prec_none      },
         .token_float         => ParseRule{ .prefix = number,   .infix = null,   .precedence = .prec_none      },
-        .token_symbol        => ParseRule{ .prefix = symbol,   .infix = null,   .precedence = .prec_none      },
         .token_char          => ParseRule{ .prefix = char,     .infix = null,   .precedence = .prec_none      },
         .token_string        => ParseRule{ .prefix = string,   .infix = null,   .precedence = .prec_none      },
+        .token_symbol        => ParseRule{ .prefix = symbol,   .infix = null,   .precedence = .prec_none      },
         .token_identifier    => ParseRule{ .prefix = variable, .infix = null,   .precedence = .prec_none      },
         .token_error         => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },
         .token_eof           => ParseRule{ .prefix = null,     .infix = null,   .precedence = .prec_none      },

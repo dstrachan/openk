@@ -1,8 +1,3 @@
-const utils_mod = @import("utils.zig");
-const print = utils_mod.print;
-
-const debug_print_chars = @import("builtin").mode == .Debug and !@import("builtin").is_test;
-
 pub const Token = struct {
     token_type: TokenType,
     lexeme: []const u8,
@@ -47,9 +42,9 @@ pub const TokenType = enum {
     token_bool,
     token_int,
     token_float,
-    token_symbol,
     token_char,
     token_string,
+    token_symbol,
     token_identifier,
 
     token_error,
@@ -89,8 +84,6 @@ pub const Scanner = struct {
         if (self.isAtEnd()) return self.makeToken(.token_eof);
 
         const c = self.advance();
-        if (comptime debug_print_chars) print("c = '{s}'\n", .{&[_]u8{c}});
-
         if (isAlpha(c)) return self.identifier();
         if (isDigit(c)) return self.number(c);
         if (c == '.' and isDigit(self.peek())) return self.float();

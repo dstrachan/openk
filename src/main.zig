@@ -16,7 +16,7 @@ pub fn main() !void {
 
     switch (args.len) {
         1 => try repl(vm),
-        2 => runFile(vm, args[1], allocator),
+        2 => try runFile(vm, args[1], allocator),
         else => {
             try std.io.getStdErr().writer().print("Usage: {s} [path]\n", .{args[0]});
             std.process.exit(1);
@@ -56,7 +56,9 @@ fn repl(vm: *VM) !void {
     }
 }
 
-fn runFile(vm: *VM, file: []const u8, allocator: std.mem.Allocator) void {
+fn runFile(vm: *VM, file: []const u8, allocator: std.mem.Allocator) !void {
+    const stdout = std.io.getStdOut().writer();
+
     const source = readFile(file, allocator);
     defer allocator.free(source);
 
@@ -68,7 +70,9 @@ fn runFile(vm: *VM, file: []const u8, allocator: std.mem.Allocator) void {
         }
     }
 
-    _ = vm.interpret(source[0..i]) catch std.process.exit(1);
+    const result = vm.interpret(source[0..i]) catch std.process.exit(1);
+    defer result.deref(vm.allocator);
+    try stdout.print("{}\n", .{result.as});
 }
 
 fn readFile(path: []const u8, allocator: std.mem.Allocator) []const u8 {
@@ -118,6 +122,7 @@ test {
     _ = @import("tests/verbs/first.zig");
     _ = @import("tests/verbs/flip.zig");
     _ = @import("tests/verbs/index.zig");
+    _ = @import("tests/verbs/merge.zig");
     _ = @import("tests/verbs/multiply.zig");
     _ = @import("tests/verbs/negate.zig");
     _ = @import("tests/verbs/sqrt.zig");

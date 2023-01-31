@@ -106,7 +106,7 @@ pub fn runTestError(input: []const u8, expected: anyerror) !void {
         return;
     };
     result.deref(std.testing.allocator);
-    try std.testing.expect(false);
+    try std.testing.expectEqual(expected, error.no_error);
 }
 
 pub const DataType = enum {
@@ -319,11 +319,57 @@ test "vm - list" {
         .{ .list = &[_]TestValue{ .{ .int = 1 }, .{ .float = 2 } } },
     } });
 
-    try runTest("(10+10;10-10;10*10)", .{ .int_list = &[_]TestValue{ .{ .int = 20 }, .{ .int = 0 }, .{ .int = 100 } } });
+    try runTest("(10+10;10-10;10*10)", .{ .int_list = &[_]TestValue{
+        .{ .int = 20 },
+        .{ .int = 0 },
+        .{ .int = 100 },
+    } });
     try runTest("(10+10;(10-10;10*10))", .{ .list = &[_]TestValue{
         .{ .int = 20 },
-        .{ .int_list = &[_]TestValue{ .{ .int = 0 }, .{ .int = 100 } } },
+        .{ .int_list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 100 },
+        } },
     } });
+
+    try runTest("(,10;,20;,30)", .{
+        .list = &[_]TestValue{
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 10 },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 20 },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 30 },
+            } },
+        },
+    });
+    try runTest("(,,10),(,20;,30)", .{
+        .list = &[_]TestValue{
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 10 },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 20 },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 30 },
+            } },
+        },
+    });
+
+    try runTest("(,10),(,20;,30)", .{
+        .list = &[_]TestValue{
+            .{ .int = 10 },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 20 },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 30 },
+            } },
+        },
+    });
 }
 
 test "null int" {

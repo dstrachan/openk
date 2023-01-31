@@ -3,6 +3,8 @@ const std = @import("std");
 const chunk_mod = @import("chunk.zig");
 const Chunk = chunk_mod.Chunk;
 
+const debug_mod = @import("debug.zig");
+
 const utils_mod = @import("utils.zig");
 const print = utils_mod.print;
 
@@ -196,7 +198,7 @@ pub const Value = struct {
             .reference_count = 1,
             .as = data,
         };
-        print("init value {}\n", .{self});
+        if (debug_mod.debug_show_memory_allocations) print("init value {}\n", .{self});
         return self;
     }
 
@@ -224,7 +226,7 @@ pub const Value = struct {
     }
 
     pub fn ref(self: *Self) *Self {
-        print("{} => [{d}]\n", .{ self, self.reference_count + 1 });
+        if (debug_mod.debug_show_memory_allocations) print("{} => [{d}]\n", .{ self, self.reference_count + 1 });
         self.reference_count += 1;
         switch (self.as) {
             .nil,
@@ -250,7 +252,7 @@ pub const Value = struct {
     }
 
     pub fn deref(self: *Self, allocator: std.mem.Allocator) void {
-        print("{} => [{d}]\n", .{ self, self.reference_count - 1 });
+        if (debug_mod.debug_show_memory_allocations) print("{} => [{d}]\n", .{ self, self.reference_count - 1 });
         self.reference_count -= 1;
         switch (self.as) {
             .nil,
