@@ -17,8 +17,8 @@ pub const FlipError = error{
 
 fn runtimeError(comptime err: FlipError) FlipError!*Value {
     switch (err) {
-        FlipError.length_mismatch => print("Can only flip values of equal length.\n", .{}),
-        FlipError.invalid_type => print("Can only flip list values.", .{}),
+        FlipError.length_mismatch => print("Can only flip list values of equal length.\n", .{}),
+        FlipError.invalid_type => print("Can only flip nested lists.", .{}),
     }
     return err;
 }
@@ -26,73 +26,43 @@ fn runtimeError(comptime err: FlipError) FlipError!*Value {
 pub fn flip(vm: *VM, x: *Value) FlipError!*Value {
     return switch (x.as) {
         .list => |list_x| blk: {
-            var has_list = false;
-            var list_len: usize = 0;
+            var len: ?usize = null;
             for (list_x) |value| {
                 switch (value.as) {
-                    .list,
-                    .boolean_list,
-                    .int_list,
-                    .float_list,
-                    .char_list,
-                    .symbol_list,
-                    => |inner_list| {
-                        if (has_list) {
-                            if (list_len != inner_list.len) return runtimeError(FlipError.length_mismatch);
-                        } else {
-                            has_list = true;
-                            list_len = inner_list.len;
+                    .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list| {
+                        if (len == null) {
+                            len = list.len;
+                        } else if (list.len != len.?) {
+                            return runtimeError(FlipError.length_mismatch);
                         }
                     },
-                    else => {},
+                    else => continue,
                 }
             }
-            if (!has_list) return runtimeError(FlipError.invalid_type);
-            const value = vm.allocator.alloc(*Value, list_len) catch std.debug.panic("Failed to create list.", .{});
+            if (len == null) return runtimeError(FlipError.invalid_type);
+
+            const list = vm.allocator.alloc(*Value, len.?) catch std.debug.panic("Failed to create list.", .{});
             var i: usize = 0;
-            while (i < list_len) : (i += 1) {
+            while (i < len.?) : (i += 1) {
+                var list_type: ?ValueType = if (len.? == 0) .list else null;
                 const inner_list = vm.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                var list_type: ValueType = switch (list_x[0].as) {
-                    .boolean_list => .boolean,
-                    .int_list => .int,
-                    .float_list => .float,
-                    .char_list => .char,
-                    .symbol_list => .symbol,
-                    else => .list,
-                };
-                for (list_x) |list_value, j| {
-                    inner_list[j] = switch (list_value.as) {
-                        .nil,
-                        .boolean,
-                        .int,
-                        .float,
-                        .char,
-                        .symbol,
-                        .function,
-                        .projection,
-                        => list_value.ref(),
-                        .list,
-                        .boolean_list,
-                        .int_list,
-                        .float_list,
-                        .char_list,
-                        .symbol_list,
-                        => |inner_list_value| inner_list_value[i].ref(),
+                for (list_x) |value, j| {
+                    inner_list[j] = switch (value.as) {
+                        .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => value.ref(),
+                        .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_value| list_value[i].ref(),
                     };
-                    if (list_type != .list and list_type != inner_list[j].as) {
-                        list_type = .list;
-                    }
+                    if (list_type == null and @as(ValueType, inner_list[0].as) != @as(ValueType, inner_list[j].as)) list_type = .list;
                 }
-                value[i] = switch (list_type) {
-                    .boolean => vm.initValue(.{ .boolean_list = inner_list }),
-                    .int => vm.initValue(.{ .int_list = inner_list }),
-                    .float => vm.initValue(.{ .float_list = inner_list }),
-                    .char => vm.initValue(.{ .char_list = inner_list }),
-                    .symbol => vm.initValue(.{ .symbol_list = inner_list }),
-                    else => vm.initValue(.{ .list = inner_list }),
-                };
+                list[i] = vm.initValue(switch (if (list_type) |list_type_value| list_type_value else @as(ValueType, inner_list[0].as)) {
+                    .boolean => .{ .boolean_list = inner_list },
+                    .int => .{ .int_list = inner_list },
+                    .float => .{ .float_list = inner_list },
+                    .char => .{ .char_list = inner_list },
+                    .symbol => .{ .symbol_list = inner_list },
+                    else => .{ .list = inner_list },
+                });
             }
-            break :blk vm.initValue(.{ .list = value });
+            break :blk vm.initValue(.{ .list = list });
         },
         else => return runtimeError(FlipError.invalid_type),
     };
