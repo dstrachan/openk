@@ -2237,89 +2237,393 @@ test "merge list" {
         },
     });
 
-    // try runTestError("\"a\",()", MergeError.incompatible_types);
+    try runTest("\"a\",()", .{
+        .char_list = &[_]TestValue{
+            .{ .char = 'a' },
+        },
+    });
+    try runTest("\"a\",(0b;1;0N;0W;-0W)", .{
+        .list = &[_]TestValue{
+            .{ .char = 'a' },
+            .{ .boolean = false },
+            .{ .int = 1 },
+            .{ .int = Value.null_int },
+            .{ .int = Value.inf_int },
+            .{ .int = -Value.inf_int },
+        },
+    });
+    try runTest("\"a\",(0b;1;0N;0W;-0W;1f;0n;0w;-0w)", .{
+        .list = &[_]TestValue{
+            .{ .char = 'a' },
+            .{ .boolean = false },
+            .{ .int = 1 },
+            .{ .int = Value.null_int },
+            .{ .int = Value.inf_int },
+            .{ .int = -Value.inf_int },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = Value.inf_float },
+            .{ .float = -Value.inf_float },
+        },
+    });
+    try runTest("\"a\",(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", .{
+        .list = &[_]TestValue{
+            .{ .char = 'a' },
+            .{ .boolean = false },
+            .{ .int = 1 },
+            .{ .int = Value.null_int },
+            .{ .int = Value.inf_int },
+            .{ .int = -Value.inf_int },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = Value.inf_float },
+            .{ .float = -Value.inf_float },
+            .{ .char = 'a' },
+        },
+    });
 
-    // try runTestError("`symbol,()", MergeError.incompatible_types);
+    try runTest("`symbol,()", .{
+        .symbol_list = &[_]TestValue{
+            .{ .symbol = "symbol" },
+        },
+    });
+    try runTest("`symbol,(0b;1;0N;0W;-0W)", .{
+        .list = &[_]TestValue{
+            .{ .symbol = "symbol" },
+            .{ .boolean = false },
+            .{ .int = 1 },
+            .{ .int = Value.null_int },
+            .{ .int = Value.inf_int },
+            .{ .int = -Value.inf_int },
+        },
+    });
+    try runTest("`symbol,(0b;1;0N;0W;-0W;1f;0n;0w;-0w)", .{
+        .list = &[_]TestValue{
+            .{ .symbol = "symbol" },
+            .{ .boolean = false },
+            .{ .int = 1 },
+            .{ .int = Value.null_int },
+            .{ .int = Value.inf_int },
+            .{ .int = -Value.inf_int },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = Value.inf_float },
+            .{ .float = -Value.inf_float },
+        },
+    });
+    try runTest("`symbol,(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", .{
+        .list = &[_]TestValue{
+            .{ .symbol = "symbol" },
+            .{ .boolean = false },
+            .{ .int = 1 },
+            .{ .int = Value.null_int },
+            .{ .int = Value.inf_int },
+            .{ .int = -Value.inf_int },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = Value.inf_float },
+            .{ .float = -Value.inf_float },
+            .{ .char = 'a' },
+        },
+    });
 
-    // try runTest("(),()", .{ .list = &[_]TestValue{} });
-    // try runTestError("(0N;0n),()", MergeError.incompatible_types);
-    // try runTestError("(),(0N;0n)", MergeError.incompatible_types);
-    // try runTest("(1b;2),(1b;2)", .{
-    //     .int_list = &[_]TestValue{
-    //         .{ .int = 2 },
-    //         .{ .int = 4 },
-    //     },
-    // });
-    // try runTest("(1b;2f),(2f;1b)", .{
-    //     .float_list = &[_]TestValue{
-    //         .{ .float = 3 },
-    //         .{ .float = 3 },
-    //     },
-    // });
-    // try runTest("(2;3f),(2;3f)", .{
-    //     .list = &[_]TestValue{
-    //         .{ .int = 4 },
-    //         .{ .float = 6 },
-    //     },
-    // });
-    // try runTest("(1b;(2;3f)),(0N;(0n;0N))", .{
-    //     .list = &[_]TestValue{
-    //         .{ .int = Value.null_int },
-    //         .{ .float_list = &[_]TestValue{
-    //             .{ .float = Value.null_float },
-    //             .{ .float = Value.null_float },
-    //         } },
-    //     },
-    // });
-    // try runTestError("(0b;1;2;3;4;5;6;7;8;9),(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MergeError.incompatible_types);
-    // try runTestError("(0b;1;2;3;4;5;6;7;8;9),(\"a\";-0w;0w;0n;1f;-0W;0W;0N;1;0b)", MergeError.incompatible_types);
+    try runTest("(),()", .{ .list = &[_]TestValue{} });
+    try runTest("(0N;0n),()", .{
+        .list = &[_]TestValue{
+            .{ .int = Value.null_int },
+            .{ .float = Value.null_float },
+        },
+    });
+    try runTest("(),(0N;0n)", .{
+        .list = &[_]TestValue{
+            .{ .int = Value.null_int },
+            .{ .float = Value.null_float },
+        },
+    });
+    try runTest("(1b;2),(1b;2)", .{
+        .list = &[_]TestValue{
+            .{ .boolean = true },
+            .{ .int = 2 },
+            .{ .boolean = true },
+            .{ .int = 2 },
+        },
+    });
+    try runTest("(1b;2f),(2f;1b)", .{
+        .list = &[_]TestValue{
+            .{ .boolean = true },
+            .{ .float = 2 },
+            .{ .float = 2 },
+            .{ .boolean = true },
+        },
+    });
+    try runTest("(2;3f),(2;3f)", .{
+        .list = &[_]TestValue{
+            .{ .int = 2 },
+            .{ .float = 3 },
+            .{ .int = 2 },
+            .{ .float = 3 },
+        },
+    });
+    try runTest("(1b;(2;3f)),(0N;(0n;0N))", .{
+        .list = &[_]TestValue{
+            .{ .boolean = true },
+            .{ .list = &[_]TestValue{
+                .{ .int = 2 },
+                .{ .float = 3 },
+            } },
+            .{ .int = Value.null_int },
+            .{ .list = &[_]TestValue{
+                .{ .float = Value.null_float },
+                .{ .int = Value.null_int },
+            } },
+        },
+    });
+    try runTest("(0b;1;2;3;4;5;6;7;8;9),(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", .{
+        .list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .int = 1 },
+            .{ .int = 2 },
+            .{ .int = 3 },
+            .{ .int = 4 },
+            .{ .int = 5 },
+            .{ .int = 6 },
+            .{ .int = 7 },
+            .{ .int = 8 },
+            .{ .int = 9 },
+            .{ .boolean = false },
+            .{ .int = 1 },
+            .{ .int = Value.null_int },
+            .{ .int = Value.inf_int },
+            .{ .int = -Value.inf_int },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = Value.inf_float },
+            .{ .float = -Value.inf_float },
+            .{ .char = 'a' },
+        },
+    });
 
-    // try runTestError("010b,()", MergeError.incompatible_types);
-    // try runTest("01b,(0b;0N)", .{
-    //     .int_list = &[_]TestValue{
-    //         .{ .int = 0 },
-    //         .{ .int = Value.null_int },
-    //     },
-    // });
-    // try runTest("010b,(0b;0N;0n)", .{
-    //     .list = &[_]TestValue{
-    //         .{ .int = 0 },
-    //         .{ .int = Value.null_int },
-    //         .{ .float = Value.null_float },
-    //     },
-    // });
-    // try runTestError("0101010101b,(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MergeError.incompatible_types);
-    // try runTestError("0101010101b,(\"a\";-0w;0w;0n;1f;-0W;0W;0N;1;0b)", MergeError.incompatible_types);
+    try runTest("010b,()", .{
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = false },
+        },
+    });
+    try runTest("01b,(0b;0N)", .{
+        .list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = false },
+            .{ .int = Value.null_int },
+        },
+    });
+    try runTest("010b,(0b;0N;0n)", .{
+        .list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .int = Value.null_int },
+            .{ .float = Value.null_float },
+        },
+    });
+    try runTest("0101010101b,(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", .{
+        .list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = false },
+            .{ .int = 1 },
+            .{ .int = Value.null_int },
+            .{ .int = Value.inf_int },
+            .{ .int = -Value.inf_int },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = Value.inf_float },
+            .{ .float = -Value.inf_float },
+            .{ .char = 'a' },
+        },
+    });
 
-    // try runTestError("0 1 2,()", MergeError.incompatible_types);
-    // try runTest("0 1,(0b;0N)", .{
-    //     .int_list = &[_]TestValue{
-    //         .{ .int = 0 },
-    //         .{ .int = Value.null_int },
-    //     },
-    // });
-    // try runTest("0 1 2,(0b;0N;0n)", .{
-    //     .list = &[_]TestValue{
-    //         .{ .int = 0 },
-    //         .{ .int = Value.null_int },
-    //         .{ .float = Value.null_float },
-    //     },
-    // });
-    // try runTestError("0 1 2 3 4 5 6 7 8 9,(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MergeError.incompatible_types);
-    // try runTestError("0 1 2 3 4 5 6 7 8 9,(\"a\";-0w;0w;0n;1f;-0W;0W;0N;1;0b)", MergeError.incompatible_types);
+    try runTest("0 1 2,()", .{
+        .int_list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 1 },
+            .{ .int = 2 },
+        },
+    });
+    try runTest("0 1,(0b;0N)", .{
+        .list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 1 },
+            .{ .boolean = false },
+            .{ .int = Value.null_int },
+        },
+    });
+    try runTest("0 1 2,(0b;0N;0n)", .{
+        .list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 1 },
+            .{ .int = 2 },
+            .{ .boolean = false },
+            .{ .int = Value.null_int },
+            .{ .float = Value.null_float },
+        },
+    });
+    try runTest("0 1 2 3 4 5 6 7 8 9,(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", .{
+        .list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 1 },
+            .{ .int = 2 },
+            .{ .int = 3 },
+            .{ .int = 4 },
+            .{ .int = 5 },
+            .{ .int = 6 },
+            .{ .int = 7 },
+            .{ .int = 8 },
+            .{ .int = 9 },
+            .{ .boolean = false },
+            .{ .int = 1 },
+            .{ .int = Value.null_int },
+            .{ .int = Value.inf_int },
+            .{ .int = -Value.inf_int },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = Value.inf_float },
+            .{ .float = -Value.inf_float },
+            .{ .char = 'a' },
+        },
+    });
 
-    // try runTestError("0 1 2f,()", MergeError.incompatible_types);
-    // try runTest("0 1 2f,(0b;0N;0n)", .{
-    //     .float_list = &[_]TestValue{
-    //         .{ .float = 0 },
-    //         .{ .float = Value.null_float },
-    //         .{ .float = Value.null_float },
-    //     },
-    // });
-    // try runTestError("0 1 2 3 4 5 6 7 8 9f,(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MergeError.incompatible_types);
-    // try runTestError("0 1 2 3 4 5 6 7 8 9f,(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MergeError.incompatible_types);
+    try runTest("0 1 2f,()", .{
+        .float_list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = 1 },
+            .{ .float = 2 },
+        },
+    });
+    try runTest("0 1 2f,(0b;0N;0n)", .{
+        .list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = 1 },
+            .{ .float = 2 },
+            .{ .boolean = false },
+            .{ .int = Value.null_int },
+            .{ .float = Value.null_float },
+        },
+    });
+    try runTest("0 1 2 3 4 5 6 7 8 9f,(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", .{
+        .list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = 1 },
+            .{ .float = 2 },
+            .{ .float = 3 },
+            .{ .float = 4 },
+            .{ .float = 5 },
+            .{ .float = 6 },
+            .{ .float = 7 },
+            .{ .float = 8 },
+            .{ .float = 9 },
+            .{ .boolean = false },
+            .{ .int = 1 },
+            .{ .int = Value.null_int },
+            .{ .int = Value.inf_int },
+            .{ .int = -Value.inf_int },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = Value.inf_float },
+            .{ .float = -Value.inf_float },
+            .{ .char = 'a' },
+        },
+    });
 
-    // try runTestError("\"abcde\",()", MergeError.incompatible_types);
+    try runTest("\"abcde\",()", .{
+        .char_list = &[_]TestValue{
+            .{ .char = 'a' },
+            .{ .char = 'b' },
+            .{ .char = 'c' },
+            .{ .char = 'd' },
+            .{ .char = 'e' },
+        },
+    });
+    try runTest("\"abcde\",(0b;0N;0n)", .{
+        .list = &[_]TestValue{
+            .{ .char = 'a' },
+            .{ .char = 'b' },
+            .{ .char = 'c' },
+            .{ .char = 'd' },
+            .{ .char = 'e' },
+            .{ .boolean = false },
+            .{ .int = Value.null_int },
+            .{ .float = Value.null_float },
+        },
+    });
+    try runTest("\"abcde\",(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", .{
+        .list = &[_]TestValue{
+            .{ .char = 'a' },
+            .{ .char = 'b' },
+            .{ .char = 'c' },
+            .{ .char = 'd' },
+            .{ .char = 'e' },
+            .{ .boolean = false },
+            .{ .int = 1 },
+            .{ .int = Value.null_int },
+            .{ .int = Value.inf_int },
+            .{ .int = -Value.inf_int },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = Value.inf_float },
+            .{ .float = -Value.inf_float },
+            .{ .char = 'a' },
+        },
+    });
 
-    // try runTestError("`a`b`c`d`e,()", MergeError.incompatible_types);
+    try runTest("`a`b`c`d`e,()", .{
+        .symbol_list = &[_]TestValue{
+            .{ .symbol = "a" },
+            .{ .symbol = "b" },
+            .{ .symbol = "c" },
+            .{ .symbol = "d" },
+            .{ .symbol = "e" },
+        },
+    });
+    try runTest("`a`b`c`d`e,(0b;0N;0n)", .{
+        .list = &[_]TestValue{
+            .{ .symbol = "a" },
+            .{ .symbol = "b" },
+            .{ .symbol = "c" },
+            .{ .symbol = "d" },
+            .{ .symbol = "e" },
+            .{ .boolean = false },
+            .{ .int = Value.null_int },
+            .{ .float = Value.null_float },
+        },
+    });
+    try runTest("`a`b`c`d`e,(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", .{
+        .list = &[_]TestValue{
+            .{ .symbol = "a" },
+            .{ .symbol = "b" },
+            .{ .symbol = "c" },
+            .{ .symbol = "d" },
+            .{ .symbol = "e" },
+            .{ .boolean = false },
+            .{ .int = 1 },
+            .{ .int = Value.null_int },
+            .{ .int = Value.inf_int },
+            .{ .int = -Value.inf_int },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = Value.inf_float },
+            .{ .float = -Value.inf_float },
+            .{ .char = 'a' },
+        },
+    });
 }
