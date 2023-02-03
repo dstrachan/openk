@@ -115,6 +115,7 @@ test {
     // _ = @import("tests/verbs/more/_imports.zig");
 
     _ = @import("tests/verbs/add.zig");
+    _ = @import("tests/verbs/apply.zig");
     _ = @import("tests/verbs/divide.zig");
     _ = @import("tests/verbs/enum.zig");
     _ = @import("tests/verbs/fill.zig");
