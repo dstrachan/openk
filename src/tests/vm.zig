@@ -395,3 +395,12 @@ test "inf float" {
     try runTest("-0wf", .{ .float = -Value.inf_float });
     try runTest("-0Wf", .{ .float = -Value.inf_float });
 }
+
+test "function errors don't leak memory" {
+    try runTestError("{[x;y]x-y}[1;`symbol]", error.incompatible_types);
+}
+
+test "projections don't leak memory" {
+    try runTest("{[x;y]x-y}[1];", TestValue.nil);
+    try runTest("a:{[x;y]x-y}[1];", TestValue.nil);
+}

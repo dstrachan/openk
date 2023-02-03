@@ -117,9 +117,19 @@ pub const VM = struct {
 
         try self.call(value, std.bit_set.IntegerBitSet(8).initEmpty());
         return self.run() catch |e| {
-            self.stack_top = 0;
+            self.reset();
             return e;
         };
+    }
+
+    fn reset(self: *Self) void {
+        while (self.stack_top > 0) {
+            self.pop().deref(self.allocator);
+        }
+
+        while (self.frame_count > 0) : (self.frame_count -= 1) {
+            self.frames[self.frame_count - 1].value.deref(self.allocator);
+        }
     }
 
     fn push(self: *Self, value: *Value) !void {
@@ -175,7 +185,7 @@ pub const VM = struct {
     }
 
     fn projection(self: *Self, function_value: *Value, arg_indices: std.bit_set.IntegerBitSet(8)) !void {
-        const proj = ValueProjection.init(.{ .arg_indices = arg_indices, .value = function_value.ref() }, self.allocator);
+        const proj = ValueProjection.init(.{ .arg_indices = arg_indices, .value = function_value }, self.allocator);
 
         var it = arg_indices.iterator(.{});
         while (it.next()) |i| proj.arguments[i] = self.pop();
@@ -645,6 +655,7 @@ pub const VM = struct {
 
     fn opApply1(self: *Self) !void {
         var x = self.pop();
+        errdefer x.deref(self.allocator);
         if (x.as == .symbol) {
             const global = self.globals.get(x.as.symbol) orelse return self.runtimeError("Undefined variable '{s}'", .{x.as.symbol});
             x.deref(self.allocator);
@@ -655,12 +666,12 @@ pub const VM = struct {
             try self.callValue(x, std.bit_set.IntegerBitSet(8){ .mask = 1 });
             return;
         }
-        defer x.deref(self.allocator);
 
         const y = self.pop();
         defer y.deref(self.allocator);
 
         const value = try verbs.index(self, x, y);
+        x.deref(self.allocator);
         try self.push(value);
     }
 
@@ -669,7 +680,43 @@ pub const VM = struct {
     }
 
     fn opApplyN(self: *Self) !void {
-        return self.dyadicVerb();
+        var x = self.pop();
+        errdefer x.deref(self.allocator);
+        if (x.as == .symbol) {
+            const global = self.globals.get(x.as.symbol) orelse return self.runtimeError("Undefined variable '{s}'", .{x.as.symbol});
+            x.deref(self.allocator);
+            x = global.ref();
+        }
+
+        const y = self.pop();
+        defer y.deref(self.allocator);
+
+        if (x.as == .function or x.as == .projection) {
+            switch (y.as) {
+                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list| {
+                    const arity = switch (x.as) {
+                        .function => |func| func.arity,
+                        .projection => |proj| proj.value.as.function.arity - proj.arg_indices.count(),
+                        else => unreachable,
+                    };
+                    if (arity < list.len) return self.runtimeError("Too many arguments", .{});
+
+                    var arg_indices = std.bit_set.IntegerBitSet(8).initEmpty();
+                    arg_indices.setRangeValue(.{ .start = 0, .end = list.len }, true);
+                    var i: usize = list.len;
+                    while (i > 0) : (i -= 1) {
+                        try self.push(list[i - 1].ref());
+                    }
+                    try self.callValue(x, arg_indices);
+                },
+                else => return self.runtimeError("Can only apply list arguments", .{}),
+            }
+            return;
+        }
+
+        const value = try verbs.index(self, x, y);
+        x.deref(self.allocator);
+        try self.push(value);
     }
 
     fn opCall(self: *Self) !void {
@@ -722,13 +769,7 @@ pub const VM = struct {
             if (i > 0) print("at '{s}'\n", .{token.lexeme});
         }
 
-        while (self.stack_top > 0) {
-            self.pop().deref(self.allocator);
-        }
-
-        while (self.frame_count > 0) : (self.frame_count -= 1) {
-            self.frames[self.frame_count - 1].value.deref(self.allocator);
-        }
+        self.reset();
 
         return error.interpret_runtime_error;
     }
