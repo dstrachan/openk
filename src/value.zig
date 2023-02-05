@@ -24,6 +24,7 @@ pub const ValueType = enum {
     char_list,
     symbol,
     symbol_list,
+    dictionary,
     function,
     projection,
 };
@@ -45,6 +46,8 @@ pub const ValueUnion = union(ValueType) {
     float_list: []*Value,
     char_list: []*Value,
     symbol_list: []*Value,
+
+    dictionary: *ValueDictionary,
 
     function: *ValueFunction,
     projection: *ValueProjection,
@@ -120,6 +123,7 @@ pub const ValueUnion = union(ValueType) {
                 if (list.len == 1) try writer.writeAll(",");
                 for (list) |value| try writer.print("`{s}", .{value.as.symbol});
             },
+            .dictionary => |dict| try writer.print("{}!{}", .{ dict.key.as, dict.value.as }),
             .function => |function| if (function.name) |name| try writer.print("{s}", .{name}) else try writer.writeAll("script"),
             .projection => |projection| {
                 const function = projection.value.as.function;
@@ -220,6 +224,7 @@ pub const Value = struct {
             .float_list => vm.initValue(.{ .float_list = &[_]*Value{} }),
             .char_list => vm.initValue(.{ .char_list = &[_]*Value{} }),
             .symbol_list => vm.initValue(.{ .symbol_list = &[_]*Value{} }),
+            .dictionary => unreachable,
             .function => unreachable,
             .projection => unreachable,
         };
@@ -247,6 +252,10 @@ pub const Value = struct {
             => |list| {
                 for (list) |value| _ = value.ref();
             },
+            .dictionary => |dict| {
+                _ = dict.key.ref();
+                _ = dict.value.ref();
+            },
         }
         return self;
     }
@@ -271,6 +280,10 @@ pub const Value = struct {
             .char_list,
             .symbol_list,
             => |list| for (list) |value| value.deref(allocator),
+            .dictionary => |dict| {
+                dict.key.deref(allocator);
+                dict.value.deref(allocator);
+            },
         }
         if (self.reference_count == 0) {
             switch (self.as) {
@@ -281,8 +294,6 @@ pub const Value = struct {
                 .char,
                 => {},
                 .symbol => |symbol| allocator.free(symbol),
-                .function => |function| function.deinit(allocator),
-                .projection => |projection| projection.deinit(allocator),
                 .list,
                 .boolean_list,
                 .int_list,
@@ -290,6 +301,9 @@ pub const Value = struct {
                 .char_list,
                 .symbol_list,
                 => |list| allocator.free(list),
+                .dictionary => |dict| dict.deinit(allocator),
+                .function => |function| function.deinit(allocator),
+                .projection => |projection| projection.deinit(allocator),
             }
             allocator.destroy(self);
         }
@@ -424,6 +438,31 @@ pub const ValueProjection = struct {
         var it = self.arg_indices.iterator(.{});
         while (it.next()) |i| self.arguments[i].deref(allocator);
         self.value.deref(allocator);
+        allocator.destroy(self);
+    }
+};
+
+pub const ValueDictionary = struct {
+    const Self = @This();
+
+    pub const Config = struct {
+        key: *Value,
+        value: *Value,
+    };
+
+    key: *Value,
+    value: *Value,
+
+    pub fn init(config: Config, allocator: std.mem.Allocator) *Self {
+        const self = allocator.create(Self) catch std.debug.panic("Failed to create dictionary", .{});
+        self.* = Self{
+            .key = config.key,
+            .value = config.value,
+        };
+        return self;
+    }
+
+    pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
         allocator.destroy(self);
     }
 };

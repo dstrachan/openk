@@ -362,31 +362,37 @@ pub const VM = struct {
             .nil => switch (y.as) {
                 .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
                 .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
+                .dictionary => unreachable,
             },
             .boolean => switch (y.as) {
                 .boolean => self.initValue(.{ .boolean_list = mergeAtoms(self, x, y) }),
                 .nil, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
                 .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
+                .dictionary => unreachable,
             },
             .int => switch (y.as) {
                 .int => self.initValue(.{ .int_list = mergeAtoms(self, x, y) }),
                 .nil, .boolean, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
                 .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
+                .dictionary => unreachable,
             },
             .float => switch (y.as) {
                 .float => self.initValue(.{ .float_list = mergeAtoms(self, x, y) }),
                 .nil, .boolean, .int, .char, .symbol, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
                 .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
+                .dictionary => unreachable,
             },
             .char => switch (y.as) {
                 .char => self.initValue(.{ .char_list = mergeAtoms(self, x, y) }),
                 .nil, .boolean, .int, .float, .symbol, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
                 .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
+                .dictionary => unreachable,
             },
             .symbol => switch (y.as) {
                 .symbol => self.initValue(.{ .symbol_list = mergeAtoms(self, x, y) }),
                 .nil, .boolean, .int, .float, .char, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
                 .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
+                .dictionary => unreachable,
             },
             .list,
             .boolean_list,
@@ -397,14 +403,20 @@ pub const VM = struct {
             => switch (y.as) {
                 .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = self.concat(x, y) }),
                 .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
+                .dictionary => unreachable,
+            },
+            .dictionary => switch (y.as) {
+                else => unreachable,
             },
             .function => switch (y.as) {
                 .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
                 .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
+                .dictionary => unreachable,
             },
             .projection => switch (y.as) {
                 .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
                 .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
+                .dictionary => unreachable,
             },
         };
         try self.push(value);
@@ -494,7 +506,14 @@ pub const VM = struct {
     }
 
     fn opDict(self: *Self) !void {
-        return self.dyadicVerb();
+        const x = self.pop();
+        defer x.deref(self.allocator);
+
+        const y = self.pop();
+        defer y.deref(self.allocator);
+
+        const value = try verbs.dict(self, x, y);
+        try self.push(value);
     }
 
     fn opWhere(self: *Self) !void {
