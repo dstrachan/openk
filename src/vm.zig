@@ -80,6 +80,26 @@ pub const VM = struct {
         self.allocator.destroy(self);
     }
 
+    pub fn initNull(self: *Self, value_type: ValueType) *Value {
+        return switch (value_type) {
+            .nil => self.initValue(.nil),
+            .boolean => self.initValue(.{ .boolean = false }),
+            .int => self.initValue(.{ .int = Value.null_int }),
+            .float => self.initValue(.{ .float = Value.null_float }),
+            .char => self.initValue(.{ .char = ' ' }),
+            .symbol => self.copySymbol(""),
+            .list => self.initValue(.{ .list = &[_]*Value{} }),
+            .boolean_list => self.initValue(.{ .boolean_list = &[_]*Value{} }),
+            .int_list => self.initValue(.{ .int_list = &[_]*Value{} }),
+            .float_list => self.initValue(.{ .float_list = &[_]*Value{} }),
+            .char_list => self.initValue(.{ .char_list = &[_]*Value{} }),
+            .symbol_list => self.initValue(.{ .symbol_list = &[_]*Value{} }),
+            .dictionary => unreachable,
+            .function => unreachable,
+            .projection => unreachable,
+        };
+    }
+
     pub fn initValue(self: *Self, data: ValueUnion) *Value {
         return Value.init(data, self.allocator);
     }

@@ -219,6 +219,7 @@ pub const Value = struct {
                 list[0] = list_self[0].copyNull(vm);
                 break :blk vm.initValue(.{ .list = list });
             },
+            else => vm.initNull(self.as),
             .boolean_list => vm.initValue(.{ .boolean_list = &[_]*Value{} }),
             .int_list => vm.initValue(.{ .int_list = &[_]*Value{} }),
             .float_list => vm.initValue(.{ .float_list = &[_]*Value{} }),
