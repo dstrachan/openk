@@ -426,6 +426,7 @@ pub const VM = struct {
                 .dictionary => unreachable,
             },
             .dictionary => switch (y.as) {
+                // TODO: table if dictionaries keys match
                 else => unreachable,
             },
             .function => switch (y.as) {
