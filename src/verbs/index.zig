@@ -5,6 +5,7 @@ const print = utils_mod.print;
 
 const value_mod = @import("../value.zig");
 const Value = value_mod.Value;
+const ValueDictionary = value_mod.ValueDictionary;
 const ValueType = value_mod.ValueType;
 
 const vm_mod = @import("../vm.zig");
@@ -208,6 +209,77 @@ pub fn index(vm: *VM, x: *Value, y: *Value) ApplyError!*Value {
                     list[i] = vm.copySymbol(if (value.as.int < 0 or symbol_list_x.len <= value.as.int) "" else symbol_list_x[@intCast(usize, value.as.int)].as.symbol);
                 }
                 break :blk vm.initValue(.{ .char_list = list });
+            },
+            else => runtimeError(ApplyError.incompatible_types),
+        },
+        .dictionary => |dict_x| switch (y.as) {
+            .boolean, .int, .float, .char, .symbol => switch (dict_x.key.as) {
+                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |keys| switch (dict_x.value.as) {
+                    .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |values| blk: {
+                        for (keys) |value, i| {
+                            if (value.eql(y)) break :blk values[i].ref();
+                        }
+                        break :blk vm.initNull(switch (dict_x.value.as) {
+                            .boolean_list => .boolean,
+                            .int_list => .int,
+                            .float_list => .float,
+                            .char_list => .char,
+                            .symbol_list => .symbol,
+                            else => dict_x.value.as,
+                        });
+                    },
+                    else => unreachable,
+                },
+                else => unreachable,
+            },
+            .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_y| switch (dict_x.key.as) {
+                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |keys| switch (dict_x.value.as) {
+                    .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |values| blk: {
+                        const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
+                        if (values.len > 0) {
+                            for (list_y) |lookup, i| outer_loop: {
+                                for (keys) |value, j| {
+                                    if (value.eql(lookup)) {
+                                        list[i] = values[j].ref();
+                                        break :outer_loop;
+                                    }
+                                }
+                                list[i] = vm.initNull(switch (dict_x.value.as) {
+                                    .boolean_list => .boolean,
+                                    .int_list => .int,
+                                    .float_list => .float,
+                                    .char_list => .char,
+                                    .symbol_list => .symbol,
+                                    else => dict_x.value.as,
+                                });
+                            }
+                        } else {
+                            const value_type: ValueType = switch (dict_x.value.as) {
+                                .boolean_list => .boolean,
+                                .int_list => .int,
+                                .float_list => .float,
+                                .char_list => .char,
+                                .symbol_list => .symbol,
+                                else => dict_x.value.as,
+                            };
+                            for (list) |*value| {
+                                value.* = vm.initNull(value_type);
+                            }
+                        }
+
+                        break :blk vm.initValue(switch (dict_x.value.as) {
+                            .list => .{ .list = list },
+                            .boolean_list => .{ .boolean_list = list },
+                            .int_list => .{ .int_list = list },
+                            .float_list => .{ .float_list = list },
+                            .char_list => .{ .char_list = list },
+                            .symbol_list => .{ .symbol_list = list },
+                            else => unreachable,
+                        });
+                    },
+                    else => unreachable,
+                },
+                else => unreachable,
             },
             else => runtimeError(ApplyError.incompatible_types),
         },

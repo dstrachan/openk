@@ -50,6 +50,7 @@ pub fn flip(vm: *VM, x: *Value) FlipError!*Value {
                     inner_list[j] = switch (value.as) {
                         .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => value.ref(),
                         .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_value| list_value[i].ref(),
+                        .dictionary => unreachable,
                     };
                     if (list_type == null and @as(ValueType, inner_list[0].as) != @as(ValueType, inner_list[j].as)) list_type = .list;
                 }
