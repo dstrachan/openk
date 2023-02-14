@@ -20,7 +20,6 @@ const ValueType = value_mod.ValueType;
 const ValueUnion = value_mod.ValueUnion;
 
 const verbs = @import("verbs.zig");
-const mergeAtoms = @import("verbs/merge.zig").mergeAtoms;
 
 const frames_max = 64;
 const stack_max = frames_max * 256;
@@ -379,66 +378,37 @@ pub const VM = struct {
         defer y.deref(self.allocator);
 
         const value = switch (x.as) {
-            .nil => switch (y.as) {
-                .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
-                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
-                .dictionary => unreachable,
-            },
             .boolean => switch (y.as) {
-                .boolean => self.initValue(.{ .boolean_list = mergeAtoms(self, x, y) }),
-                .nil, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
-                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
-                .dictionary => unreachable,
+                .boolean => self.initValue(.{ .boolean_list = self.concat(x, y) }),
+                else => self.initValue(.{ .list = self.concat(x, y) }),
             },
             .int => switch (y.as) {
-                .int => self.initValue(.{ .int_list = mergeAtoms(self, x, y) }),
-                .nil, .boolean, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
-                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
-                .dictionary => unreachable,
+                .int => self.initValue(.{ .int_list = self.concat(x, y) }),
+                else => self.initValue(.{ .list = self.concat(x, y) }),
             },
             .float => switch (y.as) {
-                .float => self.initValue(.{ .float_list = mergeAtoms(self, x, y) }),
-                .nil, .boolean, .int, .char, .symbol, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
-                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
-                .dictionary => unreachable,
+                .float => self.initValue(.{ .float_list = self.concat(x, y) }),
+                else => self.initValue(.{ .list = self.concat(x, y) }),
             },
             .char => switch (y.as) {
-                .char => self.initValue(.{ .char_list = mergeAtoms(self, x, y) }),
-                .nil, .boolean, .int, .float, .symbol, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
-                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
-                .dictionary => unreachable,
+                .char => self.initValue(.{ .char_list = self.concat(x, y) }),
+                else => self.initValue(.{ .list = self.concat(x, y) }),
             },
             .symbol => switch (y.as) {
-                .symbol => self.initValue(.{ .symbol_list = mergeAtoms(self, x, y) }),
-                .nil, .boolean, .int, .float, .char, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
-                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
-                .dictionary => unreachable,
+                .symbol => self.initValue(.{ .symbol_list = self.concat(x, y) }),
+                else => self.initValue(.{ .list = self.concat(x, y) }),
             },
+            .nil,
             .list,
             .boolean_list,
             .int_list,
             .float_list,
             .char_list,
             .symbol_list,
-            => switch (y.as) {
-                .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = self.concat(x, y) }),
-                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
-                .dictionary => unreachable,
-            },
-            .dictionary => switch (y.as) {
-                // TODO: table if dictionaries keys match
-                else => unreachable,
-            },
-            .function => switch (y.as) {
-                .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
-                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
-                .dictionary => unreachable,
-            },
-            .projection => switch (y.as) {
-                .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => self.initValue(.{ .list = mergeAtoms(self, x, y) }),
-                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => self.initValue(.{ .list = self.concat(x, y) }),
-                .dictionary => unreachable,
-            },
+            .dictionary,
+            .function,
+            .projection,
+            => self.initValue(.{ .list = self.concat(x, y) }),
         };
         try self.push(value);
     }

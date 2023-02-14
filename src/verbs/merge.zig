@@ -21,7 +21,7 @@ fn runtimeError(comptime err: MergeError) MergeError!*Value {
     return err;
 }
 
-pub fn mergeAtoms(vm: *VM, x: *Value, y: *Value) []*Value {
+fn mergeAtoms(vm: *VM, x: *Value, y: *Value) []*Value {
     const list = vm.allocator.alloc(*Value, 2) catch std.debug.panic("Failed to create list.", .{});
     list[0] = x.ref();
     list[1] = y.ref();

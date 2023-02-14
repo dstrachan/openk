@@ -244,7 +244,7 @@ pub fn index(vm: *VM, x: *Value, y: *Value) ApplyError!*Value {
                                         break :outer_loop;
                                     }
                                 }
-                                list[i] = if (values.len > 0) values[0].copyNull(vm) else vm.initNull(switch (dict_x.value.as) {
+                                list[i] = vm.initNull(switch (dict_x.value.as) {
                                     .boolean_list => .boolean,
                                     .int_list => .int,
                                     .float_list => .float,
