@@ -466,3 +466,25 @@ pub const ValueDictionary = struct {
         allocator.destroy(self);
     }
 };
+
+pub const ValueTable = struct {
+    const Self = @This();
+
+    pub const Config = struct {
+        dict: *ValueDictionary,
+    };
+
+    dict: *ValueDictionary,
+
+    pub fn init(config: Config, allocator: std.mem.Allocator) *Self {
+        const self = allocator.create(Self) catch std.debug.panic("Failed to create table", .{});
+        self.* = Self{
+            .dict = config.dict,
+        };
+        return self;
+    }
+
+    pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+        allocator.destroy(self);
+    }
+};

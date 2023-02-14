@@ -319,12 +319,9 @@ test "list" {
         } },
     });
 
-    return error.SkipZigTest;
-
-    // TODO: table
-    // try runTest("(`a`b!1 2;`a`b!1 2)", .{
-    //     .table = &[_]TestValue{ dict, dict },
-    // });
+    try runTest("(`a`b!1 2;`a`b!1 2)", .{
+        .table = &[_]TestValue{ dict, dict },
+    });
 }
 
 test "null int" {
