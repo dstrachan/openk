@@ -460,6 +460,10 @@ test "merge boolean" {
             .{ .boolean = false },
         },
     });
+
+    try runTestError("(`a`b!1 2),0b", MergeError.incompatible_types);
+    try runTestError("(`a`b!1 2),`boolean$()", MergeError.incompatible_types);
+    try runTestError("(`a`b!1 2),00000b", MergeError.incompatible_types);
 }
 
 test "merge int" {
@@ -935,6 +939,11 @@ test "merge int" {
             .{ .int = 2 },
         },
     });
+
+    try runTestError("(`a`b!1 2),0", MergeError.incompatible_types);
+    try runTestError("(`a`b!1 2),`int$()", MergeError.incompatible_types);
+    try runTestError("(`a`b!1 2),0 1 0N 0W -0W", MergeError.incompatible_types);
+    try runTestError("(`a`b!1 2),0 1 0N 0W -0W 2", MergeError.incompatible_types);
 }
 
 test "merge float" {
@@ -2626,4 +2635,12 @@ test "merge list" {
             .{ .char = 'a' },
         },
     });
+}
+
+test "merge dictionary" {
+    return error.SkipZigTest;
+}
+
+test "merge table" {
+    return error.SkipZigTest;
 }

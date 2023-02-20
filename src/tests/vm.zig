@@ -29,6 +29,7 @@ pub const TestValue = union(ValueType) {
     symbol_list: []const Self,
 
     dictionary: []const Self,
+    table: []const Self,
 
     function: *ValueFunction,
     projection: *ValueProjection,
@@ -88,6 +89,11 @@ fn compareValues(expected: TestValue, actual: ValueUnion) !void {
             try std.testing.expectEqual(@as(usize, 2), expected.dictionary.len);
             try compareValues(expected.dictionary[0], actual.dictionary.key.as);
             try compareValues(expected.dictionary[1], actual.dictionary.value.as);
+        },
+        .table => {
+            try std.testing.expectEqual(@as(usize, 2), expected.table.len);
+            try compareValues(expected.table[0], actual.table.columns.as);
+            try compareValues(expected.table[1], actual.table.values.as);
         },
         .function => try std.testing.expectEqual(expected.function, actual.function),
         .projection => try std.testing.expectEqual(expected.projection, actual.projection),
@@ -320,7 +326,15 @@ test "list" {
     });
 
     try runTest("(`a`b!1 2;`a`b!1 2)", .{
-        .table = &[_]TestValue{ dict, dict },
+        .table = &[_]TestValue{
+            dict.dictionary[0],
+            .{
+                .list = &[_]TestValue{
+                    dict.dictionary[1],
+                    dict.dictionary[1],
+                },
+            },
+        },
     });
 }
 
