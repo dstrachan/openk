@@ -5,6 +5,7 @@ const print = utils_mod.print;
 
 const value_mod = @import("../value.zig");
 const Value = value_mod.Value;
+const ValueDictionary = value_mod.ValueDictionary;
 const ValueTable = value_mod.ValueTable;
 const ValueType = value_mod.ValueType;
 
@@ -113,6 +114,11 @@ pub fn flip(vm: *VM, x: *Value) FlipError!*Value {
             const table = ValueTable.init(.{ .columns = dict_x.key.ref(), .values = values }, vm.allocator);
 
             break :blk vm.initValue(.{ .table = table });
+        },
+        .table => |table_x| blk: {
+            const dictionary = ValueDictionary.init(.{ .key = table_x.columns.ref(), .value = table_x.values.ref() }, vm.allocator);
+
+            break :blk vm.initValue(.{ .dictionary = dictionary });
         },
         else => return runtimeError(*Value, FlipError.invalid_type),
     };
