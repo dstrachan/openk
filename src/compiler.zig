@@ -265,7 +265,7 @@ pub const Compiler = struct {
 
                         while (self.parser.current.token_type == .token_int or self.parser.current.token_type == .token_float) {
                             if (self.parser.current.token_type == .token_float) { // switch to parsing floats
-                                for (list.items) |value, i| {
+                                for (list.items, 0..) |value, i| {
                                     list.items[i] = self.current.vm.initValue(.{ .float = utils_mod.intToFloat(value.as.int) });
                                     value.deref(self.current.vm.allocator);
                                 }
@@ -331,7 +331,7 @@ pub const Compiler = struct {
     fn parseBool(self: *Self, str: []const u8) *Value {
         if (str.len > 2) {
             const list = self.current.vm.allocator.alloc(*Value, str.len - 1) catch std.debug.panic("Failed to create list", .{});
-            for (str[0 .. str.len - 1]) |c, i| {
+            for (str[0 .. str.len - 1], 0..) |c, i| {
                 list[i] = self.current.vm.initValue(.{ .boolean = c == '1' });
             }
             return self.current.vm.initValue(.{ .boolean_list = list });
@@ -618,7 +618,7 @@ pub const Compiler = struct {
                 else => .list,
             };
             const list = self.current.vm.allocator.alloc(*Value, nodes.items.len) catch std.debug.panic("Failed to create list.", .{});
-            for (nodes.items) |node, i| {
+            for (nodes.items, 0..) |node, i| {
                 list[i] = self.getValue(node.byte.?).ref();
                 node.deinit(self.current.vm.allocator);
             }

@@ -56,34 +56,34 @@ fn compareValues(expected: TestValue, actual: ValueUnion) !void {
         .symbol => try std.testing.expectEqualSlices(u8, expected.symbol, actual.symbol),
         .list => {
             try std.testing.expectEqual(expected.list.len, actual.list.len);
-            for (expected.list) |value, i| try compareValues(value, actual.list[i].as);
+            for (expected.list, actual.list) |expected_value, actual_value| try compareValues(expected_value, actual_value.as);
         },
         .boolean_list => {
             try std.testing.expectEqual(expected.boolean_list.len, actual.boolean_list.len);
-            for (expected.boolean_list) |value, i| try compareValues(value, actual.boolean_list[i].as);
+            for (expected.boolean_list, actual.boolean_list) |expected_value, actual_value| try compareValues(expected_value, actual_value.as);
         },
         .int_list => {
             try std.testing.expectEqual(expected.int_list.len, actual.int_list.len);
-            for (expected.int_list) |value, i| try compareValues(value, actual.int_list[i].as);
+            for (expected.int_list, actual.int_list) |expected_value, actual_value| try compareValues(expected_value, actual_value.as);
         },
         .float_list => {
             try std.testing.expectEqual(expected.float_list.len, actual.float_list.len);
-            for (expected.float_list) |value, i| try compareValues(value, actual.float_list[i].as);
+            for (expected.float_list, actual.float_list) |expected_value, actual_value| try compareValues(expected_value, actual_value.as);
         },
         .char_list => {
             const expected_list = std.testing.allocator.alloc(u8, expected.char_list.len) catch std.debug.panic("Failed to create list.", .{});
             defer std.testing.allocator.free(expected_list);
-            for (expected.char_list) |value, i| expected_list[i] = value.char;
+            for (expected.char_list, 0..) |value, i| expected_list[i] = value.char;
 
             const actual_list = std.testing.allocator.alloc(u8, actual.char_list.len) catch std.debug.panic("Failed to create list.", .{});
             defer std.testing.allocator.free(actual_list);
-            for (actual.char_list) |value, i| actual_list[i] = value.as.char;
+            for (actual.char_list, 0..) |value, i| actual_list[i] = value.as.char;
 
             try std.testing.expectEqualSlices(u8, expected_list, actual_list);
         },
         .symbol_list => {
             try std.testing.expectEqual(expected.symbol_list.len, actual.symbol_list.len);
-            for (expected.symbol_list) |value, i| try compareValues(value, actual.symbol_list[i].as);
+            for (expected.symbol_list, actual.symbol_list) |expected_value, actual_value| try compareValues(expected_value, actual_value.as);
         },
         .dictionary => {
             try std.testing.expectEqual(@as(usize, 2), expected.dictionary.len);

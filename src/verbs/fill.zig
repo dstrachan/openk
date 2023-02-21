@@ -33,7 +33,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
             .list => |list_y| blk: {
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
-                for (list_y) |value, i| {
+                for (list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try fill(vm, x, value);
                 }
@@ -41,28 +41,28 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
             },
             .boolean_list => |bool_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_y) |value, i| {
+                for (bool_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .boolean = value.as.boolean });
                 }
                 break :blk vm.initValue(.{ .boolean_list = list });
             },
             .int_list => |int_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_y) |value, i| {
+                for (int_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = if (value.as.int == Value.null_int) if (bool_x) 1 else 0 else value.as.int });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
             },
             .float_list => |float_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_y) |value, i| {
+                for (float_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = if (std.math.isNan(value.as.float)) if (bool_x) 1 else 0 else value.as.float });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .char_list => |char_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, char_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (char_list_y) |value, i| {
+                for (char_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .char = if (value.as.char == ' ') if (bool_x) 1 else 0 else value.as.char });
                 }
                 break :blk vm.initValue(.{ .char_list = list });
@@ -78,7 +78,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
                 var list_type: ?ValueType = if (list_y.len == 0) .list else null;
-                for (list_y) |value, i| {
+                for (list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try fill(vm, x, value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
@@ -90,28 +90,28 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
             },
             .boolean_list => |bool_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_y) |value, i| {
+                for (bool_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = if (value.as.boolean) 1 else 0 });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
             },
             .int_list => |int_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_y) |value, i| {
+                for (int_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = if (value.as.int == Value.null_int) int_x else value.as.int });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
             },
             .float_list => |float_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_y) |value, i| {
+                for (float_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = if (std.math.isNan(value.as.float)) utils_mod.intToFloat(int_x) else value.as.float });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .char_list => |char_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, char_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (char_list_y) |value, i| {
+                for (char_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .char = if (value.as.char == ' ') @intCast(u8, @mod(int_x, 256)) else value.as.char });
                 }
                 break :blk vm.initValue(.{ .char_list = list });
@@ -127,7 +127,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
                 var list_type: ?ValueType = if (list_y.len == 0) .list else null;
-                for (list_y) |value, i| {
+                for (list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try fill(vm, x, value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
@@ -139,28 +139,28 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
             },
             .boolean_list => |bool_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_y) |value, i| {
+                for (bool_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = if (value.as.boolean) 1 else 0 });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .int_list => |int_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_y) |value, i| {
+                for (int_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = if (value.as.int == Value.null_int) float_x else utils_mod.intToFloat(value.as.int) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .float_list => |float_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_y) |value, i| {
+                for (float_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = if (std.math.isNan(value.as.float)) float_x else value.as.float });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .char_list => |char_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, char_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (char_list_y) |value, i| {
+                for (char_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .char = if (value.as.char == ' ') @floatToInt(u8, @mod(@round(float_x), 256)) else value.as.char });
                 }
                 break :blk vm.initValue(.{ .char_list = list });
@@ -175,7 +175,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
             .list => |list_y| blk: {
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
-                for (list_y) |value, i| {
+                for (list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try fill(vm, x, value);
                 }
@@ -183,28 +183,28 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
             },
             .boolean_list => |bool_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_y) |value, i| {
+                for (bool_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .char = if (value.as.boolean) 1 else 0 });
                 }
                 break :blk vm.initValue(.{ .char_list = list });
             },
             .int_list => |int_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_y) |value, i| {
+                for (int_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .char = if (value.as.int == Value.null_int) 0 else @intCast(u8, @mod(value.as.int, 256)) });
                 }
                 break :blk vm.initValue(.{ .char_list = list });
             },
             .float_list => |float_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_y) |value, i| {
+                for (float_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .char = if (std.math.isNan(value.as.float)) 0 else @floatToInt(u8, @mod(@round(value.as.float), 256)) });
                 }
                 break :blk vm.initValue(.{ .char_list = list });
             },
             .char_list => |char_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, char_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (char_list_y) |value, i| {
+                for (char_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .char = if (value.as.char == ' ') char_x else value.as.char });
                 }
                 break :blk vm.initValue(.{ .char_list = list });
@@ -216,7 +216,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
             .list => |list_y| blk: {
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
-                for (list_y) |value, i| {
+                for (list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try fill(vm, x, value);
                 }
@@ -224,7 +224,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
             },
             .symbol_list => |symbol_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, symbol_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (symbol_list_y) |value, i| {
+                for (symbol_list_y, 0..) |value, i| {
                     list[i] = if (value.as.symbol.len == 0) vm.copySymbol(symbol_x) else vm.copySymbol(value.as.symbol);
                 }
                 break :blk vm.initValue(.{ .symbol_list = list });
@@ -238,7 +238,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
                 var list_type: ?ValueType = if (list_y.len == 0) .list else null;
-                for (list_y) |value, i| {
+                for (list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try fill(vm, list_x[i], value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
@@ -253,7 +253,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
 
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
-                for (bool_list_y) |value, i| {
+                for (bool_list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try fill(vm, list_x[i], value);
                 }
@@ -265,7 +265,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
                 var list_type: ?ValueType = if (int_list_y.len == 0) .list else null;
-                for (int_list_y) |value, i| {
+                for (int_list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try fill(vm, list_x[i], value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
@@ -281,7 +281,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 const list = vm.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
                 var list_type: ?ValueType = if (float_list_y.len == 0) .list else null;
-                for (float_list_y) |value, i| {
+                for (float_list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try fill(vm, list_x[i], value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
@@ -297,7 +297,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 const list = vm.allocator.alloc(*Value, char_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
                 var list_type: ?ValueType = if (char_list_y.len == 0) .list else null;
-                for (char_list_y) |value, i| {
+                for (char_list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try fill(vm, list_x[i], value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
@@ -315,7 +315,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
 
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
-                for (list_y) |value, i| {
+                for (list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try fill(vm, bool_list_x[i], value);
                 }
@@ -325,7 +325,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 if (bool_list_x.len != bool_list_y.len) return runtimeError(FillError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_y) |value, i| {
+                for (bool_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .boolean = value.as.boolean });
                 }
                 break :blk vm.initValue(.{ .boolean_list = list });
@@ -334,7 +334,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 if (bool_list_x.len != int_list_y.len) return runtimeError(FillError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_y) |value, i| {
+                for (int_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = if (value.as.int == Value.null_int) if (bool_list_x[i].as.boolean) 1 else 0 else value.as.int });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
@@ -343,7 +343,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 if (bool_list_x.len != float_list_y.len) return runtimeError(FillError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_y) |value, i| {
+                for (float_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = if (std.math.isNan(value.as.float)) if (bool_list_x[i].as.boolean) 1 else 0 else value.as.float });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -352,7 +352,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 if (bool_list_x.len != char_list_y.len) return runtimeError(FillError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, char_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (char_list_y) |value, i| {
+                for (char_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .char = if (value.as.char == ' ') if (bool_list_x[i].as.boolean) 1 else 0 else value.as.char });
                 }
                 break :blk vm.initValue(.{ .char_list = list });
@@ -366,7 +366,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
                 var list_type: ?ValueType = if (int_list_y.len == 0) .list else null;
-                for (int_list_y) |value, i| {
+                for (int_list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try fill(vm, int_list_x[i], value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
@@ -380,7 +380,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 if (int_list_x.len != bool_list_y.len) return runtimeError(FillError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_y) |value, i| {
+                for (bool_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = if (value.as.boolean) 1 else 0 });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
@@ -389,7 +389,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 if (int_list_x.len != int_list_y.len) return runtimeError(FillError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_y) |value, i| {
+                for (int_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = if (value.as.int == Value.null_int) int_list_x[i].as.int else value.as.int });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
@@ -398,7 +398,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 if (int_list_x.len != float_list_y.len) return runtimeError(FillError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_y) |value, i| {
+                for (float_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = if (std.math.isNan(value.as.float)) utils_mod.intToFloat(int_list_x[i].as.int) else value.as.float });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -407,7 +407,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 if (int_list_x.len != char_list_y.len) return runtimeError(FillError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, char_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (char_list_y) |value, i| {
+                for (char_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .char = if (value.as.char == ' ') @intCast(u8, @mod(int_list_x[i].as.int, 256)) else value.as.char });
                 }
                 break :blk vm.initValue(.{ .char_list = list });
@@ -420,7 +420,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
 
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
-                for (list_y) |value, i| {
+                for (list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try fill(vm, float_list_x[i], value);
                 }
@@ -430,7 +430,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 if (float_list_x.len != bool_list_y.len) return runtimeError(FillError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_y) |value, i| {
+                for (bool_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = if (value.as.boolean) 1 else 0 });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -439,7 +439,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 if (float_list_x.len != int_list_y.len) return runtimeError(FillError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_y) |value, i| {
+                for (int_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = if (value.as.int == Value.null_int) float_list_x[i].as.float else utils_mod.intToFloat(value.as.int) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -448,7 +448,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 if (float_list_x.len != float_list_y.len) return runtimeError(FillError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_y) |value, i| {
+                for (float_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = if (std.math.isNan(value.as.float)) float_list_x[i].as.float else value.as.float });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -457,7 +457,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 if (float_list_x.len != char_list_y.len) return runtimeError(FillError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, char_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (char_list_y) |value, i| {
+                for (char_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .char = if (value.as.char == ' ') @floatToInt(u8, @mod(@round(float_list_x[i].as.float), 256)) else value.as.char });
                 }
                 break :blk vm.initValue(.{ .char_list = list });
@@ -470,7 +470,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
 
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
-                for (list_y) |value, i| {
+                for (list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try fill(vm, char_list_x[i], value);
                 }
@@ -480,7 +480,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 if (char_list_x.len != bool_list_y.len) return runtimeError(FillError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_y) |value, i| {
+                for (bool_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .char = if (value.as.boolean) 1 else 0 });
                 }
                 break :blk vm.initValue(.{ .char_list = list });
@@ -489,7 +489,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 if (char_list_x.len != int_list_y.len) return runtimeError(FillError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_y) |value, i| {
+                for (int_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .char = if (value.as.int == Value.null_int) 0 else @intCast(u8, @mod(value.as.int, 256)) });
                 }
                 break :blk vm.initValue(.{ .char_list = list });
@@ -498,7 +498,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 if (char_list_x.len != float_list_y.len) return runtimeError(FillError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_y) |value, i| {
+                for (float_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .char = if (std.math.isNan(value.as.float)) 0 else @floatToInt(u8, @mod(@round(value.as.float), 256)) });
                 }
                 break :blk vm.initValue(.{ .char_list = list });
@@ -507,7 +507,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 if (char_list_x.len != char_list_y.len) return runtimeError(FillError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, char_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (char_list_y) |value, i| {
+                for (char_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .char = if (value.as.char == ' ') char_list_x[i].as.char else value.as.char });
                 }
                 break :blk vm.initValue(.{ .char_list = list });
@@ -520,7 +520,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
 
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
-                for (list_y) |value, i| {
+                for (list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try fill(vm, symbol_list_x[i], value);
                 }
@@ -530,7 +530,7 @@ pub fn fill(vm: *VM, x: *Value, y: *Value) FillError!*Value {
                 if (symbol_list_x.len != symbol_list_y.len) return runtimeError(FillError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, symbol_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (symbol_list_y) |value, i| {
+                for (symbol_list_y, 0..) |value, i| {
                     list[i] = if (value.as.symbol.len == 0) vm.copySymbol(symbol_list_x[i].as.symbol) else vm.copySymbol(value.as.symbol);
                 }
                 break :blk vm.initValue(.{ .symbol_list = list });

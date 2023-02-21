@@ -208,8 +208,8 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
                 var key_list_type: ValueType = dict_x.key.as;
                 var value = dupeAsArrayList(dict_x.value, vm.allocator);
                 var value_list_type: ValueType = dict_x.value.as;
-                for (asList(dict_y.key)) |k_y, i_y| loop: {
-                    for (key.items) |k_x, i_x| {
+                for (asList(dict_y.key), 0..) |k_y, i_y| loop: {
+                    for (key.items, 0..) |k_x, i_x| {
                         if (k_x.eql(k_y)) {
                             value.items[i_x].deref(vm.allocator);
                             value.items[i_x] = asList(dict_y.value)[i_y].ref();

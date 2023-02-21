@@ -28,21 +28,21 @@ pub fn negate(vm: *VM, x: *Value) NegateError!*Value {
         .float => |float_x| vm.initValue(.{ .float = -float_x }),
         .boolean_list => |bool_list_x| blk: {
             const list = vm.allocator.alloc(*Value, bool_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-            for (bool_list_x) |value, i| {
+            for (bool_list_x, 0..) |value, i| {
                 list[i] = vm.initValue(.{ .int = if (value.as.boolean) -1 else 0 });
             }
             break :blk vm.initValue(.{ .int_list = list });
         },
         .int_list => |int_list_x| blk: {
             const list = vm.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-            for (int_list_x) |value, i| {
+            for (int_list_x, 0..) |value, i| {
                 list[i] = vm.initValue(.{ .int = -value.as.int });
             }
             break :blk vm.initValue(.{ .int_list = list });
         },
         .float_list => |float_list_x| blk: {
             const list = vm.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-            for (float_list_x) |value, i| {
+            for (float_list_x, 0..) |value, i| {
                 list[i] = vm.initValue(.{ .float = -value.as.float });
             }
             break :blk vm.initValue(.{ .int_list = list });

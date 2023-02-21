@@ -42,7 +42,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
                 var list_type: ?ValueType = if (list_y.len == 0) .list else null;
-                for (list_y) |value, i| {
+                for (list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try multiply(vm, x, value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
@@ -54,21 +54,21 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
             },
             .boolean_list => |bool_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_y) |value, i| {
+                for (bool_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = multiplyInt(@boolToInt(bool_x), @boolToInt(value.as.boolean)) });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
             },
             .int_list => |int_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_y) |value, i| {
+                for (int_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = multiplyInt(@boolToInt(bool_x), value.as.int) });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
             },
             .float_list => |float_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_y) |value, i| {
+                for (float_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = multiplyFloat(if (bool_x) 1 else 0, value.as.float) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -83,7 +83,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
                 var list_type: ?ValueType = if (list_y.len == 0) .list else null;
-                for (list_y) |value, i| {
+                for (list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try multiply(vm, x, value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
@@ -95,21 +95,21 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
             },
             .boolean_list => |bool_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_y) |value, i| {
+                for (bool_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = multiplyInt(int_x, @boolToInt(value.as.boolean)) });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
             },
             .int_list => |int_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_y) |value, i| {
+                for (int_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = multiplyInt(int_x, value.as.int) });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
             },
             .float_list => |float_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_y) |value, i| {
+                for (float_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = multiplyFloat(utils_mod.intToFloat(int_x), value.as.float) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -124,7 +124,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
                 var list_type: ?ValueType = if (list_y.len == 0) .list else null;
-                for (list_y) |value, i| {
+                for (list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try multiply(vm, x, value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
@@ -136,21 +136,21 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
             },
             .boolean_list => |bool_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_y) |value, i| {
+                for (bool_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = multiplyFloat(float_x, if (value.as.boolean) 1 else 0) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .int_list => |int_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_y) |value, i| {
+                for (int_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = multiplyFloat(float_x, utils_mod.intToFloat(value.as.int)) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .float_list => |float_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_y) |value, i| {
+                for (float_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = multiplyFloat(float_x, value.as.float) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -162,7 +162,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 const list = vm.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
                 var list_type: ?ValueType = if (list_x.len == 0) .list else null;
-                for (list_x) |value, i| {
+                for (list_x, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try multiply(vm, value, y);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
@@ -176,7 +176,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 const list = vm.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
                 var list_type: ?ValueType = if (list_x.len == 0) .list else null;
-                for (list_x) |value, i| {
+                for (list_x, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try multiply(vm, value, y);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
@@ -190,7 +190,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 const list = vm.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
                 var list_type: ?ValueType = if (list_x.len == 0) .list else null;
-                for (list_x) |value, i| {
+                for (list_x, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try multiply(vm, value, y);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
@@ -206,7 +206,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
                 var list_type: ?ValueType = if (list_y.len == 0) .list else null;
-                for (list_y) |value, i| {
+                for (list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try multiply(vm, list_x[i], value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
@@ -223,7 +223,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
                 var list_type: ?ValueType = if (bool_list_y.len == 0) .list else null;
-                for (bool_list_y) |value, i| {
+                for (bool_list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try multiply(vm, list_x[i], value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
@@ -239,7 +239,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
                 var list_type: ?ValueType = if (int_list_y.len == 0) .list else null;
-                for (int_list_y) |value, i| {
+                for (int_list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try multiply(vm, list_x[i], value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
@@ -255,7 +255,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 const list = vm.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
                 var list_type: ?ValueType = if (float_list_y.len == 0) .list else null;
-                for (float_list_y) |value, i| {
+                for (float_list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try multiply(vm, list_x[i], value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
@@ -270,21 +270,21 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
         .boolean_list => |bool_list_x| switch (y.as) {
             .boolean => |bool_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_x) |value, i| {
+                for (bool_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = multiplyInt(@boolToInt(value.as.boolean), @boolToInt(bool_y)) });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
             },
             .int => |int_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_x) |value, i| {
+                for (bool_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = multiplyInt(@boolToInt(value.as.boolean), int_y) });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
             },
             .float => |float_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_x) |value, i| {
+                for (bool_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = multiplyFloat(if (value.as.boolean) 1 else 0, float_y) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -295,7 +295,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
                 var list_type: ?ValueType = if (list_y.len == 0) .list else null;
-                for (list_y) |value, i| {
+                for (list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try multiply(vm, bool_list_x[i], value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
@@ -309,7 +309,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 if (bool_list_x.len != bool_list_y.len) return runtimeError(MultiplyError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_y) |value, i| {
+                for (bool_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = multiplyInt(@boolToInt(bool_list_x[i].as.boolean), @boolToInt(value.as.boolean)) });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
@@ -318,7 +318,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 if (bool_list_x.len != int_list_y.len) return runtimeError(MultiplyError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_y) |value, i| {
+                for (int_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = multiplyInt(@boolToInt(bool_list_x[i].as.boolean), value.as.int) });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
@@ -327,7 +327,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 if (bool_list_x.len != float_list_y.len) return runtimeError(MultiplyError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_y) |value, i| {
+                for (float_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = multiplyFloat(if (bool_list_x[i].as.boolean) 1 else 0, value.as.float) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -337,21 +337,21 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
         .int_list => |int_list_x| switch (y.as) {
             .boolean => |bool_y| blk: {
                 const list = vm.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_x) |value, i| {
+                for (int_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = multiplyInt(value.as.int, @boolToInt(bool_y)) });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
             },
             .int => |int_y| blk: {
                 const list = vm.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_x) |value, i| {
+                for (int_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = multiplyInt(value.as.int, int_y) });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
             },
             .float => |float_y| blk: {
                 const list = vm.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_x) |value, i| {
+                for (int_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = multiplyFloat(utils_mod.intToFloat(value.as.int), float_y) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -362,7 +362,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
                 var list_type: ?ValueType = if (list_y.len == 0) .list else null;
-                for (list_y) |value, i| {
+                for (list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try multiply(vm, int_list_x[i], value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
@@ -376,7 +376,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 if (int_list_x.len != bool_list_y.len) return runtimeError(MultiplyError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_y) |value, i| {
+                for (bool_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = multiplyInt(int_list_x[i].as.int, @boolToInt(value.as.boolean)) });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
@@ -385,7 +385,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 if (int_list_x.len != int_list_y.len) return runtimeError(MultiplyError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_y) |value, i| {
+                for (int_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = multiplyInt(int_list_x[i].as.int, value.as.int) });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
@@ -394,7 +394,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 if (int_list_x.len != float_list_y.len) return runtimeError(MultiplyError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_y) |value, i| {
+                for (float_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = multiplyFloat(utils_mod.intToFloat(int_list_x[i].as.int), value.as.float) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -404,21 +404,21 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
         .float_list => |float_list_x| switch (y.as) {
             .boolean => |bool_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_x) |value, i| {
+                for (float_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = multiplyFloat(value.as.float, if (bool_y) 1 else 0) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .int => |int_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_x) |value, i| {
+                for (float_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = multiplyFloat(value.as.float, utils_mod.intToFloat(int_y)) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .float => |float_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_x) |value, i| {
+                for (float_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = multiplyFloat(value.as.float, float_y) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -428,7 +428,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
 
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
-                for (list_y) |value, i| {
+                for (list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try multiply(vm, float_list_x[i], value);
                 }
@@ -438,7 +438,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 if (float_list_x.len != bool_list_y.len) return runtimeError(MultiplyError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_y) |value, i| {
+                for (bool_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = multiplyFloat(float_list_x[i].as.float, if (value.as.boolean) 1 else 0) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -447,7 +447,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 if (float_list_x.len != int_list_y.len) return runtimeError(MultiplyError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_y) |value, i| {
+                for (int_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = multiplyFloat(float_list_x[i].as.float, utils_mod.intToFloat(value.as.int)) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -456,7 +456,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 if (float_list_x.len != float_list_y.len) return runtimeError(MultiplyError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_y) |value, i| {
+                for (float_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = multiplyFloat(float_list_x[i].as.float, value.as.float) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });

@@ -38,7 +38,7 @@ pub fn flip(vm: *VM, x: *Value) FlipError!*Value {
             while (i < len) : (i += 1) {
                 var list_type: ?ValueType = if (len == 0) .list else null;
                 const inner_list = vm.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (list_x) |value, j| {
+                for (list_x, 0..) |value, j| {
                     inner_list[j] = switch (value.as) {
                         .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => value.ref(),
                         .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_value| list_value[i].ref(),

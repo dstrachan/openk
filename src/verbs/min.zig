@@ -45,7 +45,7 @@ pub fn min(vm: *VM, x: *Value, y: *Value) MinError!*Value {
             .list => |list_y| blk: {
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 var list_type: ?ValueType = null;
-                for (list_y) |value, i| {
+                for (list_y, 0..) |value, i| {
                     list[i] = try min(vm, x, value);
                     if (list_type == null and @as(ValueType, list[0].as) != @as(ValueType, list[i].as)) list_type = .list;
                 }
@@ -57,21 +57,21 @@ pub fn min(vm: *VM, x: *Value, y: *Value) MinError!*Value {
             },
             .boolean_list => |bool_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_y) |value, i| {
+                for (bool_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .boolean = minBool(bool_x, value.as.boolean) });
                 }
                 break :blk vm.initValue(.{ .boolean_list = list });
             },
             .int_list => |int_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_y) |value, i| {
+                for (int_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = minInt(@boolToInt(bool_x), value.as.int) });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
             },
             .float_list => |float_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_y) |value, i| {
+                for (float_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = minFloat(utils_mod.intToFloat(@boolToInt(bool_x)), value.as.float) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -85,7 +85,7 @@ pub fn min(vm: *VM, x: *Value, y: *Value) MinError!*Value {
             .list => |list_y| blk: {
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 var list_type: ?ValueType = null;
-                for (list_y) |value, i| {
+                for (list_y, 0..) |value, i| {
                     list[i] = try min(vm, x, value);
                     if (list_type == null and @as(ValueType, list[0].as) != @as(ValueType, list[i].as)) list_type = .list;
                 }
@@ -97,21 +97,21 @@ pub fn min(vm: *VM, x: *Value, y: *Value) MinError!*Value {
             },
             .boolean_list => |bool_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_y) |value, i| {
+                for (bool_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = minInt(int_x, @boolToInt(value.as.boolean)) });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
             },
             .int_list => |int_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_y) |value, i| {
+                for (int_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = minInt(int_x, value.as.int) });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
             },
             .float_list => |float_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_y) |value, i| {
+                for (float_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = minFloat(utils_mod.intToFloat(int_x), value.as.float) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -125,7 +125,7 @@ pub fn min(vm: *VM, x: *Value, y: *Value) MinError!*Value {
             .list => |list_y| blk: {
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 var list_type: ?ValueType = null;
-                for (list_y) |value, i| {
+                for (list_y, 0..) |value, i| {
                     list[i] = try min(vm, x, value);
                     if (list_type == null and @as(ValueType, list[0].as) != @as(ValueType, list[i].as)) list_type = .list;
                 }
@@ -136,21 +136,21 @@ pub fn min(vm: *VM, x: *Value, y: *Value) MinError!*Value {
             },
             .boolean_list => |bool_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_y) |value, i| {
+                for (bool_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = minFloat(float_x, utils_mod.intToFloat(@boolToInt(value.as.boolean))) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .int_list => |int_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_y) |value, i| {
+                for (int_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = minFloat(float_x, utils_mod.intToFloat(value.as.int)) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .float_list => |float_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_y) |value, i| {
+                for (float_list_y, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = minFloat(float_x, value.as.float) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -161,7 +161,7 @@ pub fn min(vm: *VM, x: *Value, y: *Value) MinError!*Value {
             .boolean, .int, .float => blk: {
                 const list = vm.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
                 var list_type: ?ValueType = null;
-                for (list_x) |value, i| {
+                for (list_x, 0..) |value, i| {
                     list[i] = try min(vm, value, y);
                     if (list_type == null and @as(ValueType, list[0].as) != @as(ValueType, list[i].as)) list_type = .list;
                 }
@@ -174,7 +174,7 @@ pub fn min(vm: *VM, x: *Value, y: *Value) MinError!*Value {
             .list, .boolean_list, .int_list, .float_list => |list_y| blk: {
                 const list = vm.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
                 var list_type: ?ValueType = null;
-                for (list_x) |value, i| {
+                for (list_x, 0..) |value, i| {
                     list[i] = try min(vm, value, list_y[i]);
                     if (list_type == null and @as(ValueType, list[0].as) != @as(ValueType, list[i].as)) list_type = .list;
                 }
@@ -189,21 +189,21 @@ pub fn min(vm: *VM, x: *Value, y: *Value) MinError!*Value {
         .boolean_list => |bool_list_x| switch (y.as) {
             .boolean => |bool_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_x) |value, i| {
+                for (bool_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .boolean = minBool(value.as.boolean, bool_y) });
                 }
                 break :blk vm.initValue(.{ .boolean_list = list });
             },
             .int => |int_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_x) |value, i| {
+                for (bool_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = minInt(@boolToInt(value.as.boolean), int_y) });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
             },
             .float => |float_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_x) |value, i| {
+                for (bool_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = minFloat(utils_mod.intToFloat(@boolToInt(value.as.boolean)), float_y) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -211,7 +211,7 @@ pub fn min(vm: *VM, x: *Value, y: *Value) MinError!*Value {
             .list => |list_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                 var list_type: ?ValueType = null;
-                for (bool_list_x) |value, i| {
+                for (bool_list_x, 0..) |value, i| {
                     list[i] = try min(vm, value, list_y[i]);
                     if (list_type == null and @as(ValueType, list[0].as) != @as(ValueType, list[i].as)) list_type = .list;
                 }
@@ -223,21 +223,21 @@ pub fn min(vm: *VM, x: *Value, y: *Value) MinError!*Value {
             },
             .boolean_list => |bool_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_x) |value, i| {
+                for (bool_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .boolean = minBool(value.as.boolean, bool_list_y[i].as.boolean) });
                 }
                 break :blk vm.initValue(.{ .boolean_list = list });
             },
             .int_list => |int_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_x) |value, i| {
+                for (bool_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = minInt(@boolToInt(value.as.boolean), int_list_y[i].as.int) });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
             },
             .float_list => |float_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (bool_list_x) |value, i| {
+                for (bool_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = minFloat(utils_mod.intToFloat(@boolToInt(value.as.boolean)), float_list_y[i].as.float) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -247,21 +247,21 @@ pub fn min(vm: *VM, x: *Value, y: *Value) MinError!*Value {
         .int_list => |int_list_x| switch (y.as) {
             .boolean => |bool_y| blk: {
                 const list = vm.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_x) |value, i| {
+                for (int_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = minInt(value.as.int, @boolToInt(bool_y)) });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
             },
             .int => |int_y| blk: {
                 const list = vm.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_x) |value, i| {
+                for (int_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = minInt(value.as.int, int_y) });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
             },
             .float => |float_y| blk: {
                 const list = vm.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_x) |value, i| {
+                for (int_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = minFloat(utils_mod.intToFloat(value.as.int), float_y) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -269,7 +269,7 @@ pub fn min(vm: *VM, x: *Value, y: *Value) MinError!*Value {
             .list => |list_y| blk: {
                 const list = vm.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                 var list_type: ?ValueType = null;
-                for (int_list_x) |value, i| {
+                for (int_list_x, 0..) |value, i| {
                     list[i] = try min(vm, value, list_y[i]);
                     if (list_type == null and @as(ValueType, list[0].as) != @as(ValueType, list[i].as)) list_type = .list;
                 }
@@ -281,21 +281,21 @@ pub fn min(vm: *VM, x: *Value, y: *Value) MinError!*Value {
             },
             .boolean_list => |bool_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_x) |value, i| {
+                for (int_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = minInt(value.as.int, @boolToInt(bool_list_y[i].as.boolean)) });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
             },
             .int_list => |int_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_x) |value, i| {
+                for (int_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .int = minInt(value.as.int, int_list_y[i].as.int) });
                 }
                 break :blk vm.initValue(.{ .int_list = list });
             },
             .float_list => |float_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, int_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (int_list_x) |value, i| {
+                for (int_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = minFloat(utils_mod.intToFloat(value.as.int), float_list_y[i].as.float) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -305,21 +305,21 @@ pub fn min(vm: *VM, x: *Value, y: *Value) MinError!*Value {
         .float_list => |float_list_x| switch (y.as) {
             .boolean => |bool_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_x) |value, i| {
+                for (float_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = minFloat(value.as.float, utils_mod.intToFloat(@boolToInt(bool_y))) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .int => |int_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_x) |value, i| {
+                for (float_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = minFloat(value.as.float, utils_mod.intToFloat(int_y)) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .float => |float_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_x) |value, i| {
+                for (float_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = minFloat(value.as.float, float_y) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
@@ -327,7 +327,7 @@ pub fn min(vm: *VM, x: *Value, y: *Value) MinError!*Value {
             .list => |list_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                 var list_type: ?ValueType = null;
-                for (float_list_x) |value, i| {
+                for (float_list_x, 0..) |value, i| {
                     list[i] = try min(vm, value, list_y[i]);
                     if (list_type == null and @as(ValueType, list[0].as) != @as(ValueType, list[i].as)) list_type = .list;
                 }
@@ -339,21 +339,21 @@ pub fn min(vm: *VM, x: *Value, y: *Value) MinError!*Value {
             },
             .boolean_list => |bool_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_x) |value, i| {
+                for (float_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = minFloat(value.as.float, utils_mod.intToFloat(@boolToInt(bool_list_y[i].as.boolean))) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .int_list => |int_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_x) |value, i| {
+                for (float_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = minFloat(value.as.float, utils_mod.intToFloat(int_list_y[i].as.int)) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .float_list => |float_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                for (float_list_x) |value, i| {
+                for (float_list_x, 0..) |value, i| {
                     list[i] = vm.initValue(.{ .float = minFloat(value.as.float, float_list_y[i].as.float) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });

@@ -337,8 +337,8 @@ pub const Value = struct {
             .list => |list_x| switch (y.as) {
                 .list => |list_y| {
                     if (list_x.len != list_y.len) return false;
-                    for (list_x) |value, i| {
-                        if (!value.eql(list_y[i])) return false;
+                    for (list_x, list_y) |value_x, value_y| {
+                        if (!value_x.eql(value_y)) return false;
                     }
                     return true;
                 },
@@ -347,8 +347,8 @@ pub const Value = struct {
             .boolean_list => |list_x| switch (y.as) {
                 .boolean_list => |list_y| {
                     if (list_x.len != list_y.len) return false;
-                    for (list_x) |value, i| {
-                        if (!value.eql(list_y[i])) return false;
+                    for (list_x, list_y) |value_x, value_y| {
+                        if (!value_x.eql(value_y)) return false;
                     }
                     return true;
                 },
@@ -357,8 +357,8 @@ pub const Value = struct {
             .int_list => |list_x| switch (y.as) {
                 .int_list => |list_y| {
                     if (list_x.len != list_y.len) return false;
-                    for (list_x) |value, i| {
-                        if (!value.eql(list_y[i])) return false;
+                    for (list_x, list_y) |value_x, value_y| {
+                        if (!value_x.eql(value_y)) return false;
                     }
                     return true;
                 },
@@ -367,8 +367,8 @@ pub const Value = struct {
             .float_list => |list_x| switch (y.as) {
                 .float_list => |list_y| {
                     if (list_x.len != list_y.len) return false;
-                    for (list_x) |value, i| {
-                        if (!value.eql(list_y[i])) return false;
+                    for (list_x, list_y) |value_x, value_y| {
+                        if (!value_x.eql(value_y)) return false;
                     }
                     return true;
                 },
@@ -377,8 +377,8 @@ pub const Value = struct {
             .char_list => |list_x| switch (y.as) {
                 .char_list => |list_y| {
                     if (list_x.len != list_y.len) return false;
-                    for (list_x) |value, i| {
-                        if (!value.eql(list_y[i])) return false;
+                    for (list_x, list_y) |value_x, value_y| {
+                        if (!value_x.eql(value_y)) return false;
                     }
                     return true;
                 },
@@ -387,8 +387,8 @@ pub const Value = struct {
             .symbol_list => |list_x| switch (y.as) {
                 .symbol_list => |list_y| {
                     if (list_x.len != list_y.len) return false;
-                    for (list_x) |value, i| {
-                        if (!value.eql(list_y[i])) return false;
+                    for (list_x, list_y) |value_x, value_y| {
+                        if (!value_x.eql(value_y)) return false;
                     }
                     return true;
                 },
