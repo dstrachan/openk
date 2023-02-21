@@ -1398,6 +1398,11 @@ test "merge float" {
             .{ .float = 2 },
         },
     });
+
+    try runTestError("(`a`b!1 2),0f", MergeError.incompatible_types);
+    try runTestError("(`a`b!1 2),`float$()", MergeError.incompatible_types);
+    try runTestError("(`a`b!1 2),0 1 0n 0w -0w", MergeError.incompatible_types);
+    try runTestError("(`a`b!1 2),0 1 0w 0w -0w 2", MergeError.incompatible_types);
 }
 
 test "merge char" {
@@ -1753,6 +1758,10 @@ test "merge char" {
             .{ .char = 'e' },
         },
     });
+
+    try runTestError("(`a`b!1 2),\"a\"", MergeError.incompatible_types);
+    try runTestError("(`a`b!1 2),\"\"", MergeError.incompatible_types);
+    try runTestError("(`a`b!1 2),\"abcde\"", MergeError.incompatible_types);
 }
 
 test "merge symbol" {
@@ -2108,6 +2117,10 @@ test "merge symbol" {
             .{ .symbol = "e" },
         },
     });
+
+    try runTestError("(`a`b!1 2),`symbol", MergeError.incompatible_types);
+    try runTestError("(`a`b!1 2),`$()", MergeError.incompatible_types);
+    try runTestError("(`a`b!1 2),`a`b`c`d`e", MergeError.incompatible_types);
 }
 
 test "merge list" {
@@ -2635,10 +2648,109 @@ test "merge list" {
             .{ .char = 'a' },
         },
     });
+
+    try runTest("(`a`b!1 2),()", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 2 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2),(0b;0N;0n)", MergeError.incompatible_types);
+    try runTestError("(`a`b!1 2),(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MergeError.incompatible_types);
 }
 
 test "merge dictionary" {
-    return error.SkipZigTest;
+    try runTestError("1b,`a`b!1 2", MergeError.incompatible_types);
+
+    try runTestError("1,`a`b!1 2", MergeError.incompatible_types);
+
+    try runTestError("1f,`a`b!1 2", MergeError.incompatible_types);
+
+    try runTestError("\"a\",`a`b!1 2", MergeError.incompatible_types);
+
+    try runTestError("`symbol,`a`b!1 2", MergeError.incompatible_types);
+
+    try runTest("(),`a`b!1 2", .{ .dictionary = &[_]TestValue{
+        .{ .symbol_list = &[_]TestValue{
+            .{ .symbol = "a" },
+            .{ .symbol = "b" },
+        } },
+        .{ .int_list = &[_]TestValue{
+            .{ .int = 1 },
+            .{ .int = 2 },
+        } },
+    } });
+
+    try runTestError("010b,`a`b!1 2", MergeError.incompatible_types);
+
+    try runTestError("0 1 2,`a`b!1 2", MergeError.incompatible_types);
+
+    try runTestError("0 1 2f,`a`b!1 2", MergeError.incompatible_types);
+
+    try runTestError("\"abcde\",`a`b!1 2", MergeError.incompatible_types);
+
+    try runTestError("`a`b`c`d`e,`a`b!1 2", MergeError.incompatible_types);
+
+    try runTest("(`a`b!1 2),`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 2 },
+            } },
+        },
+    });
+    try runTest("(`a`b!1 2),`a`b!3 4", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 3 },
+                .{ .int = 4 },
+            } },
+        },
+    });
+    try runTest("(`a`b!1 2),`c`d!3 4", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+                .{ .symbol = "c" },
+                .{ .symbol = "d" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 2 },
+                .{ .int = 3 },
+                .{ .int = 4 },
+            } },
+        },
+    });
+    try runTest("((`a;`b;1)!1 2 3),1 2!4 5", .{ .dictionary = &[_]TestValue{
+        .{ .list = &[_]TestValue{
+            .{ .symbol = "a" },
+            .{ .symbol = "b" },
+            .{ .int = 1 },
+            .{ .int = 2 },
+        } },
+        .{ .int_list = &[_]TestValue{
+            .{ .int = 1 },
+            .{ .int = 2 },
+            .{ .int = 4 },
+            .{ .int = 5 },
+        } },
+    } });
 }
 
 test "merge table" {

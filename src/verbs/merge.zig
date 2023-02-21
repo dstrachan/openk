@@ -5,6 +5,7 @@ const print = utils_mod.print;
 
 const value_mod = @import("../value.zig");
 const Value = value_mod.Value;
+const ValueDictionary = value_mod.ValueDictionary;
 const ValueType = value_mod.ValueType;
 
 const vm_mod = @import("../vm.zig");
@@ -136,6 +137,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .char_list,
             .symbol_list,
             => |list_y| if (list_x.len == 0) y.ref() else if (list_y.len == 0) x.ref() else vm.initValue(.{ .list = mergeLists(vm, list_x, list_y) }),
+            .dictionary => if (list_x.len == 0) y.ref() else runtimeError(MergeError.incompatible_types),
             else => runtimeError(MergeError.incompatible_types),
         },
         .boolean_list => |bool_list_x| switch (y.as) {
@@ -196,6 +198,38 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .float_list,
             .char_list,
             => |list_y| if (symbol_list_x.len == 0) y.ref() else if (list_y.len == 0) x.ref() else vm.initValue(.{ .list = mergeLists(vm, symbol_list_x, list_y) }),
+            else => runtimeError(MergeError.incompatible_types),
+        },
+        .dictionary => |dict_x| switch (y.as) {
+            .list => |list_y| if (list_y.len == 0) x.ref() else runtimeError(MergeError.incompatible_types),
+            .dictionary => blk: {
+                var key = switch (dict_x.key.as) {
+                    .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list| inner_blk: {
+                        var array_list = std.ArrayList(*Value).initCapacity(vm.allocator, list.len) catch std.debug.panic("Failed to create list.", .{});
+                        errdefer array_list.deinit();
+                        for (list) |v| {
+                            array_list.append(v.ref()) catch std.debug.panic("Failed to append value.", .{});
+                        }
+                        break :inner_blk array_list;
+                    },
+                    else => unreachable,
+                };
+                var value = switch (dict_x.value.as) {
+                    .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list| inner_blk: {
+                        var array_list = std.ArrayList(*Value).initCapacity(vm.allocator, list.len) catch std.debug.panic("Failed to create list.", .{});
+                        errdefer array_list.deinit();
+                        for (list) |v| {
+                            array_list.append(v.ref()) catch std.debug.panic("Failed to append value.", .{});
+                        }
+                        break :inner_blk array_list;
+                    },
+                    else => unreachable,
+                };
+                const new_key = vm.initValue(.{ .list = key.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{}) });
+                const new_value = vm.initValue(.{ .list = value.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{}) });
+                const dictionary = ValueDictionary.init(.{ .key = new_key, .value = new_value }, vm.allocator);
+                break :blk vm.initValue(.{ .dictionary = dictionary });
+            },
             else => runtimeError(MergeError.incompatible_types),
         },
         else => runtimeError(MergeError.incompatible_types),
