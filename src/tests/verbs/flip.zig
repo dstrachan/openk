@@ -135,4 +135,21 @@ test "flip" {
     });
     try runTestError("+1 2!1 2", FlipError.invalid_column_type);
     try runTestError("+`a`b!1 2", FlipError.invalid_value_type);
+
+    try runTest("+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+            } },
+        },
+    });
 }

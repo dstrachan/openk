@@ -61,42 +61,44 @@ pub fn flip(vm: *VM, x: *Value) FlipError!*Value {
             if (dict_x.key.as != .symbol_list) return runtimeError(*Value, FlipError.invalid_column_type);
             if (dict_x.value.as != .list) return runtimeError(*Value, FlipError.invalid_value_type);
 
-            const len = try validateListLen(dict_x.value.as.list);
-            const list = vm.allocator.alloc(*Value, len) catch std.debug.panic("Failed to create list.", .{});
+            const column_count = dict_x.key.as.symbol_list.len;
+            const table_len = try validateListLen(dict_x.value.as.list);
+
+            const value_list = vm.allocator.alloc(*Value, column_count) catch std.debug.panic("Failed to create list.", .{});
 
             var i: usize = 0;
-            while (i < len) : (i += 1) {
-                list[i] = switch (dict_x.value.as.list[i].as) {
+            while (i < column_count) : (i += 1) {
+                value_list[i] = switch (dict_x.value.as.list[i].as) {
                     .boolean => inner_blk: {
-                        const inner_list = vm.allocator.alloc(*Value, len) catch std.debug.panic("Failed to create list.", .{});
+                        const inner_list = vm.allocator.alloc(*Value, table_len) catch std.debug.panic("Failed to create list.", .{});
                         for (inner_list) |*inner_list_value| {
                             inner_list_value.* = dict_x.value.as.list[i].ref();
                         }
                         break :inner_blk vm.initValue(.{ .boolean_list = inner_list });
                     },
                     .int => inner_blk: {
-                        const inner_list = vm.allocator.alloc(*Value, len) catch std.debug.panic("Failed to create list.", .{});
+                        const inner_list = vm.allocator.alloc(*Value, table_len) catch std.debug.panic("Failed to create list.", .{});
                         for (inner_list) |*inner_list_value| {
                             inner_list_value.* = dict_x.value.as.list[i].ref();
                         }
                         break :inner_blk vm.initValue(.{ .int_list = inner_list });
                     },
                     .float => inner_blk: {
-                        const inner_list = vm.allocator.alloc(*Value, len) catch std.debug.panic("Failed to create list.", .{});
+                        const inner_list = vm.allocator.alloc(*Value, table_len) catch std.debug.panic("Failed to create list.", .{});
                         for (inner_list) |*inner_list_value| {
                             inner_list_value.* = dict_x.value.as.list[i].ref();
                         }
                         break :inner_blk vm.initValue(.{ .float_list = inner_list });
                     },
                     .char => inner_blk: {
-                        const inner_list = vm.allocator.alloc(*Value, len) catch std.debug.panic("Failed to create list.", .{});
+                        const inner_list = vm.allocator.alloc(*Value, table_len) catch std.debug.panic("Failed to create list.", .{});
                         for (inner_list) |*inner_list_value| {
                             inner_list_value.* = dict_x.value.as.list[i].ref();
                         }
                         break :inner_blk vm.initValue(.{ .char_list = inner_list });
                     },
                     .symbol => inner_blk: {
-                        const inner_list = vm.allocator.alloc(*Value, len) catch std.debug.panic("Failed to create list.", .{});
+                        const inner_list = vm.allocator.alloc(*Value, table_len) catch std.debug.panic("Failed to create list.", .{});
                         for (inner_list) |*inner_list_value| {
                             inner_list_value.* = dict_x.value.as.list[i].ref();
                         }
@@ -107,7 +109,7 @@ pub fn flip(vm: *VM, x: *Value) FlipError!*Value {
                 };
             }
 
-            const values = vm.initValue(.{ .list = list });
+            const values = vm.initValue(.{ .list = value_list });
             const table = ValueTable.init(.{ .columns = dict_x.key.ref(), .values = values }, vm.allocator);
 
             break :blk vm.initValue(.{ .table = table });
