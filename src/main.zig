@@ -38,16 +38,16 @@ fn repl(vm: *VM) !void {
             break;
         };
 
-        if (std.mem.eql(u8, line[0 .. line.len - 1], "\\\\")) {
-            break;
-        }
-
         var i = line.len;
         while (i > 0) {
             switch (line[i - 1]) {
                 ' ', '\t', '\r', '\n' => i -= 1,
                 else => break,
             }
+        }
+
+        if (std.mem.eql(u8, line[0..i], "\\\\")) {
+            break;
         }
 
         const result = vm.interpret(line[0..i]) catch continue;

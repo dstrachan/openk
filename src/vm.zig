@@ -16,6 +16,7 @@ const value_mod = @import("value.zig");
 const Value = value_mod.Value;
 const ValueFn = value_mod.ValueFunction;
 const ValueProjection = value_mod.ValueProjection;
+const ValueTable = value_mod.ValueTable;
 const ValueType = value_mod.ValueType;
 const ValueUnion = value_mod.ValueUnion;
 
@@ -94,6 +95,7 @@ pub const VM = struct {
             .char_list => self.initValue(.{ .char_list = &[_]*Value{} }),
             .symbol_list => self.initValue(.{ .symbol_list = &[_]*Value{} }),
             .dictionary => unreachable,
+            .table => unreachable,
             .function => unreachable,
             .projection => unreachable,
         };
@@ -398,6 +400,17 @@ pub const VM = struct {
                 .symbol => self.initValue(.{ .symbol_list = self.concat(x, y) }),
                 else => self.initValue(.{ .list = self.concat(x, y) }),
             },
+            .dictionary => |dict_x| switch (y.as) {
+                .dictionary => |dict_y| blk: {
+                    if (dict_x.key.as != .symbol_list or dict_x.key.as != .symbol_list or !dict_x.key.eql(dict_y.key)) break :blk self.initValue(.{ .list = self.concat(x, y) });
+
+                    const columns = dict_x.key.ref();
+                    const values = self.initValue(.{ .list = self.concat(dict_x.value, dict_y.value) });
+                    const table = ValueTable.init(.{ .columns = columns, .values = values }, self.allocator);
+                    break :blk self.initValue(.{ .table = table });
+                },
+                else => self.initValue(.{ .list = self.concat(x, y) }),
+            },
             .nil,
             .list,
             .boolean_list,
@@ -405,7 +418,7 @@ pub const VM = struct {
             .float_list,
             .char_list,
             .symbol_list,
-            .dictionary,
+            .table,
             .function,
             .projection,
             => self.initValue(.{ .list = self.concat(x, y) }),

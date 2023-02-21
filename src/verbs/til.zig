@@ -28,11 +28,11 @@ pub fn til(vm: *VM, x: *Value) TilError!*Value {
         .int => |int_x| blk: {
             const list = vm.allocator.alloc(*Value, std.math.absCast(int_x)) catch std.debug.panic("Failed to create list.", .{});
             if (int_x < 0) {
-                for (list) |_, i| {
+                for (list, 0..) |_, i| {
                     list[i] = vm.initValue(.{ .int = int_x + @intCast(i64, i) });
                 }
             } else {
-                for (list) |_, i| {
+                for (list, 0..) |_, i| {
                     list[i] = vm.initValue(.{ .int = @intCast(i64, i) });
                 }
             }

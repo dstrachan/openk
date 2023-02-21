@@ -5,7 +5,9 @@ const print = utils_mod.print;
 
 const value_mod = @import("../value.zig");
 const Value = value_mod.Value;
+const ValueDictionary = value_mod.ValueDictionary;
 const ValueType = value_mod.ValueType;
+const ValueUnion = value_mod.ValueUnion;
 
 const vm_mod = @import("../vm.zig");
 const VM = vm_mod.VM;
@@ -136,6 +138,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .char_list,
             .symbol_list,
             => |list_y| if (list_x.len == 0) y.ref() else if (list_y.len == 0) x.ref() else vm.initValue(.{ .list = mergeLists(vm, list_x, list_y) }),
+            .dictionary => if (list_x.len == 0) y.ref() else runtimeError(MergeError.incompatible_types),
             else => runtimeError(MergeError.incompatible_types),
         },
         .boolean_list => |bool_list_x| switch (y.as) {
@@ -198,6 +201,69 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             => |list_y| if (symbol_list_x.len == 0) y.ref() else if (list_y.len == 0) x.ref() else vm.initValue(.{ .list = mergeLists(vm, symbol_list_x, list_y) }),
             else => runtimeError(MergeError.incompatible_types),
         },
+        .dictionary => |dict_x| switch (y.as) {
+            .list => |list_y| if (list_y.len == 0) x.ref() else runtimeError(MergeError.incompatible_types),
+            .dictionary => |dict_y| blk: {
+                var key = dupeAsArrayList(dict_x.key, vm.allocator);
+                var key_list_type: ValueType = dict_x.key.as;
+                var value = dupeAsArrayList(dict_x.value, vm.allocator);
+                var value_list_type: ValueType = dict_x.value.as;
+                for (asList(dict_y.key), 0..) |k_y, i_y| loop: {
+                    for (key.items, 0..) |k_x, i_x| {
+                        if (k_x.eql(k_y)) {
+                            value.items[i_x].deref(vm.allocator);
+                            value.items[i_x] = asList(dict_y.value)[i_y].ref();
+                            if (value_list_type != .list and @as(ValueType, value.items[0].as) != value.items[i_x].as) value_list_type = .list;
+                            break :loop;
+                        }
+                    }
+                    key.append(k_y.ref()) catch std.debug.panic("Failed to append item.", .{});
+                    if (key_list_type != .list and @as(ValueType, key.items[0].as) != key.items[key.items.len - 1].as) key_list_type = .list;
+                    value.append(asList(dict_y.value)[i_y].ref()) catch std.debug.panic("Failed to append item.", .{});
+                    if (value_list_type != .list and @as(ValueType, value.items[0].as) != value.items[value.items.len - 1].as) value_list_type = .list;
+                }
+                const key_list = key.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                const new_key = vm.initValue(initList(key_list_type, key_list));
+                const value_list = value.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                const new_value = vm.initValue(initList(value_list_type, value_list));
+                const dictionary = ValueDictionary.init(.{ .key = new_key, .value = new_value }, vm.allocator);
+                break :blk vm.initValue(.{ .dictionary = dictionary });
+            },
+            else => runtimeError(MergeError.incompatible_types),
+        },
         else => runtimeError(MergeError.incompatible_types),
+    };
+}
+
+fn dupeAsArrayList(value: *Value, allocator: std.mem.Allocator) std.ArrayList(*Value) {
+    return switch (value.as) {
+        .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list| blk: {
+            var array_list = std.ArrayList(*Value).initCapacity(allocator, list.len) catch std.debug.panic("Failed to create list.", .{});
+            errdefer array_list.deinit();
+            for (list) |v| {
+                array_list.append(v.ref()) catch std.debug.panic("Failed to append value.", .{});
+            }
+            break :blk array_list;
+        },
+        else => unreachable,
+    };
+}
+
+fn asList(value: *Value) []*Value {
+    return switch (value.as) {
+        .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list| list,
+        else => unreachable,
+    };
+}
+
+fn initList(list_type: ValueType, list: []*Value) ValueUnion {
+    return switch (list_type) {
+        .list => .{ .list = list },
+        .boolean_list => .{ .boolean_list = list },
+        .int_list => .{ .int_list = list },
+        .float_list => .{ .float_list = list },
+        .char_list => .{ .char_list = list },
+        .symbol_list => .{ .symbol_list = list },
+        else => unreachable,
     };
 }

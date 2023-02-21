@@ -96,4 +96,77 @@ test "flip" {
     try runTestError("+(1;2f)", FlipError.invalid_type);
     try runTestError("+(1;2 3;4 5 6)", FlipError.length_mismatch);
     try runTestError("+(1;2 3;())", FlipError.length_mismatch);
+
+    try runTest("+`a`b!(1 1;2 2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                    .{ .int = 2 },
+                } },
+            } },
+        },
+    });
+    try runTest("+`a`b!(1;2 2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                    .{ .int = 2 },
+                } },
+            } },
+        },
+    });
+    try runTestError("+1 2!1 2", FlipError.invalid_column_type);
+    try runTestError("+`a`b!1 2", FlipError.invalid_value_type);
+
+    try runTest("+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+            } },
+        },
+    });
+
+    try runTest("++`a`b!(,1;,2)", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+            } },
+        },
+    });
 }

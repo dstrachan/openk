@@ -25,6 +25,7 @@ pub const ValueType = enum {
     symbol,
     symbol_list,
     dictionary,
+    table,
     function,
     projection,
 };
@@ -48,6 +49,7 @@ pub const ValueUnion = union(ValueType) {
     symbol_list: []*Value,
 
     dictionary: *ValueDictionary,
+    table: *ValueTable,
 
     function: *ValueFunction,
     projection: *ValueProjection,
@@ -124,6 +126,7 @@ pub const ValueUnion = union(ValueType) {
                 for (list) |value| try writer.print("`{s}", .{value.as.symbol});
             },
             .dictionary => |dict| try writer.print("{}!{}", .{ dict.key.as, dict.value.as }),
+            .table => |table| try writer.print("+{}!{}", .{ table.columns.as, table.values.as }),
             .function => |function| if (function.name) |name| try writer.print("{s}", .{name}) else try writer.writeAll("script"),
             .projection => |projection| {
                 const function = projection.value.as.function;
@@ -225,6 +228,7 @@ pub const Value = struct {
             .char_list => vm.initValue(.{ .char_list = &[_]*Value{} }),
             .symbol_list => vm.initValue(.{ .symbol_list = &[_]*Value{} }),
             .dictionary => |dict| dict.value.copyNull(vm),
+            .table => unreachable,
             .function => unreachable,
             .projection => unreachable,
         };
@@ -256,6 +260,10 @@ pub const Value = struct {
                 _ = dict.key.ref();
                 _ = dict.value.ref();
             },
+            .table => |table| {
+                _ = table.columns.ref();
+                _ = table.values.ref();
+            },
         }
         return self;
     }
@@ -284,6 +292,10 @@ pub const Value = struct {
                 dict.key.deref(allocator);
                 dict.value.deref(allocator);
             },
+            .table => |table| {
+                table.columns.deref(allocator);
+                table.values.deref(allocator);
+            },
         }
         if (self.reference_count == 0) {
             switch (self.as) {
@@ -302,6 +314,7 @@ pub const Value = struct {
                 .symbol_list,
                 => |list| allocator.free(list),
                 .dictionary => |dict| dict.deinit(allocator),
+                .table => |table| table.deinit(allocator),
                 .function => |function| function.deinit(allocator),
                 .projection => |projection| projection.deinit(allocator),
             }
@@ -324,8 +337,8 @@ pub const Value = struct {
             .list => |list_x| switch (y.as) {
                 .list => |list_y| {
                     if (list_x.len != list_y.len) return false;
-                    for (list_x) |value, i| {
-                        if (!value.eql(list_y[i])) return false;
+                    for (list_x, list_y) |value_x, value_y| {
+                        if (!value_x.eql(value_y)) return false;
                     }
                     return true;
                 },
@@ -334,8 +347,8 @@ pub const Value = struct {
             .boolean_list => |list_x| switch (y.as) {
                 .boolean_list => |list_y| {
                     if (list_x.len != list_y.len) return false;
-                    for (list_x) |value, i| {
-                        if (!value.eql(list_y[i])) return false;
+                    for (list_x, list_y) |value_x, value_y| {
+                        if (!value_x.eql(value_y)) return false;
                     }
                     return true;
                 },
@@ -344,8 +357,8 @@ pub const Value = struct {
             .int_list => |list_x| switch (y.as) {
                 .int_list => |list_y| {
                     if (list_x.len != list_y.len) return false;
-                    for (list_x) |value, i| {
-                        if (!value.eql(list_y[i])) return false;
+                    for (list_x, list_y) |value_x, value_y| {
+                        if (!value_x.eql(value_y)) return false;
                     }
                     return true;
                 },
@@ -354,8 +367,8 @@ pub const Value = struct {
             .float_list => |list_x| switch (y.as) {
                 .float_list => |list_y| {
                     if (list_x.len != list_y.len) return false;
-                    for (list_x) |value, i| {
-                        if (!value.eql(list_y[i])) return false;
+                    for (list_x, list_y) |value_x, value_y| {
+                        if (!value_x.eql(value_y)) return false;
                     }
                     return true;
                 },
@@ -364,8 +377,8 @@ pub const Value = struct {
             .char_list => |list_x| switch (y.as) {
                 .char_list => |list_y| {
                     if (list_x.len != list_y.len) return false;
-                    for (list_x) |value, i| {
-                        if (!value.eql(list_y[i])) return false;
+                    for (list_x, list_y) |value_x, value_y| {
+                        if (!value_x.eql(value_y)) return false;
                     }
                     return true;
                 },
@@ -374,8 +387,8 @@ pub const Value = struct {
             .symbol_list => |list_x| switch (y.as) {
                 .symbol_list => |list_y| {
                     if (list_x.len != list_y.len) return false;
-                    for (list_x) |value, i| {
-                        if (!value.eql(list_y[i])) return false;
+                    for (list_x, list_y) |value_x, value_y| {
+                        if (!value_x.eql(value_y)) return false;
                     }
                     return true;
                 },
@@ -458,6 +471,31 @@ pub const ValueDictionary = struct {
         self.* = Self{
             .key = config.key,
             .value = config.value,
+        };
+        return self;
+    }
+
+    pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+        allocator.destroy(self);
+    }
+};
+
+pub const ValueTable = struct {
+    const Self = @This();
+
+    pub const Config = struct {
+        columns: *Value,
+        values: *Value,
+    };
+
+    columns: *Value,
+    values: *Value,
+
+    pub fn init(config: Config, allocator: std.mem.Allocator) *Self {
+        const self = allocator.create(Self) catch std.debug.panic("Failed to create table", .{});
+        self.* = Self{
+            .columns = config.columns,
+            .values = config.values,
         };
         return self;
     }
