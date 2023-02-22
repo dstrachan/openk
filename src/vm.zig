@@ -504,6 +504,7 @@ pub const VM = struct {
 
         const value = switch (x.as) {
             .int => try verbs.til(self, x),
+            .dictionary => |dict| dict.key.ref(),
             else => unreachable,
         };
         try self.push(value);
@@ -699,7 +700,14 @@ pub const VM = struct {
     }
 
     fn opValue(self: *Self) !void {
-        return self.monadicVerb();
+        const x = self.pop();
+        defer x.deref(self.allocator);
+
+        const value = switch (x.as) {
+            .dictionary => |dict| dict.value.ref(),
+            else => unreachable,
+        };
+        try self.push(value);
     }
 
     fn opApplyN(self: *Self) !void {

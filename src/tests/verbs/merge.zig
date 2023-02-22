@@ -2754,5 +2754,56 @@ test "merge dictionary" {
 }
 
 test "merge table" {
-    return error.SkipZigTest;
+    try runTestError("1b,+`a`b!(,1;,2)", MergeError.incompatible_types);
+
+    try runTestError("1,+`a`b!(,1;,2)", MergeError.incompatible_types);
+
+    try runTestError("1f,+`a`b!(,1;,2)", MergeError.incompatible_types);
+
+    try runTestError("\"a\",+`a`b!(,1;,2)", MergeError.incompatible_types);
+
+    try runTestError("`symbol,+`a`b!(,1;,2)", MergeError.incompatible_types);
+
+    try runTest("(),+`a`b!(,1;,2)", .{ .dictionary = &[_]TestValue{
+        .{ .symbol_list = &[_]TestValue{
+            .{ .symbol = "a" },
+            .{ .symbol = "b" },
+        } },
+        .{ .int_list = &[_]TestValue{
+            .{ .int = 1 },
+            .{ .int = 2 },
+        } },
+    } });
+
+    try runTestError("010b,+`a`b!(,1;,2)", MergeError.incompatible_types);
+
+    try runTestError("0 1 2,+`a`b!(,1;,2)", MergeError.incompatible_types);
+
+    try runTestError("0 1 2f,+`a`b!(,1;,2)", MergeError.incompatible_types);
+
+    try runTestError("\"abcde\",+`a`b!(,1;,2)", MergeError.incompatible_types);
+
+    try runTestError("`a`b`c`d`e,+`a`b!(,1;,2)", MergeError.incompatible_types);
+
+    try runTest("(`a`b!1 2),+`a`b!(,3;,4)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                    .{ .int = 3 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                    .{ .int = 4 },
+                } },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2),+`c`d!(,3;,4)", MergeError.incompatible_types);
+
+    try runTest("(+`a`b!(,1;,2)),+`a`b!(,3;,4)", .{});
 }
