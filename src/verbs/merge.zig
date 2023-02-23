@@ -6,6 +6,7 @@ const print = utils_mod.print;
 const value_mod = @import("../value.zig");
 const Value = value_mod.Value;
 const ValueDictionary = value_mod.ValueDictionary;
+const ValueTable = value_mod.ValueTable;
 const ValueType = value_mod.ValueType;
 const ValueUnion = value_mod.ValueUnion;
 
@@ -139,6 +140,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .symbol_list,
             => |list_y| if (list_x.len == 0) y.ref() else if (list_y.len == 0) x.ref() else vm.initValue(.{ .list = mergeLists(vm, list_x, list_y) }),
             .dictionary => if (list_x.len == 0) y.ref() else runtimeError(MergeError.incompatible_types),
+            .table => if (list_x.len == 0) y.ref() else runtimeError(MergeError.incompatible_types),
             else => runtimeError(MergeError.incompatible_types),
         },
         .boolean_list => |bool_list_x| switch (y.as) {
@@ -229,6 +231,35 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
                 const dictionary = ValueDictionary.init(.{ .key = new_key, .value = new_value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
+            .table => |table_y| blk: {
+                if (!dict_x.key.eql(table_y.columns)) return runtimeError(MergeError.incompatible_types);
+
+                const col_count = dict_x.key.as.symbol_list.len;
+
+                const list = vm.allocator.alloc(*Value, col_count) catch std.debug.panic("Failed to create list.", .{});
+                for (0..list.len) |i| {
+                    const table_list = asList(table_y.values.as.list[i]);
+                    const value_list = vm.allocator.alloc(*Value, table_list.len + 1) catch std.debug.panic("Failed to create list.", .{});
+                    value_list[0] = asList(dict_x.value)[i].ref();
+                    for (table_list, 0..) |v, j| {
+                        value_list[j + 1] = v.ref();
+                    }
+                    const value_list_type: ValueType = if (@as(ValueType, dict_x.value.as) == table_y.values.as.list[i].as) dict_x.value.as else .list;
+                    print("list_type = {}\n", .{value_list_type});
+                    list[i] = vm.initValue(initList(value_list_type, value_list));
+                }
+                const values = vm.initValue(.{ .list = list });
+                const table = ValueTable.init(.{ .columns = dict_x.key.ref(), .values = values }, vm.allocator);
+                break :blk vm.initValue(.{ .table = table });
+            },
+            else => runtimeError(MergeError.incompatible_types),
+        },
+        .table => |table_x| switch (y.as) {
+            .table => |table_y| {
+                if (!table_x.columns.eql(table_y.columns)) return runtimeError(MergeError.incompatible_types);
+
+                return vm.initValue(.{ .int = 0 });
+            },
             else => runtimeError(MergeError.incompatible_types),
         },
         else => runtimeError(MergeError.incompatible_types),
@@ -236,17 +267,12 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
 }
 
 fn dupeAsArrayList(value: *Value, allocator: std.mem.Allocator) std.ArrayList(*Value) {
-    return switch (value.as) {
-        .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list| blk: {
-            var array_list = std.ArrayList(*Value).initCapacity(allocator, list.len) catch std.debug.panic("Failed to create list.", .{});
-            errdefer array_list.deinit();
-            for (list) |v| {
-                array_list.append(v.ref()) catch std.debug.panic("Failed to append value.", .{});
-            }
-            break :blk array_list;
-        },
-        else => unreachable,
-    };
+    const list = asList(value);
+    var array_list = std.ArrayList(*Value).initCapacity(allocator, list.len) catch std.debug.panic("Failed to create list.", .{});
+    for (list) |v| {
+        array_list.append(v.ref()) catch std.debug.panic("Failed to append item.", .{});
+    }
+    return array_list;
 }
 
 fn asList(value: *Value) []*Value {

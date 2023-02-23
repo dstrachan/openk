@@ -2764,16 +2764,19 @@ test "merge table" {
 
     try runTestError("`symbol,+`a`b!(,1;,2)", MergeError.incompatible_types);
 
-    try runTest("(),+`a`b!(,1;,2)", .{ .dictionary = &[_]TestValue{
-        .{ .symbol_list = &[_]TestValue{
+    try runTest("(),+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{ .{ .symbol_list = &[_]TestValue{
             .{ .symbol = "a" },
             .{ .symbol = "b" },
-        } },
-        .{ .int_list = &[_]TestValue{
-            .{ .int = 1 },
-            .{ .int = 2 },
-        } },
-    } });
+        } }, .{ .list = &[_]TestValue{
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 2 },
+            } },
+        } } },
+    });
 
     try runTestError("010b,+`a`b!(,1;,2)", MergeError.incompatible_types);
 
@@ -2803,7 +2806,97 @@ test "merge table" {
             } },
         },
     });
-    try runTestError("(`a`b!1 2),+`c`d!(,3;,4)", MergeError.incompatible_types);
+    try runTest("(`a`b!1 2),+`b`a!(,4;,3)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                    .{ .int = 3 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                    .{ .int = 4 },
+                } },
+            } },
+        },
+    });
+    try runTest("(`b`a!2 1),+`a`b!(,3;,4)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "b" },
+                .{ .symbol = "a" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                    .{ .int = 4 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                    .{ .int = 3 },
+                } },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(,1;,2)),+`c`d!(,3;,4)", MergeError.incompatible_types);
 
-    try runTest("(+`a`b!(,1;,2)),+`a`b!(,3;,4)", .{});
+    try runTest("(+`a`b!(,1;,2)),+`a`b!(,3;,4)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                    .{ .int = 3 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                    .{ .int = 4 },
+                } },
+            } },
+        },
+    });
+    try runTest("(+`a`b!(,1;,2)),+`b`a!(,4;,3)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                    .{ .int = 3 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                    .{ .int = 4 },
+                } },
+            } },
+        },
+    });
+    try runTest("(+`b`a!(,2;,1)),+`a`b!(,3;,4)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "b" },
+                .{ .symbol = "a" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                    .{ .int = 4 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                    .{ .int = 3 },
+                } },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(,1;,2)),+`c`d!(,3;,4)", MergeError.incompatible_types);
 }
