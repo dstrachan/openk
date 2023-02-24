@@ -107,11 +107,11 @@ pub const VM = struct {
 
     pub fn initList(self: *Self, list: []*Value, list_type: ?ValueType) *Value {
         return Value.init(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
-            .boolean => .{ .boolean_list = list },
-            .int => .{ .int_list = list },
-            .float => .{ .float_list = list },
-            .char => .{ .char_list = list },
-            .symbol => .{ .symbol_list = list },
+            .boolean, .boolean_list => .{ .boolean_list = list },
+            .int, .int_list => .{ .int_list = list },
+            .float, .float_list => .{ .float_list = list },
+            .char, .char_list => .{ .char_list = list },
+            .symbol, .symbol_list => .{ .symbol_list = list },
             else => .{ .list = list },
         }, self.allocator);
     }

@@ -2671,7 +2671,6 @@ test "merge list" {
     try runTestError("(`a`b!1 2),(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MergeError.incompatible_types);
 }
 
-// TODO: add table tests
 test "merge dictionary" {
     try runTestError("1b,`a`b!1 2", MergeError.incompatible_types);
 
@@ -2758,6 +2757,62 @@ test "merge dictionary" {
             .{ .int = 5 },
         } },
     } });
+
+    try runTest("(+`a`b!(,1;,2)),`a`b!1 2", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                    .{ .int = 2 },
+                } },
+            } },
+        },
+    });
+    try runTest("(+`a`b!(,1;,2)),`a`b!3 4", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                    .{ .int = 3 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                    .{ .int = 4 },
+                } },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(,1;,2)),`c`d!3 4", MergeError.incompatible_types);
+    try runTest("(+`b`a!(,2;,1)),`a`b!1 2", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "b" },
+                .{ .symbol = "a" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                    .{ .int = 2 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                    .{ .int = 1 },
+                } },
+            } },
+        },
+    });
 }
 
 test "merge table" {
