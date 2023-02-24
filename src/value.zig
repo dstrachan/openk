@@ -397,6 +397,27 @@ pub const Value = struct {
             else => false,
         };
     }
+
+    pub fn asList(self: *Value) []*Value {
+        return switch (self.as) {
+            .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list| list,
+            else => unreachable,
+        };
+    }
+
+    pub fn indexOf(self: *Value, value: *Value) ?usize {
+        for (self.asList(), 0..) |v, i| {
+            if (v.eql(value)) return i;
+        }
+        return null;
+    }
+
+    pub fn in(self: *Value, haystack: []*Value) bool {
+        for (haystack) |v| {
+            if (self.eql(v)) return true;
+        }
+        return false;
+    }
 };
 
 pub const ValueFunction = struct {
@@ -477,6 +498,12 @@ pub const ValueDictionary = struct {
 
     pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
         allocator.destroy(self);
+    }
+
+    pub fn tryGetValue(self: *Self, key: *Value) ?*Value {
+        for (self.key.asList(), 0..) |v, i| {
+            if (v.eql(key)) return self.value.asList()[i];
+        }
     }
 };
 

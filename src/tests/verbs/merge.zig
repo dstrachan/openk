@@ -8,6 +8,7 @@ const TestValue = vm_mod.TestValue;
 
 const MergeError = @import("../../verbs/merge.zig").MergeError;
 
+// TODO: add table tests
 test "merge boolean" {
     try runTest("1b,0b", .{
         .boolean_list = &[_]TestValue{
@@ -466,6 +467,7 @@ test "merge boolean" {
     try runTestError("(`a`b!1 2),00000b", MergeError.incompatible_types);
 }
 
+// TODO: add table tests
 test "merge int" {
     try runTest("1b,0", .{
         .list = &[_]TestValue{
@@ -946,6 +948,7 @@ test "merge int" {
     try runTestError("(`a`b!1 2),0 1 0N 0W -0W 2", MergeError.incompatible_types);
 }
 
+// TODO: add table tests
 test "merge float" {
     try runTest("1b,0f", .{
         .list = &[_]TestValue{
@@ -1405,6 +1408,7 @@ test "merge float" {
     try runTestError("(`a`b!1 2),0 1 0w 0w -0w 2", MergeError.incompatible_types);
 }
 
+// TODO: add table tests
 test "merge char" {
     try runTest("1b,\"a\"", .{
         .list = &[_]TestValue{
@@ -1764,6 +1768,7 @@ test "merge char" {
     try runTestError("(`a`b!1 2),\"abcde\"", MergeError.incompatible_types);
 }
 
+// TODO: add table tests
 test "merge symbol" {
     try runTest("1b,`symbol", .{
         .list = &[_]TestValue{
@@ -2123,6 +2128,7 @@ test "merge symbol" {
     try runTestError("(`a`b!1 2),`a`b`c`d`e", MergeError.incompatible_types);
 }
 
+// TODO: add table tests
 test "merge list" {
     try runTest("1b,()", .{
         .boolean_list = &[_]TestValue{
@@ -2665,6 +2671,7 @@ test "merge list" {
     try runTestError("(`a`b!1 2),(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MergeError.incompatible_types);
 }
 
+// TODO: add table tests
 test "merge dictionary" {
     try runTestError("1b,`a`b!1 2", MergeError.incompatible_types);
 
