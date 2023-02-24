@@ -105,6 +105,17 @@ pub const VM = struct {
         return Value.init(data, self.allocator);
     }
 
+    pub fn initList(self: *Self, list: []*Value, list_type: ?ValueType) *Value {
+        return Value.init(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
+            .boolean => .{ .boolean_list = list },
+            .int => .{ .int_list = list },
+            .float => .{ .float_list = list },
+            .char => .{ .char_list = list },
+            .symbol => .{ .symbol_list = list },
+            else => .{ .list = list },
+        }, self.allocator);
+    }
+
     pub fn copySymbol(self: *Self, chars: []const u8) *Value {
         const interned = self.symbols.get(chars);
         if (interned) |value| {
