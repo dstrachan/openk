@@ -105,6 +105,17 @@ pub const VM = struct {
         return Value.init(data, self.allocator);
     }
 
+    pub fn initList(self: *Self, list: []*Value, list_type: ?ValueType) *Value {
+        return Value.init(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
+            .boolean, .boolean_list => .{ .boolean_list = list },
+            .int, .int_list => .{ .int_list = list },
+            .float, .float_list => .{ .float_list = list },
+            .char, .char_list => .{ .char_list = list },
+            .symbol, .symbol_list => .{ .symbol_list = list },
+            else => .{ .list = list },
+        }, self.allocator);
+    }
+
     pub fn copySymbol(self: *Self, chars: []const u8) *Value {
         const interned = self.symbols.get(chars);
         if (interned) |value| {
@@ -504,6 +515,7 @@ pub const VM = struct {
 
         const value = switch (x.as) {
             .int => try verbs.til(self, x),
+            .dictionary => |dict| dict.key.ref(),
             else => unreachable,
         };
         try self.push(value);
@@ -699,7 +711,14 @@ pub const VM = struct {
     }
 
     fn opValue(self: *Self) !void {
-        return self.monadicVerb();
+        const x = self.pop();
+        defer x.deref(self.allocator);
+
+        const value = switch (x.as) {
+            .dictionary => |dict| dict.value.ref(),
+            else => unreachable,
+        };
+        try self.push(value);
     }
 
     fn opApplyN(self: *Self) !void {

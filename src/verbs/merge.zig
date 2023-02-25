@@ -6,8 +6,11 @@ const print = utils_mod.print;
 const value_mod = @import("../value.zig");
 const Value = value_mod.Value;
 const ValueDictionary = value_mod.ValueDictionary;
+const ValueTable = value_mod.ValueTable;
 const ValueType = value_mod.ValueType;
 const ValueUnion = value_mod.ValueUnion;
+
+const first = @import("first.zig").first;
 
 const vm_mod = @import("../vm.zig");
 const VM = vm_mod.VM;
@@ -75,6 +78,12 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .char_list,
             .symbol_list,
             => |list_y| vm.initValue(if (list_y.len == 0) .{ .boolean_list = mergeAtomList(vm, x, list_y) } else .{ .list = mergeAtomList(vm, x, list_y) }),
+            .table => blk: {
+                const list = vm.allocator.alloc(*Value, 2) catch std.debug.panic("Failed to create list.", .{});
+                list[0] = x.ref();
+                list[1] = try first(vm, y);
+                break :blk vm.initValue(.{ .list = list });
+            },
             else => runtimeError(MergeError.incompatible_types),
         },
         .int => switch (y.as) {
@@ -87,6 +96,12 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .char_list,
             .symbol_list,
             => |list_y| vm.initValue(if (list_y.len == 0) .{ .int_list = mergeAtomList(vm, x, list_y) } else .{ .list = mergeAtomList(vm, x, list_y) }),
+            .table => blk: {
+                const list = vm.allocator.alloc(*Value, 2) catch std.debug.panic("Failed to create list.", .{});
+                list[0] = x.ref();
+                list[1] = try first(vm, y);
+                break :blk vm.initValue(.{ .list = list });
+            },
             else => runtimeError(MergeError.incompatible_types),
         },
         .float => switch (y.as) {
@@ -99,6 +114,12 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .char_list,
             .symbol_list,
             => |list_y| vm.initValue(if (list_y.len == 0) .{ .float_list = mergeAtomList(vm, x, list_y) } else .{ .list = mergeAtomList(vm, x, list_y) }),
+            .table => blk: {
+                const list = vm.allocator.alloc(*Value, 2) catch std.debug.panic("Failed to create list.", .{});
+                list[0] = x.ref();
+                list[1] = try first(vm, y);
+                break :blk vm.initValue(.{ .list = list });
+            },
             else => runtimeError(MergeError.incompatible_types),
         },
         .char => switch (y.as) {
@@ -111,6 +132,12 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .float_list,
             .symbol_list,
             => |list_y| vm.initValue(if (list_y.len == 0) .{ .char_list = mergeAtomList(vm, x, list_y) } else .{ .list = mergeAtomList(vm, x, list_y) }),
+            .table => blk: {
+                const list = vm.allocator.alloc(*Value, 2) catch std.debug.panic("Failed to create list.", .{});
+                list[0] = x.ref();
+                list[1] = try first(vm, y);
+                break :blk vm.initValue(.{ .list = list });
+            },
             else => runtimeError(MergeError.incompatible_types),
         },
         .symbol => switch (y.as) {
@@ -123,6 +150,12 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .float_list,
             .char_list,
             => |list_y| vm.initValue(if (list_y.len == 0) .{ .symbol_list = mergeAtomList(vm, x, list_y) } else .{ .list = mergeAtomList(vm, x, list_y) }),
+            .table => blk: {
+                const list = vm.allocator.alloc(*Value, 2) catch std.debug.panic("Failed to create list.", .{});
+                list[0] = x.ref();
+                list[1] = try first(vm, y);
+                break :blk vm.initValue(.{ .list = list });
+            },
             else => runtimeError(MergeError.incompatible_types),
         },
         .list => |list_x| switch (y.as) {
@@ -139,6 +172,15 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .symbol_list,
             => |list_y| if (list_x.len == 0) y.ref() else if (list_y.len == 0) x.ref() else vm.initValue(.{ .list = mergeLists(vm, list_x, list_y) }),
             .dictionary => if (list_x.len == 0) y.ref() else runtimeError(MergeError.incompatible_types),
+            .table => blk: {
+                if (list_x.len == 0) break :blk y.ref();
+                const list = vm.allocator.alloc(*Value, list_x.len + 1) catch std.debug.panic("Failed to create list.", .{});
+                for (list_x, 0..) |v, i| {
+                    list[i] = v.ref();
+                }
+                list[list_x.len] = try first(vm, y);
+                break :blk vm.initValue(.{ .list = list });
+            },
             else => runtimeError(MergeError.incompatible_types),
         },
         .boolean_list => |bool_list_x| switch (y.as) {
@@ -151,6 +193,15 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .char_list,
             .symbol_list,
             => |list_y| if (bool_list_x.len == 0) y.ref() else if (list_y.len == 0) x.ref() else vm.initValue(.{ .list = mergeLists(vm, bool_list_x, list_y) }),
+            .table => blk: {
+                if (bool_list_x.len == 0) break :blk y.ref();
+                const list = vm.allocator.alloc(*Value, bool_list_x.len + 1) catch std.debug.panic("Failed to create list.", .{});
+                for (bool_list_x, 0..) |v, i| {
+                    list[i] = v.ref();
+                }
+                list[bool_list_x.len] = try first(vm, y);
+                break :blk vm.initValue(.{ .list = list });
+            },
             else => runtimeError(MergeError.incompatible_types),
         },
         .int_list => |int_list_x| switch (y.as) {
@@ -163,6 +214,15 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .char_list,
             .symbol_list,
             => |list_y| if (int_list_x.len == 0) y.ref() else if (list_y.len == 0) x.ref() else vm.initValue(.{ .list = mergeLists(vm, int_list_x, list_y) }),
+            .table => blk: {
+                if (int_list_x.len == 0) break :blk y.ref();
+                const list = vm.allocator.alloc(*Value, int_list_x.len + 1) catch std.debug.panic("Failed to create list.", .{});
+                for (int_list_x, 0..) |v, i| {
+                    list[i] = v.ref();
+                }
+                list[int_list_x.len] = try first(vm, y);
+                break :blk vm.initValue(.{ .list = list });
+            },
             else => runtimeError(MergeError.incompatible_types),
         },
         .float_list => |float_list_x| switch (y.as) {
@@ -175,6 +235,15 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .char_list,
             .symbol_list,
             => |list_y| if (float_list_x.len == 0) y.ref() else if (list_y.len == 0) x.ref() else vm.initValue(.{ .list = mergeLists(vm, float_list_x, list_y) }),
+            .table => blk: {
+                if (float_list_x.len == 0) break :blk y.ref();
+                const list = vm.allocator.alloc(*Value, float_list_x.len + 1) catch std.debug.panic("Failed to create list.", .{});
+                for (float_list_x, 0..) |v, i| {
+                    list[i] = v.ref();
+                }
+                list[float_list_x.len] = try first(vm, y);
+                break :blk vm.initValue(.{ .list = list });
+            },
             else => runtimeError(MergeError.incompatible_types),
         },
         .char_list => |char_list_x| switch (y.as) {
@@ -187,6 +256,15 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .float_list,
             .symbol_list,
             => |list_y| if (char_list_x.len == 0) y.ref() else if (list_y.len == 0) x.ref() else vm.initValue(.{ .list = mergeLists(vm, char_list_x, list_y) }),
+            .table => blk: {
+                if (char_list_x.len == 0) break :blk y.ref();
+                const list = vm.allocator.alloc(*Value, char_list_x.len + 1) catch std.debug.panic("Failed to create list.", .{});
+                for (char_list_x, 0..) |v, i| {
+                    list[i] = v.ref();
+                }
+                list[char_list_x.len] = try first(vm, y);
+                break :blk vm.initValue(.{ .list = list });
+            },
             else => runtimeError(MergeError.incompatible_types),
         },
         .symbol_list => |symbol_list_x| switch (y.as) {
@@ -199,6 +277,15 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .float_list,
             .char_list,
             => |list_y| if (symbol_list_x.len == 0) y.ref() else if (list_y.len == 0) x.ref() else vm.initValue(.{ .list = mergeLists(vm, symbol_list_x, list_y) }),
+            .table => blk: {
+                if (symbol_list_x.len == 0) break :blk y.ref();
+                const list = vm.allocator.alloc(*Value, symbol_list_x.len + 1) catch std.debug.panic("Failed to create list.", .{});
+                for (symbol_list_x, 0..) |v, i| {
+                    list[i] = v.ref();
+                }
+                list[symbol_list_x.len] = try first(vm, y);
+                break :blk vm.initValue(.{ .list = list });
+            },
             else => runtimeError(MergeError.incompatible_types),
         },
         .dictionary => |dict_x| switch (y.as) {
@@ -208,26 +295,113 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
                 var key_list_type: ValueType = dict_x.key.as;
                 var value = dupeAsArrayList(dict_x.value, vm.allocator);
                 var value_list_type: ValueType = dict_x.value.as;
-                for (asList(dict_y.key), 0..) |k_y, i_y| loop: {
+                for (dict_y.key.asList(), 0..) |k_y, i_y| loop: {
                     for (key.items, 0..) |k_x, i_x| {
                         if (k_x.eql(k_y)) {
                             value.items[i_x].deref(vm.allocator);
-                            value.items[i_x] = asList(dict_y.value)[i_y].ref();
+                            value.items[i_x] = dict_y.value.asList()[i_y].ref();
                             if (value_list_type != .list and @as(ValueType, value.items[0].as) != value.items[i_x].as) value_list_type = .list;
                             break :loop;
                         }
                     }
                     key.append(k_y.ref()) catch std.debug.panic("Failed to append item.", .{});
                     if (key_list_type != .list and @as(ValueType, key.items[0].as) != key.items[key.items.len - 1].as) key_list_type = .list;
-                    value.append(asList(dict_y.value)[i_y].ref()) catch std.debug.panic("Failed to append item.", .{});
+                    value.append(dict_y.value.asList()[i_y].ref()) catch std.debug.panic("Failed to append item.", .{});
                     if (value_list_type != .list and @as(ValueType, value.items[0].as) != value.items[value.items.len - 1].as) value_list_type = .list;
                 }
                 const key_list = key.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
-                const new_key = vm.initValue(initList(key_list_type, key_list));
+                const new_key = vm.initList(key_list, key_list_type);
                 const value_list = value.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
-                const new_value = vm.initValue(initList(value_list_type, value_list));
+                const new_value = vm.initList(value_list, value_list_type);
                 const dictionary = ValueDictionary.init(.{ .key = new_key, .value = new_value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
+            },
+            .table => |table_y| blk: {
+                if (dict_x.key.as != .symbol_list or dict_x.key.as.symbol_list.len != table_y.columns.as.symbol_list.len) return runtimeError(MergeError.incompatible_types);
+                for (dict_x.key.as.symbol_list) |c| {
+                    if (!c.in(table_y.columns.as.symbol_list)) return runtimeError(MergeError.incompatible_types);
+                }
+
+                const list = vm.allocator.alloc(*Value, dict_x.key.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
+                for (0..list.len) |x_i| {
+                    const y_i = table_y.columns.indexOf(dict_x.key.as.symbol_list[x_i]) orelse unreachable;
+                    const y_list = table_y.values.as.list[y_i].asList();
+                    const value_list = vm.allocator.alloc(*Value, y_list.len + 1) catch std.debug.panic("Failed to create list.", .{});
+                    value_list[0] = dict_x.value.asList()[x_i].ref();
+                    for (y_list, 0..) |v, j| {
+                        value_list[j + 1] = v.ref();
+                    }
+                    const value_list_type: ValueType = if (@as(ValueType, dict_x.value.as) == table_y.values.as.list[y_i].as) dict_x.value.as else .list;
+                    list[x_i] = vm.initList(value_list, value_list_type);
+                }
+                const values = vm.initValue(.{ .list = list });
+                const table = ValueTable.init(.{ .columns = dict_x.key.ref(), .values = values }, vm.allocator);
+                break :blk vm.initValue(.{ .table = table });
+            },
+            else => runtimeError(MergeError.incompatible_types),
+        },
+        .table => |table_x| switch (y.as) {
+            .boolean, .int, .float, .char, .symbol => blk: {
+                const list = vm.allocator.alloc(*Value, 2) catch std.debug.panic("Failed to create list.", .{});
+                list[0] = try first(vm, x);
+                list[1] = y.ref();
+                break :blk vm.initValue(.{ .list = list });
+            },
+            .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_y| blk: {
+                if (list_y.len == 0) break :blk x.ref();
+                const list = vm.allocator.alloc(*Value, list_y.len + 1) catch std.debug.panic("Failed to create list.", .{});
+                list[0] = try first(vm, x);
+                for (list_y, 0..) |v, i| {
+                    list[i + 1] = v.ref();
+                }
+                break :blk vm.initValue(.{ .list = list });
+            },
+            .dictionary => |dict_y| blk: {
+                if (dict_y.key.as != .symbol_list or table_x.columns.as.symbol_list.len != dict_y.key.as.symbol_list.len) return runtimeError(MergeError.incompatible_types);
+                for (table_x.columns.as.symbol_list) |c| {
+                    if (!c.in(dict_y.key.as.symbol_list)) return runtimeError(MergeError.incompatible_types);
+                }
+
+                const list = vm.allocator.alloc(*Value, table_x.columns.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
+                for (0..list.len) |x_i| {
+                    const y_i = dict_y.key.indexOf(table_x.columns.as.symbol_list[x_i]) orelse unreachable;
+                    const x_list = table_x.values.as.list[x_i].asList();
+                    const value_list = vm.allocator.alloc(*Value, x_list.len + 1) catch std.debug.panic("Failed to create list.", .{});
+                    for (x_list, 0..) |v, j| {
+                        value_list[j] = v.ref();
+                    }
+                    value_list[x_list.len] = dict_y.value.asList()[y_i].ref();
+                    const value_type: ValueType = if (@as(ValueType, table_x.values.as.list[x_i].as) == dict_y.value.as) dict_y.value.as else .list;
+                    list[x_i] = vm.initList(value_list, value_type);
+                }
+                const values = vm.initValue(.{ .list = list });
+                const table = ValueTable.init(.{ .columns = table_x.columns.ref(), .values = values }, vm.allocator);
+                break :blk vm.initValue(.{ .table = table });
+            },
+            .table => |table_y| blk: {
+                if (table_x.columns.as.symbol_list.len != table_y.columns.as.symbol_list.len) return runtimeError(MergeError.incompatible_types);
+                for (table_x.columns.as.symbol_list) |c| {
+                    if (!c.in(table_y.columns.as.symbol_list)) return runtimeError(MergeError.incompatible_types);
+                }
+
+                const list = vm.allocator.alloc(*Value, table_x.columns.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
+                for (0..list.len) |x_i| {
+                    const y_i = table_y.columns.indexOf(table_x.columns.as.symbol_list[x_i]) orelse unreachable;
+                    const x_list = table_x.values.as.list[x_i].asList();
+                    const y_list = table_y.values.as.list[y_i].asList();
+                    const value_list = vm.allocator.alloc(*Value, x_list.len + y_list.len) catch std.debug.panic("Failed to create list.", .{});
+                    for (x_list, 0..) |v, j| {
+                        value_list[j] = v.ref();
+                    }
+                    for (y_list, 0..) |v, j| {
+                        value_list[j + x_list.len] = v.ref();
+                    }
+                    const value_list_type: ValueType = if (@as(ValueType, table_x.values.as.list[x_i].as) == table_y.values.as.list[y_i].as) table_x.values.as.list[x_i].as else .list;
+                    list[x_i] = vm.initList(value_list, value_list_type);
+                }
+                const values = vm.initValue(.{ .list = list });
+                const table = ValueTable.init(.{ .columns = table_x.columns.ref(), .values = values }, vm.allocator);
+                break :blk vm.initValue(.{ .table = table });
             },
             else => runtimeError(MergeError.incompatible_types),
         },
@@ -236,34 +410,10 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
 }
 
 fn dupeAsArrayList(value: *Value, allocator: std.mem.Allocator) std.ArrayList(*Value) {
-    return switch (value.as) {
-        .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list| blk: {
-            var array_list = std.ArrayList(*Value).initCapacity(allocator, list.len) catch std.debug.panic("Failed to create list.", .{});
-            errdefer array_list.deinit();
-            for (list) |v| {
-                array_list.append(v.ref()) catch std.debug.panic("Failed to append value.", .{});
-            }
-            break :blk array_list;
-        },
-        else => unreachable,
-    };
-}
-
-fn asList(value: *Value) []*Value {
-    return switch (value.as) {
-        .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list| list,
-        else => unreachable,
-    };
-}
-
-fn initList(list_type: ValueType, list: []*Value) ValueUnion {
-    return switch (list_type) {
-        .list => .{ .list = list },
-        .boolean_list => .{ .boolean_list = list },
-        .int_list => .{ .int_list = list },
-        .float_list => .{ .float_list = list },
-        .char_list => .{ .char_list = list },
-        .symbol_list => .{ .symbol_list = list },
-        else => unreachable,
-    };
+    const list = value.asList();
+    var array_list = std.ArrayList(*Value).initCapacity(allocator, list.len) catch std.debug.panic("Failed to create list.", .{});
+    for (list) |v| {
+        array_list.append(v.ref()) catch std.debug.panic("Failed to append item.", .{});
+    }
+    return array_list;
 }
