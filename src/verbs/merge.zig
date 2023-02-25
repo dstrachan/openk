@@ -341,7 +341,13 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             else => runtimeError(MergeError.incompatible_types),
         },
         .table => |table_x| switch (y.as) {
-            .list => |list_y| blk: {
+            .boolean, .int, .float, .char, .symbol => blk: {
+                const list = vm.allocator.alloc(*Value, 2) catch std.debug.panic("Failed to create list.", .{});
+                list[0] = try first(vm, x);
+                list[1] = y.ref();
+                break :blk vm.initValue(.{ .list = list });
+            },
+            .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_y| blk: {
                 if (list_y.len == 0) break :blk x.ref();
                 const list = vm.allocator.alloc(*Value, list_y.len + 1) catch std.debug.panic("Failed to create list.", .{});
                 list[0] = try first(vm, x);
