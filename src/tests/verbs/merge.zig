@@ -2872,7 +2872,6 @@ test "merge dictionary" {
     });
 }
 
-// TODO: 0-length list , table
 test "merge table" {
     try runTest("1b,+`a`b!(,1;,2)", .{
         .list = &[_]TestValue{
@@ -2988,6 +2987,22 @@ test "merge table" {
         },
     });
 
+    try runTest("(`boolean$()),+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+            } },
+        },
+    });
     try runTest("010b,+`a`b!(,1;,2)", .{
         .list = &[_]TestValue{
             .{ .boolean = false },
@@ -3006,6 +3021,22 @@ test "merge table" {
         },
     });
 
+    try runTest("(`int$()),+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+            } },
+        },
+    });
     try runTest("0 1 2,+`a`b!(,1;,2)", .{
         .list = &[_]TestValue{
             .{ .int = 0 },
@@ -3024,6 +3055,22 @@ test "merge table" {
         },
     });
 
+    try runTest("(`float$()),+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+            } },
+        },
+    });
     try runTest("0 1 2f,+`a`b!(,1;,2)", .{
         .list = &[_]TestValue{
             .{ .float = 0 },
@@ -3042,6 +3089,22 @@ test "merge table" {
         },
     });
 
+    try runTest("\"\",+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+            } },
+        },
+    });
     try runTest("\"abcde\",+`a`b!(,1;,2)", .{
         .list = &[_]TestValue{
             .{ .char = 'a' },
@@ -3062,6 +3125,22 @@ test "merge table" {
         },
     });
 
+    try runTest("(`$()),+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+            } },
+        },
+    });
     try runTest("`a`b`c`d`e,+`a`b!(,1;,2)", .{
         .list = &[_]TestValue{
             .{ .symbol = "a" },

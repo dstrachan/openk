@@ -194,6 +194,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .symbol_list,
             => |list_y| if (bool_list_x.len == 0) y.ref() else if (list_y.len == 0) x.ref() else vm.initValue(.{ .list = mergeLists(vm, bool_list_x, list_y) }),
             .table => blk: {
+                if (bool_list_x.len == 0) break :blk y.ref();
                 const list = vm.allocator.alloc(*Value, bool_list_x.len + 1) catch std.debug.panic("Failed to create list.", .{});
                 for (bool_list_x, 0..) |v, i| {
                     list[i] = v.ref();
@@ -214,6 +215,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .symbol_list,
             => |list_y| if (int_list_x.len == 0) y.ref() else if (list_y.len == 0) x.ref() else vm.initValue(.{ .list = mergeLists(vm, int_list_x, list_y) }),
             .table => blk: {
+                if (int_list_x.len == 0) break :blk y.ref();
                 const list = vm.allocator.alloc(*Value, int_list_x.len + 1) catch std.debug.panic("Failed to create list.", .{});
                 for (int_list_x, 0..) |v, i| {
                     list[i] = v.ref();
@@ -234,6 +236,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .symbol_list,
             => |list_y| if (float_list_x.len == 0) y.ref() else if (list_y.len == 0) x.ref() else vm.initValue(.{ .list = mergeLists(vm, float_list_x, list_y) }),
             .table => blk: {
+                if (float_list_x.len == 0) break :blk y.ref();
                 const list = vm.allocator.alloc(*Value, float_list_x.len + 1) catch std.debug.panic("Failed to create list.", .{});
                 for (float_list_x, 0..) |v, i| {
                     list[i] = v.ref();
@@ -254,6 +257,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .symbol_list,
             => |list_y| if (char_list_x.len == 0) y.ref() else if (list_y.len == 0) x.ref() else vm.initValue(.{ .list = mergeLists(vm, char_list_x, list_y) }),
             .table => blk: {
+                if (char_list_x.len == 0) break :blk y.ref();
                 const list = vm.allocator.alloc(*Value, char_list_x.len + 1) catch std.debug.panic("Failed to create list.", .{});
                 for (char_list_x, 0..) |v, i| {
                     list[i] = v.ref();
@@ -274,6 +278,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .char_list,
             => |list_y| if (symbol_list_x.len == 0) y.ref() else if (list_y.len == 0) x.ref() else vm.initValue(.{ .list = mergeLists(vm, symbol_list_x, list_y) }),
             .table => blk: {
+                if (symbol_list_x.len == 0) break :blk y.ref();
                 const list = vm.allocator.alloc(*Value, symbol_list_x.len + 1) catch std.debug.panic("Failed to create list.", .{});
                 for (symbol_list_x, 0..) |v, i| {
                     list[i] = v.ref();
