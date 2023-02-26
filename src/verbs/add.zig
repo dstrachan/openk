@@ -5,6 +5,7 @@ const print = utils_mod.print;
 
 const value_mod = @import("../value.zig");
 const Value = value_mod.Value;
+const ValueDictionary = value_mod.ValueDictionary;
 const ValueType = value_mod.ValueType;
 
 const vm_mod = @import("../vm.zig");
@@ -73,6 +74,11 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                 }
                 break :blk vm.initValue(.{ .float_list = list });
             },
+            .dictionary => |dict_y| blk: {
+                const value = try add(vm, x, dict_y.value);
+                const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
+                break :blk vm.initValue(.{ .dictionary = dictionary });
+            },
             else => runtimeError(AddError.incompatible_types),
         },
         .int => |int_x| switch (y.as) {
@@ -114,6 +120,11 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                 }
                 break :blk vm.initValue(.{ .float_list = list });
             },
+            .dictionary => |dict_y| blk: {
+                const value = try add(vm, x, dict_y.value);
+                const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
+                break :blk vm.initValue(.{ .dictionary = dictionary });
+            },
             else => runtimeError(AddError.incompatible_types),
         },
         .float => |float_x| switch (y.as) {
@@ -154,6 +165,11 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                     list[i] = vm.initValue(.{ .float = addFloat(float_x, value.as.float) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
+            },
+            .dictionary => |dict_y| blk: {
+                const value = try add(vm, x, dict_y.value);
+                const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
+                break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             else => runtimeError(AddError.incompatible_types),
         },
@@ -265,6 +281,11 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                     else => .{ .list = list },
                 });
             },
+            .dictionary => |dict_y| blk: {
+                const value = try add(vm, x, dict_y.value);
+                const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
+                break :blk vm.initValue(.{ .dictionary = dictionary });
+            },
             else => runtimeError(AddError.incompatible_types),
         },
         .boolean_list => |bool_list_x| switch (y.as) {
@@ -331,6 +352,11 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                     list[i] = vm.initValue(.{ .float = addFloat(if (bool_list_x[i].as.boolean) 1 else 0, value.as.float) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
+            },
+            .dictionary => |dict_y| blk: {
+                const value = try add(vm, x, dict_y.value);
+                const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
+                break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             else => runtimeError(AddError.incompatible_types),
         },
@@ -399,6 +425,11 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                 }
                 break :blk vm.initValue(.{ .float_list = list });
             },
+            .dictionary => |dict_y| blk: {
+                const value = try add(vm, x, dict_y.value);
+                const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
+                break :blk vm.initValue(.{ .dictionary = dictionary });
+            },
             else => runtimeError(AddError.incompatible_types),
         },
         .float_list => |float_list_x| switch (y.as) {
@@ -460,6 +491,49 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                     list[i] = vm.initValue(.{ .float = addFloat(float_list_x[i].as.float, value.as.float) });
                 }
                 break :blk vm.initValue(.{ .float_list = list });
+            },
+            .dictionary => |dict_y| blk: {
+                const value = try add(vm, x, dict_y.value);
+                const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
+                break :blk vm.initValue(.{ .dictionary = dictionary });
+            },
+            else => runtimeError(AddError.incompatible_types),
+        },
+        .dictionary => |dict_x| switch (y.as) {
+            .boolean, .int, .float, .char, .symbol, .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => blk: {
+                const value = try add(vm, dict_x.value, y);
+                const dictionary = ValueDictionary.init(.{ .key = dict_x.key.ref(), .value = value }, vm.allocator);
+                break :blk vm.initValue(.{ .dictionary = dictionary });
+            },
+            .dictionary => |dict_y| blk: {
+                var key = dict_x.key.asArrayList(vm.allocator);
+                errdefer key.deinit();
+                errdefer for (key.items) |v| v.deref(vm.allocator);
+                var key_list_type: ValueType = dict_x.key.as;
+                var value = dict_x.value.asArrayList(vm.allocator);
+                errdefer value.deinit();
+                errdefer for (value.items) |v| v.deref(vm.allocator);
+                var value_list_type: ValueType = dict_x.value.as;
+                for (dict_y.key.asList(), 0..) |k_y, i_y| loop: {
+                    for (key.items, 0..) |k_x, i_x| {
+                        if (k_x.eql(k_y)) {
+                            value.items[i_x].deref(vm.allocator);
+                            value.items[i_x] = try add(vm, value.items[i_x], dict_y.value.asList()[i_y]);
+                            if (value_list_type != .list and @as(ValueType, value.items[0].as) != value.items[i_x].as) value_list_type = .list;
+                            break :loop;
+                        }
+                    }
+                    key.append(k_y.ref()) catch std.debug.panic("Failed to append item.", .{});
+                    if (key_list_type != .list and @as(ValueType, key.items[0].as) != key.items[key.items.len - 1].as) key_list_type = .list;
+                    value.append(dict_y.value.asList()[i_y].ref()) catch std.debug.panic("Failed to append item.", .{});
+                    if (value_list_type != .list and @as(ValueType, value.items[0].as) != value.items[value.items.len - 1].as) value_list_type = .list;
+                }
+                const key_list = key.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                const new_key = vm.initList(key_list, key_list_type);
+                const value_list = value.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                const new_value = vm.initList(value_list, value_list_type);
+                const dictionary = ValueDictionary.init(.{ .key = new_key, .value = new_value }, vm.allocator);
+                break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             else => runtimeError(AddError.incompatible_types),
         },

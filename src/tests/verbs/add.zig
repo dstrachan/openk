@@ -596,9 +596,8 @@ test "add char" {
     try runTestError("`a`b`c`d`e+\"abcde\"", AddError.incompatible_types);
 
     try runTestError("(`a`b!1 2)+\"a\"", AddError.incompatible_types);
-    try runTestError("(`a`b!1 2)+\"\"", AddError.length_mismatch);
+    try runTestError("(`a`b!1 2)+\"\"", AddError.incompatible_types);
     try runTestError("(`a`b!1 2)+\"ab\"", AddError.incompatible_types);
-    try runTestError("(`a`b!1 2)+\"abc\"", AddError.length_mismatch);
 }
 
 // TODO: add table
@@ -648,9 +647,8 @@ test "add symbol" {
     try runTestError("`5`4`3`2`1+`a`b`c`d`e", AddError.incompatible_types);
 
     try runTestError("(`a`b!1 2)+`symbol", AddError.incompatible_types);
-    try runTestError("(`a`b!1 2)+`$()", AddError.length_mismatch);
+    try runTestError("(`a`b!1 2)+`$()", AddError.incompatible_types);
     try runTestError("(`a`b!1 2)+`a`b", AddError.incompatible_types);
-    try runTestError("(`a`b!1 2)+`a`b`c", AddError.length_mismatch);
 }
 
 // TODO: add table
@@ -826,7 +824,7 @@ test "add list" {
     try runTestError("(`a`b!1 2)+(0b;1;2f)", AddError.length_mismatch);
 }
 
-// TODO: finish
+// TODO: add table
 test "add dictionary" {
     try runTest("1b+`a`b!1 2", .{
         .dictionary = &[_]TestValue{
@@ -975,6 +973,23 @@ test "add dictionary" {
             } },
         },
     });
+    try runTest("(`a`b!1 2)+`c`d!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+                .{ .symbol = "c" },
+                .{ .symbol = "d" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 2 },
+                .{ .int = 1 },
+                .{ .int = 2 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)+`a`b!(1;\"2\")", AddError.incompatible_types);
 }
 
 // TODO: NYI

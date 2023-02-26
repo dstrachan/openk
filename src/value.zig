@@ -327,6 +327,7 @@ pub const Value = struct {
     }
 
     pub fn eql(x: *Self, y: *Self) bool {
+        if (x == y) return true;
         return switch (x.as) {
             .nil => y.as == .nil,
             .boolean => |bool_x| y.as == .boolean and bool_x == y.as.boolean,
@@ -398,11 +399,34 @@ pub const Value = struct {
         };
     }
 
+    pub fn unorderedEql(x: *Self, y: *Self) bool {
+        if (x == y) return true;
+        if (@as(ValueType, x.as) != y.as) return false;
+
+        const list_x = x.asList();
+        const list_y = y.asList();
+        if (list_x.len != list_y.len) return false;
+
+        for (list_x) |value_x| {
+            if (!value_x.in(list_y)) return false;
+        }
+        return true;
+    }
+
     pub fn asList(self: *Value) []*Value {
         return switch (self.as) {
             .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list| list,
             else => unreachable,
         };
+    }
+
+    pub fn asArrayList(value: *Value, allocator: std.mem.Allocator) std.ArrayList(*Value) {
+        const list = value.asList();
+        var array_list = std.ArrayList(*Value).initCapacity(allocator, list.len) catch std.debug.panic("Failed to create list.", .{});
+        for (list) |v| {
+            array_list.append(v.ref()) catch std.debug.panic("Failed to append item.", .{});
+        }
+        return array_list;
     }
 
     pub fn indexOf(self: *Value, value: *Value) ?usize {
