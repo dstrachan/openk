@@ -8,7 +8,6 @@ const TestValue = vm_mod.TestValue;
 
 const AddError = @import("../../verbs/add.zig").AddError;
 
-// TODO: add table
 test "add boolean" {
     try runTest("1b+0b", .{ .int = 1 });
     try runTest("1b+`boolean$()", .{ .int_list = &[_]TestValue{} });
@@ -188,9 +187,29 @@ test "add boolean" {
         },
     });
     try runTestError("(`a`b!1 2)+010b", AddError.length_mismatch);
+
+    try runTest("(+`a`b!(,1;,2))+0b", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(,1;,`symbol))+0b", AddError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))+`boolean$()", AddError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))+01b", AddError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))+010b", AddError.incompatible_types);
 }
 
-// TODO: add table
 test "add int" {
     try runTest("1b+0", .{ .int = 1 });
     try runTest("1b+`int$()", .{ .int_list = &[_]TestValue{} });
@@ -375,9 +394,29 @@ test "add int" {
         },
     });
     try runTestError("(`a`b!1 2)+0 1 2", AddError.length_mismatch);
+
+    try runTest("(+`a`b!(,1;,2))+0", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(,1;,`symbol))+0", AddError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))+`int$()", AddError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))+0 1", AddError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))+0 1 2", AddError.length_mismatch);
 }
 
-// TODO: add table
 test "add float" {
     try runTest("1b+0f", .{ .float = 1 });
     try runTest("1b+`float$()", .{ .float_list = &[_]TestValue{} });
@@ -547,9 +586,29 @@ test "add float" {
         },
     });
     try runTestError("(`a`b!1 2)+0 1 2f", AddError.length_mismatch);
+
+    try runTest("(+`a`b!(,1;,2))+0f", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 1 },
+                } },
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 2 },
+                } },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(,1;,`symbol))+0f", AddError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))+`float$()", AddError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))+0 1f", AddError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))+0 1 2f", AddError.length_mismatch);
 }
 
-// TODO: add table
 test "add char" {
     try runTestError("1b+\"a\"", AddError.incompatible_types);
     try runTestError("1b+\"\"", AddError.incompatible_types);
@@ -598,9 +657,12 @@ test "add char" {
     try runTestError("(`a`b!1 2)+\"a\"", AddError.incompatible_types);
     try runTestError("(`a`b!1 2)+\"\"", AddError.incompatible_types);
     try runTestError("(`a`b!1 2)+\"ab\"", AddError.incompatible_types);
+
+    try runTestError("(+`a`b!(,1;,2))+\"a\"", AddError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))+\"\"", AddError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))+\"ab\"", AddError.incompatible_types);
 }
 
-// TODO: add table
 test "add symbol" {
     try runTestError("1b+`symbol", AddError.incompatible_types);
     try runTestError("1b+`$()", AddError.incompatible_types);
@@ -649,9 +711,12 @@ test "add symbol" {
     try runTestError("(`a`b!1 2)+`symbol", AddError.incompatible_types);
     try runTestError("(`a`b!1 2)+`$()", AddError.incompatible_types);
     try runTestError("(`a`b!1 2)+`a`b", AddError.incompatible_types);
+
+    try runTestError("(+`a`b!(,1;,2))+`symbol", AddError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))+`$()", AddError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))+`a`b", AddError.incompatible_types);
 }
 
-// TODO: add table
 test "add list" {
     try runTest("1b+()", .{ .list = &[_]TestValue{} });
     try runTest("1b+(0b;1;0N;0W;-0W)", .{
@@ -822,9 +887,12 @@ test "add list" {
         },
     });
     try runTestError("(`a`b!1 2)+(0b;1;2f)", AddError.length_mismatch);
+
+    try runTestError("(+`a`b!(,1;,2))+()", AddError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))+(1;2f)", AddError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))+(0b;1;2f)", AddError.incompatible_types);
 }
 
-// TODO: add table
 test "add dictionary" {
     try runTest("1b+`a`b!1 2", .{
         .dictionary = &[_]TestValue{
@@ -990,7 +1058,180 @@ test "add dictionary" {
         },
     });
     try runTestError("(`a`b!1 2)+`a`b!(1;\"2\")", AddError.incompatible_types);
+
+    try runTestError("(+`a`b!(,1;,2))+`a`b!1 2", AddError.incompatible_types);
 }
 
-// TODO: NYI
-test "add table" {}
+test "add table" {
+    try runTest("1b++`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 3 },
+                } },
+            } },
+        },
+    });
+
+    try runTest("1++`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 3 },
+                } },
+            } },
+        },
+    });
+
+    try runTest("1f++`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 2 },
+                } },
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 3 },
+                } },
+            } },
+        },
+    });
+
+    try runTestError("\"a\"++`a`b!(,1;,2)", AddError.incompatible_types);
+
+    try runTestError("`symbol++`a`b!(,1;,2)", AddError.incompatible_types);
+
+    try runTestError("()++`a`b!(,1;,2)", AddError.incompatible_types);
+    try runTestError("(1;2f)++`a`b!(,1;,2)", AddError.incompatible_types);
+    try runTestError("(0b;1;2f)++`a`b!(,1;,2)", AddError.incompatible_types);
+
+    try runTestError("(`boolean$())++`a`b!(,1;,2)", AddError.incompatible_types);
+    try runTestError("10b++`a`b!(,1;,2)", AddError.incompatible_types);
+    try runTestError("101b++`a`b!(,1;,2)", AddError.incompatible_types);
+
+    try runTestError("(`int$())++`a`b!(,1;,2)", AddError.incompatible_types);
+    try runTestError("1 2++`a`b!(,1;,2)", AddError.incompatible_types);
+    try runTestError("1 2 3++`a`b!(,1;,2)", AddError.incompatible_types);
+
+    try runTestError("(`float$())++`a`b!(,1;,2)", AddError.incompatible_types);
+    try runTestError("1 2f++`a`b!(,1;,2)", AddError.incompatible_types);
+    try runTestError("1 2 3f++`a`b!(,1;,2)", AddError.incompatible_types);
+
+    try runTestError("\"\"++`a`b!(,1;,2)", AddError.incompatible_types);
+    try runTestError("\"12\"++`a`b!(,1;,2)", AddError.incompatible_types);
+    try runTestError("\"123\"++`a`b!(,1;,2)", AddError.incompatible_types);
+
+    try runTestError("(`$())++`a`b!(,1;,2)", AddError.incompatible_types);
+    try runTestError("`5`4++`a`b!(,1;,2)", AddError.incompatible_types);
+    try runTestError("`5`4`3++`a`b!(,1;,2)", AddError.incompatible_types);
+
+    try runTestError("(`a`b!1 2)++`a`b!(,1;,2)", AddError.incompatible_types);
+
+    try runTest("(+`a`b!(,1;,2))++`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 4 },
+                } },
+            } },
+        },
+    });
+    try runTest("(+`b`a!(,1;,2))++`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "b" },
+                .{ .symbol = "a" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 3 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 3 },
+                } },
+            } },
+        },
+    });
+    try runTest("(+`a`b!(,1;,2))++`b`a!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 3 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 3 },
+                } },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(,1;,2))++`a`b!(,1;,`symbol)", AddError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))++`a`b!(1 1;2 2)", AddError.length_mismatch);
+    try runTest("(+`a`b!(,1;,2))++`a`b`c!(,1;,2;,3)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+                .{ .symbol = "c" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 4 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 3 },
+                } },
+            } },
+        },
+    });
+    try runTest("(+`a`b`c!(,1;,2;,3))++`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+                .{ .symbol = "c" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 4 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 3 },
+                } },
+            } },
+        },
+    });
+}
