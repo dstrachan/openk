@@ -76,6 +76,8 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .dictionary => |dict_y| blk: {
+                if (dict_y.value.asList().len == 0) break :blk y.ref();
+
                 const value = try add(vm, x, dict_y.value);
                 const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
@@ -127,6 +129,8 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .dictionary => |dict_y| blk: {
+                if (dict_y.value.asList().len == 0) break :blk y.ref();
+
                 const value = try add(vm, x, dict_y.value);
                 const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
@@ -178,6 +182,8 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .dictionary => |dict_y| blk: {
+                if (dict_y.value.asList().len == 0) break :blk y.ref();
+
                 const value = try add(vm, x, dict_y.value);
                 const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
@@ -298,6 +304,8 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                 });
             },
             .dictionary => |dict_y| blk: {
+                if (dict_y.value.asList().len == 0) break :blk y.ref();
+
                 const value = try add(vm, x, dict_y.value);
                 const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
@@ -370,6 +378,8 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .dictionary => |dict_y| blk: {
+                if (dict_y.value.asList().len == 0) break :blk y.ref();
+
                 const value = try add(vm, x, dict_y.value);
                 const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
@@ -442,6 +452,8 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .dictionary => |dict_y| blk: {
+                if (dict_y.value.asList().len == 0) break :blk y.ref();
+
                 const value = try add(vm, x, dict_y.value);
                 const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
@@ -509,6 +521,8 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .dictionary => |dict_y| blk: {
+                if (dict_y.value.asList().len == 0) break :blk y.ref();
+
                 const value = try add(vm, x, dict_y.value);
                 const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
