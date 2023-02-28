@@ -125,7 +125,7 @@ pub fn flip(vm: *VM, x: *Value) FlipError!*Value {
 }
 
 fn validateListLen(values: []*Value) FlipError!usize {
-    var len: ?usize = null;
+    var len: ?usize = if (values.len == 0) 0 else null;
     for (values) |value| switch (value.as) {
         .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list| {
             if (len == null) {
@@ -136,6 +136,6 @@ fn validateListLen(values: []*Value) FlipError!usize {
         },
         else => continue,
     };
-    if (len == null) return runtimeError(usize, FlipError.invalid_type);
+    if (len == null) return runtimeError(usize, FlipError.length_mismatch);
     return len.?;
 }
