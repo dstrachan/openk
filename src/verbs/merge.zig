@@ -291,9 +291,9 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
         .dictionary => |dict_x| switch (y.as) {
             .list => |list_y| if (list_y.len == 0) x.ref() else runtimeError(MergeError.incompatible_types),
             .dictionary => |dict_y| blk: {
-                var key = dupeAsArrayList(dict_x.key, vm.allocator);
+                var key = dict_x.key.asArrayList(vm.allocator);
                 var key_list_type: ValueType = dict_x.key.as;
-                var value = dupeAsArrayList(dict_x.value, vm.allocator);
+                var value = dict_x.value.asArrayList(vm.allocator);
                 var value_list_type: ValueType = dict_x.value.as;
                 for (dict_y.key.asList(), 0..) |k_y, i_y| loop: {
                     for (key.items, 0..) |k_x, i_x| {
@@ -317,10 +317,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             .table => |table_y| blk: {
-                if (dict_x.key.as != .symbol_list or dict_x.key.as.symbol_list.len != table_y.columns.as.symbol_list.len) return runtimeError(MergeError.incompatible_types);
-                for (dict_x.key.as.symbol_list) |c| {
-                    if (!c.in(table_y.columns.as.symbol_list)) return runtimeError(MergeError.incompatible_types);
-                }
+                if (!dict_x.key.unorderedEql(table_y.columns)) return runtimeError(MergeError.incompatible_types);
 
                 const list = vm.allocator.alloc(*Value, dict_x.key.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
                 for (0..list.len) |x_i| {
@@ -357,10 +354,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
                 break :blk vm.initValue(.{ .list = list });
             },
             .dictionary => |dict_y| blk: {
-                if (dict_y.key.as != .symbol_list or table_x.columns.as.symbol_list.len != dict_y.key.as.symbol_list.len) return runtimeError(MergeError.incompatible_types);
-                for (table_x.columns.as.symbol_list) |c| {
-                    if (!c.in(dict_y.key.as.symbol_list)) return runtimeError(MergeError.incompatible_types);
-                }
+                if (!table_x.columns.unorderedEql(dict_y.key)) return runtimeError(MergeError.incompatible_types);
 
                 const list = vm.allocator.alloc(*Value, table_x.columns.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
                 for (0..list.len) |x_i| {
@@ -379,10 +373,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
                 break :blk vm.initValue(.{ .table = table });
             },
             .table => |table_y| blk: {
-                if (table_x.columns.as.symbol_list.len != table_y.columns.as.symbol_list.len) return runtimeError(MergeError.incompatible_types);
-                for (table_x.columns.as.symbol_list) |c| {
-                    if (!c.in(table_y.columns.as.symbol_list)) return runtimeError(MergeError.incompatible_types);
-                }
+                if (!table_x.columns.unorderedEql(table_y.columns)) return runtimeError(MergeError.incompatible_types);
 
                 const list = vm.allocator.alloc(*Value, table_x.columns.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
                 for (0..list.len) |x_i| {
@@ -407,13 +398,4 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
         },
         else => runtimeError(MergeError.incompatible_types),
     };
-}
-
-fn dupeAsArrayList(value: *Value, allocator: std.mem.Allocator) std.ArrayList(*Value) {
-    const list = value.asList();
-    var array_list = std.ArrayList(*Value).initCapacity(allocator, list.len) catch std.debug.panic("Failed to create list.", .{});
-    for (list) |v| {
-        array_list.append(v.ref()) catch std.debug.panic("Failed to append item.", .{});
-    }
-    return array_list;
 }
