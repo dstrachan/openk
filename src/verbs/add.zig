@@ -6,6 +6,7 @@ const print = utils_mod.print;
 const value_mod = @import("../value.zig");
 const Value = value_mod.Value;
 const ValueDictionary = value_mod.ValueDictionary;
+const ValueTable = value_mod.ValueTable;
 const ValueType = value_mod.ValueType;
 
 const vm_mod = @import("../vm.zig");
@@ -79,6 +80,11 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                 const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
+            .table => |table_y| blk: {
+                const values = try add(vm, x, table_y.values);
+                const table = ValueTable.init(.{ .columns = table_y.columns.ref(), .values = values }, vm.allocator);
+                break :blk vm.initValue(.{ .table = table });
+            },
             else => runtimeError(AddError.incompatible_types),
         },
         .int => |int_x| switch (y.as) {
@@ -125,6 +131,11 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                 const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
+            .table => |table_y| blk: {
+                const values = try add(vm, x, table_y.values);
+                const table = ValueTable.init(.{ .columns = table_y.columns.ref(), .values = values }, vm.allocator);
+                break :blk vm.initValue(.{ .table = table });
+            },
             else => runtimeError(AddError.incompatible_types),
         },
         .float => |float_x| switch (y.as) {
@@ -170,6 +181,11 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                 const value = try add(vm, x, dict_y.value);
                 const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
+            },
+            .table => |table_y| blk: {
+                const values = try add(vm, x, table_y.values);
+                const table = ValueTable.init(.{ .columns = table_y.columns.ref(), .values = values }, vm.allocator);
+                break :blk vm.initValue(.{ .table = table });
             },
             else => runtimeError(AddError.incompatible_types),
         },
@@ -534,6 +550,44 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                 const new_value = vm.initList(value_list, value_list_type);
                 const dictionary = ValueDictionary.init(.{ .key = new_key, .value = new_value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
+            },
+            else => runtimeError(AddError.incompatible_types),
+        },
+        .table => |table_x| switch (y.as) {
+            .boolean, .int, .float => blk: {
+                const values = try add(vm, table_x.values, y);
+                const table = ValueTable.init(.{ .columns = table_x.columns.ref(), .values = values }, vm.allocator);
+                break :blk vm.initValue(.{ .table = table });
+            },
+            .table => |table_y| blk: {
+                var columns = table_x.columns.asArrayList(vm.allocator);
+                errdefer columns.deinit();
+                errdefer for (columns.items) |v| v.deref(vm.allocator);
+                var columns_list_type: ValueType = table_x.columns.as;
+                var values = table_x.values.asArrayList(vm.allocator);
+                errdefer values.deinit();
+                errdefer for (values.items) |v| v.deref(vm.allocator);
+                var values_list_type: ValueType = table_x.values.as;
+                for (table_y.columns.asList(), 0..) |c_y, i_y| loop: {
+                    for (columns.items, 0..) |c_x, i_x| {
+                        if (c_x.eql(c_y)) {
+                            values.items[i_x].deref(vm.allocator);
+                            values.items[i_x] = try add(vm, values.items[i_x], table_y.values.asList()[i_y]);
+                            if (values_list_type != .list and @as(ValueType, values.items[0].as) != values.items[i_x].as) values_list_type = .list;
+                            break :loop;
+                        }
+                    }
+                    columns.append(c_y.ref()) catch std.debug.panic("Failed to append item.", .{});
+                    if (columns_list_type != .list and @as(ValueType, columns.items[0].as) != columns.items[columns.items.len - 1].as) columns_list_type = .list;
+                    values.append(table_y.values.asList()[i_y].ref()) catch std.debug.panic("Failed to append item.", .{});
+                    if (values_list_type != .list and @as(ValueType, values.items[0].as) != values.items[values.items.len - 1].as) values_list_type = .list;
+                }
+                const columns_list = columns.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                const new_columns = vm.initList(columns_list, columns_list_type);
+                const values_list = values.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                const new_values = vm.initList(values_list, values_list_type);
+                const table = ValueTable.init(.{ .columns = new_columns, .values = new_values }, vm.allocator);
+                break :blk vm.initValue(.{ .table = table });
             },
             else => runtimeError(AddError.incompatible_types),
         },

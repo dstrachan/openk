@@ -414,7 +414,7 @@ test "add int" {
     try runTestError("(+`a`b!(,1;,`symbol))+0", AddError.incompatible_types);
     try runTestError("(+`a`b!(,1;,2))+`int$()", AddError.incompatible_types);
     try runTestError("(+`a`b!(,1;,2))+0 1", AddError.incompatible_types);
-    try runTestError("(+`a`b!(,1;,2))+0 1 2", AddError.length_mismatch);
+    try runTestError("(+`a`b!(,1;,2))+0 1 2", AddError.incompatible_types);
 }
 
 test "add float" {
@@ -606,7 +606,7 @@ test "add float" {
     try runTestError("(+`a`b!(,1;,`symbol))+0f", AddError.incompatible_types);
     try runTestError("(+`a`b!(,1;,2))+`float$()", AddError.incompatible_types);
     try runTestError("(+`a`b!(,1;,2))+0 1f", AddError.incompatible_types);
-    try runTestError("(+`a`b!(,1;,2))+0 1 2f", AddError.length_mismatch);
+    try runTestError("(+`a`b!(,1;,2))+0 1 2f", AddError.incompatible_types);
 }
 
 test "add char" {
