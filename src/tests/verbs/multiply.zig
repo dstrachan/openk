@@ -160,6 +160,60 @@ test "multiply boolean" {
     try runTestError("`a`b`c`d`e*`boolean$()", MultiplyError.incompatible_types);
     try runTestError("`a`b`c`d`e*00000b", MultiplyError.incompatible_types);
     try runTestError("`a`b`c`d`e*000000b", MultiplyError.incompatible_types);
+
+    try runTest("(()!())*0b", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTest("(`a`b!1 2)*0b", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 0 },
+                .{ .int = 0 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)*`boolean$()", MultiplyError.length_mismatch);
+    try runTest("(`a`b!1 2)*01b", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 0 },
+                .{ .int = 2 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)*010b", MultiplyError.length_mismatch);
+
+    try runTest("(+`a`b!(,1;,2))*0b", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 0 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 0 },
+                } },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(,1;,`symbol))*0b", MultiplyError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))*`boolean$()", MultiplyError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))*01b", MultiplyError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))*010b", MultiplyError.incompatible_types);
 }
 
 test "multiply int" {
@@ -319,6 +373,60 @@ test "multiply int" {
     try runTestError("`a`b`c`d`e*`int$()", MultiplyError.incompatible_types);
     try runTestError("`a`b`c`d`e*0 1 0N 0W -0W", MultiplyError.incompatible_types);
     try runTestError("`a`b`c`d`e*0 1 0N 0W -0W 2", MultiplyError.incompatible_types);
+
+    try runTest("(()!())*0", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTest("(`a`b!1 2)*0", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 0 },
+                .{ .int = 0 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)*`int$()", MultiplyError.length_mismatch);
+    try runTest("(`a`b!1 2)*0 1", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 0 },
+                .{ .int = 2 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)*0 1 2", MultiplyError.length_mismatch);
+
+    try runTest("(+`a`b!(,1;,2))*0", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 0 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 0 },
+                } },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(,1;,`symbol))*0", MultiplyError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))*`int$()", MultiplyError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))*0 1", MultiplyError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))*0 1 2", MultiplyError.incompatible_types);
 }
 
 test "multiply float" {
@@ -463,6 +571,60 @@ test "multiply float" {
     try runTestError("`a`b`c`d`e*`float$()", MultiplyError.incompatible_types);
     try runTestError("`a`b`c`d`e*0 1 0n 0w -0w", MultiplyError.incompatible_types);
     try runTestError("`a`b`c`d`e*0 1 0n 0w -0w 2", MultiplyError.incompatible_types);
+
+    try runTest("(()!())*0f", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTest("(`a`b!1 2)*0f", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 0 },
+                .{ .float = 0 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)*`float$()", MultiplyError.length_mismatch);
+    try runTest("(`a`b!1 2)*0 1f", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 0 },
+                .{ .float = 2 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)*0 1 2f", MultiplyError.length_mismatch);
+
+    try runTest("(+`a`b!(,1;,2))*0f", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 0 },
+                } },
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 0 },
+                } },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(,1;,`symbol))*0f", MultiplyError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))*`float$()", MultiplyError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))*0 1f", MultiplyError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))*0 1 2f", MultiplyError.incompatible_types);
 }
 
 test "multiply char" {
@@ -509,6 +671,14 @@ test "multiply char" {
     try runTestError("`a`b`c`d`e*\"a\"", MultiplyError.incompatible_types);
     try runTestError("`a`b`c`d`e*\"\"", MultiplyError.incompatible_types);
     try runTestError("`a`b`c`d`e*\"abcde\"", MultiplyError.incompatible_types);
+
+    try runTestError("(`a`b!1 2)*\"a\"", MultiplyError.incompatible_types);
+    try runTestError("(`a`b!1 2)*\"\"", MultiplyError.incompatible_types);
+    try runTestError("(`a`b!1 2)*\"ab\"", MultiplyError.incompatible_types);
+
+    try runTestError("(+`a`b!(,1;,2))*\"a\"", MultiplyError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))*\"\"", MultiplyError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))*\"ab\"", MultiplyError.incompatible_types);
 }
 
 test "multiply symbol" {
@@ -555,6 +725,14 @@ test "multiply symbol" {
     try runTestError("`5`4`3`2`1*`symbol", MultiplyError.incompatible_types);
     try runTestError("`5`4`3`2`1*`$()", MultiplyError.incompatible_types);
     try runTestError("`5`4`3`2`1*`a`b`c`d`e", MultiplyError.incompatible_types);
+
+    try runTestError("(`a`b!1 2)*`symbol", MultiplyError.incompatible_types);
+    try runTestError("(`a`b!1 2)*`$()", MultiplyError.incompatible_types);
+    try runTestError("(`a`b!1 2)*`a`b", MultiplyError.incompatible_types);
+
+    try runTestError("(+`a`b!(,1;,2))*`symbol", MultiplyError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))*`$()", MultiplyError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))*`a`b", MultiplyError.incompatible_types);
 }
 
 test "multiply list" {
@@ -712,4 +890,414 @@ test "multiply list" {
     try runTestError("\"abcde\"*()", MultiplyError.incompatible_types);
 
     try runTestError("`a`b`c`d`e*()", MultiplyError.incompatible_types);
+
+    try runTestError("(`a`b!1 2)*()", MultiplyError.length_mismatch);
+    try runTest("(`a`b!1 2)*(1;2f)", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .float = 4 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)*(0b;1;2f)", MultiplyError.length_mismatch);
+
+    try runTestError("(+`a`b!(,1;,2))*()", MultiplyError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))*(1;2f)", MultiplyError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))*(0b;1;2f)", MultiplyError.incompatible_types);
+}
+
+test "multiply dictionary" {
+    try runTest("1b*()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTest("1b*`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 2 },
+            } },
+        },
+    });
+
+    try runTest("1*()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTest("1*`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 2 },
+            } },
+        },
+    });
+
+    try runTest("1f*()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTest("1f*`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 1 },
+                .{ .float = 2 },
+            } },
+        },
+    });
+
+    try runTestError("\"a\"*`a`b!1 2", MultiplyError.incompatible_types);
+
+    try runTestError("`symbol*`a`b!1 2", MultiplyError.incompatible_types);
+
+    try runTest("()*()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTestError("()*`a`b!1 2", MultiplyError.length_mismatch);
+    try runTest("(1;2f)*`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .float = 4 },
+            } },
+        },
+    });
+    try runTestError("(0b;1;2f)*`a`b!1 2", MultiplyError.length_mismatch);
+
+    try runTest("(`boolean$())*()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTestError("(`boolean$())*`a`b!1 2", MultiplyError.length_mismatch);
+    try runTest("10b*`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 0 },
+            } },
+        },
+    });
+    try runTestError("101b*`a`b!1 2", MultiplyError.length_mismatch);
+
+    try runTest("(`int$())*()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTestError("(`int$())*`a`b!1 2", MultiplyError.length_mismatch);
+    try runTest("1 2*`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 4 },
+            } },
+        },
+    });
+    try runTestError("1 2 3*`a`b!1 2", MultiplyError.length_mismatch);
+
+    try runTest("(`float$())*()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTestError("(`float$())*`a`b!1 2", MultiplyError.length_mismatch);
+    try runTest("1 2f*`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 1 },
+                .{ .float = 4 },
+            } },
+        },
+    });
+    try runTestError("1 2 3f*`a`b!1 2", MultiplyError.length_mismatch);
+
+    try runTestError("\"\"*`a`b!1 2", MultiplyError.incompatible_types);
+    try runTestError("\"12\"*`a`b!1 2", MultiplyError.incompatible_types);
+    try runTestError("\"123\"*`a`b!1 2", MultiplyError.incompatible_types);
+
+    try runTestError("(`$())*`a`b!1 2", MultiplyError.incompatible_types);
+    try runTestError("`5`4*`a`b!1 2", MultiplyError.incompatible_types);
+    try runTestError("`5`4`3*`a`b!1 2", MultiplyError.incompatible_types);
+
+    try runTest("(()!())*()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTest("(`a`b!1 2)*`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 4 },
+            } },
+        },
+    });
+    try runTest("(`b`a!1 2)*`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "b" },
+                .{ .symbol = "a" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 2 },
+                .{ .int = 2 },
+            } },
+        },
+    });
+    try runTest("(`a`b!1 2)*`b`a!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 2 },
+                .{ .int = 2 },
+            } },
+        },
+    });
+    try runTest("(`a`b!1 2)*`c`d!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+                .{ .symbol = "c" },
+                .{ .symbol = "d" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 2 },
+                .{ .int = 1 },
+                .{ .int = 2 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)*`a`b!(1;\"2\")", MultiplyError.incompatible_types);
+
+    try runTestError("(+`a`b!(,1;,2))*`a`b!1 2", MultiplyError.incompatible_types);
+}
+
+test "multiply table" {
+    try runTest("1b*+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+            } },
+        },
+    });
+
+    try runTest("1*+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+            } },
+        },
+    });
+
+    try runTest("1f*+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 1 },
+                } },
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 2 },
+                } },
+            } },
+        },
+    });
+
+    try runTestError("\"a\"*+`a`b!(,1;,2)", MultiplyError.incompatible_types);
+
+    try runTestError("`symbol*+`a`b!(,1;,2)", MultiplyError.incompatible_types);
+
+    try runTestError("()*+`a`b!(,1;,2)", MultiplyError.incompatible_types);
+    try runTestError("(1;2f)*+`a`b!(,1;,2)", MultiplyError.incompatible_types);
+    try runTestError("(0b;1;2f)*+`a`b!(,1;,2)", MultiplyError.incompatible_types);
+
+    try runTestError("(`boolean$())*+`a`b!(,1;,2)", MultiplyError.incompatible_types);
+    try runTestError("10b*+`a`b!(,1;,2)", MultiplyError.incompatible_types);
+    try runTestError("101b*+`a`b!(,1;,2)", MultiplyError.incompatible_types);
+
+    try runTestError("(`int$())*+`a`b!(,1;,2)", MultiplyError.incompatible_types);
+    try runTestError("1 2*+`a`b!(,1;,2)", MultiplyError.incompatible_types);
+    try runTestError("1 2 3*+`a`b!(,1;,2)", MultiplyError.incompatible_types);
+
+    try runTestError("(`float$())*+`a`b!(,1;,2)", MultiplyError.incompatible_types);
+    try runTestError("1 2f*+`a`b!(,1;,2)", MultiplyError.incompatible_types);
+    try runTestError("1 2 3f*+`a`b!(,1;,2)", MultiplyError.incompatible_types);
+
+    try runTestError("\"\"*+`a`b!(,1;,2)", MultiplyError.incompatible_types);
+    try runTestError("\"12\"*+`a`b!(,1;,2)", MultiplyError.incompatible_types);
+    try runTestError("\"123\"*+`a`b!(,1;,2)", MultiplyError.incompatible_types);
+
+    try runTestError("(`$())*+`a`b!(,1;,2)", MultiplyError.incompatible_types);
+    try runTestError("`5`4*+`a`b!(,1;,2)", MultiplyError.incompatible_types);
+    try runTestError("`5`4`3*+`a`b!(,1;,2)", MultiplyError.incompatible_types);
+
+    try runTestError("(`a`b!1 2)*+`a`b!(,1;,2)", MultiplyError.incompatible_types);
+
+    try runTest("(+`a`b!(,1;,2))*+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 4 },
+                } },
+            } },
+        },
+    });
+    try runTest("(+`b`a!(,1;,2))*+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "b" },
+                .{ .symbol = "a" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+            } },
+        },
+    });
+    try runTest("(+`a`b!(,1;,2))*+`b`a!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(,1;,2))*+`a`b!(,1;,`symbol)", MultiplyError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))*+`a`b!(1 1;2 2)", MultiplyError.length_mismatch);
+    try runTest("(+`a`b!(,1;,2))*+`a`b`c!(,1;,2;,3)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+                .{ .symbol = "c" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 4 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 3 },
+                } },
+            } },
+        },
+    });
+    try runTest("(+`a`b`c!(,1;,2;,3))*+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+                .{ .symbol = "c" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 4 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 3 },
+                } },
+            } },
+        },
+    });
 }
