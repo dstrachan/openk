@@ -83,48 +83,44 @@ pub const VM = struct {
     pub fn initNull(self: *Self, value_type: ValueType) *Value {
         return switch (value_type) {
             .nil => self.initValue(.nil),
-            .boolean => self.initValue(.{ .boolean = false }),
-            .int => self.initValue(.{ .int = Value.null_int }),
-            .float => self.initValue(.{ .float = Value.null_float }),
-            .char => self.initValue(.{ .char = ' ' }),
-            .symbol => self.copySymbol(""),
+            .boolean, .boolean_list => self.initValue(.{ .boolean = false }),
+            .int, .int_list => self.initValue(.{ .int = Value.null_int }),
+            .float, .float_list => self.initValue(.{ .float = Value.null_float }),
+            .char, .char_list => self.initValue(.{ .char = ' ' }),
+            .symbol, .symbol_list => self.copySymbol(""),
             .list => self.initValue(.{ .list = &[_]*Value{} }),
-            .boolean_list => self.initValue(.{ .boolean_list = &[_]*Value{} }),
-            .int_list => self.initValue(.{ .int_list = &[_]*Value{} }),
-            .float_list => self.initValue(.{ .float_list = &[_]*Value{} }),
-            .char_list => self.initValue(.{ .char_list = &[_]*Value{} }),
-            .symbol_list => self.initValue(.{ .symbol_list = &[_]*Value{} }),
-            .dictionary => unreachable,
-            .table => unreachable,
-            .function => unreachable,
-            .projection => unreachable,
+            else => unreachable,
         };
     }
 
     pub fn initValue(self: *Self, data: ValueUnion) *Value {
-        return Value.init(data, self.allocator);
+        return Value.init(.{ .data = data }, self.allocator);
+    }
+
+    pub fn initValueWithRefCount(self: *Self, reference_count: u32, data: ValueUnion) *Value {
+        return Value.init(.{ .reference_count = reference_count, .data = data }, self.allocator);
     }
 
     pub fn initList(self: *Self, list: []*Value, list_type: ?ValueType) *Value {
-        return Value.init(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
+        return self.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
             .boolean, .boolean_list => .{ .boolean_list = list },
             .int, .int_list => .{ .int_list = list },
             .float, .float_list => .{ .float_list = list },
             .char, .char_list => .{ .char_list = list },
             .symbol, .symbol_list => .{ .symbol_list = list },
             else => .{ .list = list },
-        }, self.allocator);
+        });
     }
 
     pub fn initListAtoms(self: *Self, list: []*Value, list_type: ?ValueType) *Value {
-        return Value.init(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
+        return self.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
             .boolean => .{ .boolean_list = list },
             .int => .{ .int_list = list },
             .float => .{ .float_list = list },
             .char => .{ .char_list = list },
             .symbol => .{ .symbol_list = list },
             else => .{ .list = list },
-        }, self.allocator);
+        });
     }
 
     pub fn copySymbol(self: *Self, chars: []const u8) *Value {

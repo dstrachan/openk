@@ -208,7 +208,7 @@ pub fn index(vm: *VM, x: *Value, y: *Value) ApplyError!*Value {
                 for (int_list_y, 0..) |value, i| {
                     list[i] = vm.copySymbol(if (value.as.int < 0 or symbol_list_x.len <= value.as.int) "" else symbol_list_x[@intCast(usize, value.as.int)].as.symbol);
                 }
-                break :blk vm.initValue(.{ .char_list = list });
+                break :blk vm.initValue(.{ .symbol_list = list });
             },
             else => runtimeError(ApplyError.incompatible_types),
         },
@@ -219,14 +219,7 @@ pub fn index(vm: *VM, x: *Value, y: *Value) ApplyError!*Value {
                         for (keys, 0..) |value, i| {
                             if (value.eql(y)) break :blk values[i].ref();
                         }
-                        break :blk vm.initNull(switch (dict_x.value.as) {
-                            .boolean_list => .boolean,
-                            .int_list => .int,
-                            .float_list => .float,
-                            .char_list => .char,
-                            .symbol_list => .symbol,
-                            else => dict_x.value.as,
-                        });
+                        break :blk vm.initNull(dict_x.value.as);
                     },
                     else => unreachable,
                 },
@@ -244,26 +237,11 @@ pub fn index(vm: *VM, x: *Value, y: *Value) ApplyError!*Value {
                                         break :outer_loop;
                                     }
                                 }
-                                list[i] = vm.initNull(switch (dict_x.value.as) {
-                                    .boolean_list => .boolean,
-                                    .int_list => .int,
-                                    .float_list => .float,
-                                    .char_list => .char,
-                                    .symbol_list => .symbol,
-                                    else => dict_x.value.as,
-                                });
+                                list[i] = vm.initNull(dict_x.value.as);
                             }
                         } else {
-                            const value_type: ValueType = switch (dict_x.value.as) {
-                                .boolean_list => .boolean,
-                                .int_list => .int,
-                                .float_list => .float,
-                                .char_list => .char,
-                                .symbol_list => .symbol,
-                                else => dict_x.value.as,
-                            };
                             for (list) |*value| {
-                                value.* = vm.initNull(value_type);
+                                value.* = vm.initNull(dict_x.value.as);
                             }
                         }
 
