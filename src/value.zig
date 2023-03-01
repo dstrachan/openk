@@ -190,6 +190,11 @@ pub const ValueUnion = union(ValueType) {
 pub const Value = struct {
     const Self = @This();
 
+    const Config = struct {
+        reference_count: u32 = 1,
+        data: ValueUnion,
+    };
+
     pub const null_int = -9223372036854775808;
     pub const inf_int = 9223372036854775807;
 
@@ -199,11 +204,11 @@ pub const Value = struct {
     reference_count: u32,
     as: ValueUnion,
 
-    pub fn init(data: ValueUnion, allocator: std.mem.Allocator) *Self {
-        const self = allocator.create(Self) catch std.debug.panic("Failed to create value", .{});
+    pub fn init(config: Config, allocator: std.mem.Allocator) *Self {
+        const self = allocator.create(Self) catch std.debug.panic("Failed to create value.", .{});
         self.* = Self{
-            .reference_count = 1,
-            .as = data,
+            .reference_count = config.reference_count,
+            .as = config.data,
         };
         if (debug_mod.debug_show_memory_allocations) print("init value {}\n", .{self});
         return self;
