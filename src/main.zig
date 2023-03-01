@@ -122,6 +122,7 @@ test {
     _ = @import("tests/verbs/flip.zig");
     _ = @import("tests/verbs/index.zig");
     _ = @import("tests/verbs/merge.zig");
+    _ = @import("tests/verbs/min.zig");
     _ = @import("tests/verbs/multiply.zig");
     _ = @import("tests/verbs/negate.zig");
     _ = @import("tests/verbs/sqrt.zig");
