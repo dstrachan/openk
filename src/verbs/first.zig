@@ -20,7 +20,7 @@ pub fn first(vm: *VM, x: *Value) *Value {
                 list[i] = first(vm, v);
                 if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
             }
-            const value = vm.initList(list, list_type);
+            const value = vm.initListAtoms(list, list_type);
             const dictionary = ValueDictionary.init(.{ .key = table_x.columns.ref(), .value = value }, vm.allocator);
             break :blk vm.initValue(.{ .dictionary = dictionary });
         },
