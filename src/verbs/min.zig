@@ -457,7 +457,7 @@ pub fn min(vm: *VM, x: *Value, y: *Value) MinError!*Value {
                         if (k_x.eql(k_y)) {
                             value.items[i_x].deref(vm.allocator);
                             value.items[i_x] = try min(vm, value.items[i_x], dict_y.value.asList()[i_y]);
-                            if (value_list_type != .float_list) value_list_type = .float_list;
+                            if (value_list_type != .list and @as(ValueType, value.items[0].as) != value.items[i_x].as) value_list_type = .list;
                             break :loop;
                         }
                     }

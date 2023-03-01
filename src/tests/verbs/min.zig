@@ -429,875 +429,875 @@ test "min int" {
     try runTestError("(+`a`b!(,1;,2))&0 1 2", MinError.incompatible_types);
 }
 
-// test "min float" {
-//     try runTest("1b&0f", .{ .float = 0 });
-//     try runTest("1b&`float$()", .{ .float_list = &[_]TestValue{} });
-//     try runTest("1b&0 1 0n 0w -0w", .{
-//         .float_list = &[_]TestValue{
-//             .{ .float = 0 },
-//             .{ .float = 1 },
-//             .{ .float = Value.null_float },
-//             .{ .float = Value.inf_float },
-//             .{ .float = -Value.inf_float },
-//         },
-//     });
-
-//     try runTest("1&0f", .{ .float = 0 });
-//     try runTest("1&`float$()", .{ .float_list = &[_]TestValue{} });
-//     try runTest("1&0 1 0n 0w -0w", .{
-//         .float_list = &[_]TestValue{
-//             .{ .float = 0 },
-//             .{ .float = 1 },
-//             .{ .float = Value.null_float },
-//             .{ .float = Value.inf_float },
-//             .{ .float = -Value.inf_float },
-//         },
-//     });
-
-//     try runTest("1f&0f", .{ .float = 0 });
-//     try runTest("1f&`float$()", .{ .float_list = &[_]TestValue{} });
-//     try runTest("1f&0 1 0n 0w -0w", .{
-//         .float_list = &[_]TestValue{
-//             .{ .float = 0 },
-//             .{ .float = 1 },
-//             .{ .float = Value.null_float },
-//             .{ .float = Value.inf_float },
-//             .{ .float = -Value.inf_float },
-//         },
-//     });
-
-//     try runTestError("\"a\"&0f", MinError.incompatible_types);
-//     try runTestError("\"a\"&`float$()", MinError.incompatible_types);
-//     try runTestError("\"a\"&0 1 0n 0w -0w", MinError.incompatible_types);
-
-//     try runTestError("`symbol&0f", MinError.incompatible_types);
-//     try runTestError("`symbol&`float$()", MinError.incompatible_types);
-//     try runTestError("`symbol&0 1 0n 0w -0w", MinError.incompatible_types);
-
-//     try runTest("()&0f", .{ .list = &[_]TestValue{} });
-//     try runTest("(1b;2;3f)&0f", .{
-//         .float_list = &[_]TestValue{
-//             .{ .float = 0 },
-//             .{ .float = 0 },
-//             .{ .float = 0 },
-//         },
-//     });
-//     try runTestError("(1b;2;3f;`symbol)&0f", MinError.incompatible_types);
-//     try runTest("()&`float$()", .{ .list = &[_]TestValue{} });
-//     try runTestError("()&0 1 0n 0w -0w", MinError.length_mismatch);
-//     try runTestError("(1b;2;3f;4;5)&`float$()", MinError.length_mismatch);
-//     try runTest("(1b;2;3f;4;5)&0 1 0n 0w -0w", .{
-//         .float_list = &[_]TestValue{
-//             .{ .float = 0 },
-//             .{ .float = 2 },
-//             .{ .float = Value.null_float },
-//             .{ .float = Value.inf_float },
-//             .{ .float = -Value.inf_float },
-//         },
-//     });
-//     try runTestError("(1b;2;3f;4)&0 1 0n 0w -0w", MinError.length_mismatch);
-//     try runTestError("(1b;2;3f;4;\"a\")&0 1 0n 0w -0w", MinError.incompatible_types);
-//     try runTestError("(1b;2;3f;4;`symbol)&0 1 0n 0w -0w", MinError.incompatible_types);
-
-//     try runTest("11111b&0f", .{
-//         .float_list = &[_]TestValue{
-//             .{ .float = 0 },
-//             .{ .float = 0 },
-//             .{ .float = 0 },
-//             .{ .float = 0 },
-//             .{ .float = 0 },
-//         },
-//     });
-//     try runTestError("11111b&`float$()", MinError.length_mismatch);
-//     try runTest("11111b&0 1 0n 0w -0w", .{
-//         .float_list = &[_]TestValue{
-//             .{ .float = 0 },
-//             .{ .float = 1 },
-//             .{ .float = Value.null_float },
-//             .{ .float = Value.inf_float },
-//             .{ .float = -Value.inf_float },
-//         },
-//     });
-//     try runTestError("11111b&0 1 0n 0w -0w 2", MinError.length_mismatch);
-
-//     try runTest("5 4 3 2 1&0f", .{
-//         .float_list = &[_]TestValue{
-//             .{ .float = 0 },
-//             .{ .float = 0 },
-//             .{ .float = 0 },
-//             .{ .float = 0 },
-//             .{ .float = 0 },
-//         },
-//     });
-//     try runTestError("5 4 3 2 1&`float$()", MinError.length_mismatch);
-//     try runTest("5 4 3 2 1&0 1 0n 0w -0w", .{
-//         .float_list = &[_]TestValue{
-//             .{ .float = 0 },
-//             .{ .float = 4 },
-//             .{ .float = Value.null_float },
-//             .{ .float = Value.inf_float },
-//             .{ .float = -Value.inf_float },
-//         },
-//     });
-//     try runTestError("5 4 3 2 1&0 1 0n 0w -0w 2", MinError.length_mismatch);
-
-//     try runTest("5 4 3 2 1f&0f", .{
-//         .float_list = &[_]TestValue{
-//             .{ .float = 0 },
-//             .{ .float = 0 },
-//             .{ .float = 0 },
-//             .{ .float = 0 },
-//             .{ .float = 0 },
-//         },
-//     });
-//     try runTestError("5 4 3 2 1f&`float$()", MinError.length_mismatch);
-//     try runTest("5 4 3 2 1f&0 1 0n 0w -0w", .{
-//         .float_list = &[_]TestValue{
-//             .{ .float = 0 },
-//             .{ .float = 4 },
-//             .{ .float = Value.null_float },
-//             .{ .float = Value.inf_float },
-//             .{ .float = -Value.inf_float },
-//         },
-//     });
-//     try runTestError("5 4 3 2 1f&0 1 0n 0w -0w 2", MinError.length_mismatch);
-
-//     try runTestError("\"abcde\"&0f", MinError.incompatible_types);
-//     try runTestError("\"abcde\"&`float$()", MinError.incompatible_types);
-//     try runTestError("\"abcde\"&0 1 0n 0w -0w", MinError.incompatible_types);
-//     try runTestError("\"abcde\"&0 1 0n 0w -0w 2", MinError.incompatible_types);
-
-//     try runTestError("`a`b`c`d`e&0f", MinError.incompatible_types);
-//     try runTestError("`a`b`c`d`e&`float$()", MinError.incompatible_types);
-//     try runTestError("`a`b`c`d`e&0 1 0n 0w -0w", MinError.incompatible_types);
-//     try runTestError("`a`b`c`d`e&0 1 0n 0w -0w 2", MinError.incompatible_types);
-
-//     try runTest("(()!())&0f", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .list = &[_]TestValue{} },
-//             .{ .list = &[_]TestValue{} },
-//         },
-//     });
-//     try runTest("(`a`b!1 2)&0f", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//             } },
-//             .{ .float_list = &[_]TestValue{
-//                 .{ .float = 0 },
-//                 .{ .float = 0 },
-//             } },
-//         },
-//     });
-//     try runTestError("(`a`b!1 2)&`float$()", MinError.length_mismatch);
-//     try runTest("(`a`b!1 2)&0 1f", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//             } },
-//             .{ .float_list = &[_]TestValue{
-//                 .{ .float = 0 },
-//                 .{ .float = 2 },
-//             } },
-//         },
-//     });
-//     try runTestError("(`a`b!1 2)&0 1 2f", MinError.length_mismatch);
-
-//     try runTest("(+`a`b!(,1;,2))&0f", .{
-//         .table = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//             } },
-//             .{ .list = &[_]TestValue{
-//                 .{ .float_list = &[_]TestValue{
-//                     .{ .float = 0 },
-//                 } },
-//                 .{ .float_list = &[_]TestValue{
-//                     .{ .float = 0 },
-//                 } },
-//             } },
-//         },
-//     });
-//     try runTestError("(+`a`b!(,1;,`symbol))&0f", MinError.incompatible_types);
-//     try runTestError("(+`a`b!(,1;,2))&`float$()", MinError.incompatible_types);
-//     try runTestError("(+`a`b!(,1;,2))&0 1f", MinError.incompatible_types);
-//     try runTestError("(+`a`b!(,1;,2))&0 1 2f", MinError.incompatible_types);
-// }
-
-// test "min char" {
-//     try runTestError("1b&\"a\"", MinError.incompatible_types);
-//     try runTestError("1b&\"\"", MinError.incompatible_types);
-//     try runTestError("1b&\"abcde\"", MinError.incompatible_types);
-
-//     try runTestError("1&\"a\"", MinError.incompatible_types);
-//     try runTestError("1&\"\"", MinError.incompatible_types);
-//     try runTestError("1&\"abcde\"", MinError.incompatible_types);
-
-//     try runTestError("1f&\"a\"", MinError.incompatible_types);
-//     try runTestError("1f&\"\"", MinError.incompatible_types);
-//     try runTestError("1f&\"abcde\"", MinError.incompatible_types);
-
-//     try runTestError("\"1\"&\"a\"", MinError.incompatible_types);
-//     try runTestError("\"1\"&\"\"", MinError.incompatible_types);
-//     try runTestError("\"1\"&\"abcde\"", MinError.incompatible_types);
-
-//     try runTestError("`symbol&\"a\"", MinError.incompatible_types);
-//     try runTestError("`symbol&\"\"", MinError.incompatible_types);
-//     try runTestError("`symbol&\"abcde\"", MinError.incompatible_types);
-
-//     try runTestError("()&\"a\"", MinError.incompatible_types);
-//     try runTestError("()&\"\"", MinError.incompatible_types);
-//     try runTestError("()&\"abcde\"", MinError.incompatible_types);
-
-//     try runTestError("10011b&\"a\"", MinError.incompatible_types);
-//     try runTestError("10011b&\"\"", MinError.incompatible_types);
-//     try runTestError("10011b&\"abcde\"", MinError.incompatible_types);
-
-//     try runTestError("5 4 3 2 1&\"a\"", MinError.incompatible_types);
-//     try runTestError("5 4 3 2 1&\"\"", MinError.incompatible_types);
-//     try runTestError("5 4 3 2 1&\"abcde\"", MinError.incompatible_types);
-
-//     try runTestError("5 4 3 2 1f&\"a\"", MinError.incompatible_types);
-//     try runTestError("5 4 3 2 1f&\"\"", MinError.incompatible_types);
-//     try runTestError("5 4 3 2 1f&\"abcde\"", MinError.incompatible_types);
-
-//     try runTestError("\"54321\"&\"a\"", MinError.incompatible_types);
-//     try runTestError("\"54321\"&\"\"", MinError.incompatible_types);
-//     try runTestError("\"54321\"&\"abcde\"", MinError.incompatible_types);
-
-//     try runTestError("`a`b`c`d`e&\"a\"", MinError.incompatible_types);
-//     try runTestError("`a`b`c`d`e&\"\"", MinError.incompatible_types);
-//     try runTestError("`a`b`c`d`e&\"abcde\"", MinError.incompatible_types);
-
-//     try runTestError("(`a`b!1 2)&\"a\"", MinError.incompatible_types);
-//     try runTestError("(`a`b!1 2)&\"\"", MinError.incompatible_types);
-//     try runTestError("(`a`b!1 2)&\"ab\"", MinError.incompatible_types);
-
-//     try runTestError("(+`a`b!(,1;,2))&\"a\"", MinError.incompatible_types);
-//     try runTestError("(+`a`b!(,1;,2))&\"\"", MinError.incompatible_types);
-//     try runTestError("(+`a`b!(,1;,2))&\"ab\"", MinError.incompatible_types);
-// }
-
-// test "min symbol" {
-//     try runTestError("1b&`symbol", MinError.incompatible_types);
-//     try runTestError("1b&`$()", MinError.incompatible_types);
-//     try runTestError("1b&`a`b`c`d`e", MinError.incompatible_types);
-
-//     try runTestError("1&`symbol", MinError.incompatible_types);
-//     try runTestError("1&`$()", MinError.incompatible_types);
-//     try runTestError("1&`a`b`c`d`e", MinError.incompatible_types);
-
-//     try runTestError("1f&`symbol", MinError.incompatible_types);
-//     try runTestError("1f&`$()", MinError.incompatible_types);
-//     try runTestError("1f&`a`b`c`d`e", MinError.incompatible_types);
-
-//     try runTestError("\"a\"&`symbol", MinError.incompatible_types);
-//     try runTestError("\"a\"&`$()", MinError.incompatible_types);
-//     try runTestError("\"a\"&`a`b`c`d`e", MinError.incompatible_types);
-
-//     try runTestError("`symbol&`a", MinError.incompatible_types);
-//     try runTestError("`symbol&`$()", MinError.incompatible_types);
-//     try runTestError("`symbol&`a`b`c`d`e", MinError.incompatible_types);
-
-//     try runTestError("()&`symbol", MinError.incompatible_types);
-//     try runTestError("()&`$()", MinError.incompatible_types);
-//     try runTestError("()&`a`b`c`d`e", MinError.incompatible_types);
-
-//     try runTestError("10011b&`symbol", MinError.incompatible_types);
-//     try runTestError("10011b&`$()", MinError.incompatible_types);
-//     try runTestError("10011b&`a`b`c`d`e", MinError.incompatible_types);
-
-//     try runTestError("5 4 3 2 1&`symbol", MinError.incompatible_types);
-//     try runTestError("5 4 3 2 1&`$()", MinError.incompatible_types);
-//     try runTestError("5 4 3 2 1&`a`b`c`d`e", MinError.incompatible_types);
-
-//     try runTestError("5 4 3 2 1f&`symbol", MinError.incompatible_types);
-//     try runTestError("5 4 3 2 1f&`$()", MinError.incompatible_types);
-//     try runTestError("5 4 3 2 1f&`a`b`c`d`e", MinError.incompatible_types);
-
-//     try runTestError("\"54321\"&`symbol", MinError.incompatible_types);
-//     try runTestError("\"54321\"&`$()", MinError.incompatible_types);
-//     try runTestError("\"54321\"&`a`b`c`d`e", MinError.incompatible_types);
-
-//     try runTestError("`5`4`3`2`1&`symbol", MinError.incompatible_types);
-//     try runTestError("`5`4`3`2`1&`$()", MinError.incompatible_types);
-//     try runTestError("`5`4`3`2`1&`a`b`c`d`e", MinError.incompatible_types);
-
-//     try runTestError("(`a`b!1 2)&`symbol", MinError.incompatible_types);
-//     try runTestError("(`a`b!1 2)&`$()", MinError.incompatible_types);
-//     try runTestError("(`a`b!1 2)&`a`b", MinError.incompatible_types);
-
-//     try runTestError("(+`a`b!(,1;,2))&`symbol", MinError.incompatible_types);
-//     try runTestError("(+`a`b!(,1;,2))&`$()", MinError.incompatible_types);
-//     try runTestError("(+`a`b!(,1;,2))&`a`b", MinError.incompatible_types);
-// }
-
-// test "min list" {
-//     try runTest("1b&()", .{ .list = &[_]TestValue{} });
-//     try runTest("1b&(0b;1;0N;0W;-0W)", .{
-//         .list = &[_]TestValue{
-//             .{ .boolean = false },
-//             .{ .int = 1 },
-//             .{ .int = Value.null_int },
-//             .{ .int = Value.inf_int },
-//             .{ .int = -Value.inf_int },
-//         },
-//     });
-//     try runTest("1b&(0b;1;0N;0W;-0W;1f;0n;0w;-0w)", .{
-//         .list = &[_]TestValue{
-//             .{ .int = 0 },
-//             .{ .int = 1 },
-//             .{ .int = Value.null_int },
-//             .{ .int = Value.inf_int },
-//             .{ .int = -Value.inf_int },
-//             .{ .float = 1 },
-//             .{ .float = Value.null_float },
-//             .{ .float = Value.inf_float },
-//             .{ .float = -Value.inf_float },
-//         },
-//     });
-//     try runTestError("1b&(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MinError.incompatible_types);
-//     try runTestError("1b&(\"a\";-0w;0w;0n;1f;-0W;0W;0N;1;0b)", MinError.incompatible_types);
-
-//     try runTest("1&()", .{ .list = &[_]TestValue{} });
-//     try runTest("1&(0b;1;0N;0W;-0W)", .{
-//         .int_list = &[_]TestValue{
-//             .{ .int = 0 },
-//             .{ .int = 1 },
-//             .{ .int = Value.null_int },
-//             .{ .int = Value.inf_int },
-//             .{ .int = -Value.inf_int },
-//         },
-//     });
-//     try runTest("1&(0b;1;0N;0W;-0W;1f;0n;0w;-0w)", .{
-//         .list = &[_]TestValue{
-//             .{ .int = 0 },
-//             .{ .int = 1 },
-//             .{ .int = Value.null_int },
-//             .{ .int = Value.inf_int },
-//             .{ .int = -Value.inf_int },
-//             .{ .float = 1 },
-//             .{ .float = Value.null_float },
-//             .{ .float = Value.inf_float },
-//             .{ .float = -Value.inf_float },
-//         },
-//     });
-//     try runTestError("1&(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MinError.incompatible_types);
-//     try runTestError("1&(\"a\";-0w;0w;0n;1f;-0W;0W;0N;1;0b)", MinError.incompatible_types);
-
-//     try runTest("1f&()", .{ .list = &[_]TestValue{} });
-//     try runTest("1f&(0b;1;0N;0W;-0W;1f;0n;0w;-0w)", .{
-//         .float_list = &[_]TestValue{
-//             .{ .float = 0 },
-//             .{ .float = 1 },
-//             .{ .float = Value.null_float },
-//             .{ .float = Value.inf_int },
-//             .{ .float = -Value.inf_int },
-//             .{ .float = 1 },
-//             .{ .float = Value.null_float },
-//             .{ .float = Value.inf_float },
-//             .{ .float = -Value.inf_float },
-//         },
-//     });
-//     try runTestError("1f&(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MinError.incompatible_types);
-//     try runTestError("1f&(\"a\";-0w;0w;0n;1f;-0W;0W;0N;1;0b)", MinError.incompatible_types);
-
-//     try runTestError("\"a\"&()", MinError.incompatible_types);
-
-//     try runTestError("`symbol&()", MinError.incompatible_types);
-
-//     try runTest("()&()", .{ .list = &[_]TestValue{} });
-//     try runTestError("(0N;0n)&()", MinError.length_mismatch);
-//     try runTestError("()&(0N;0n)", MinError.length_mismatch);
-//     try runTest("(1b;2)&(1b;2)", .{
-//         .int_list = &[_]TestValue{
-//             .{ .int = 1 },
-//             .{ .int = 4 },
-//         },
-//     });
-//     try runTest("(1b;2f)&(2f;1b)", .{
-//         .float_list = &[_]TestValue{
-//             .{ .float = 2 },
-//             .{ .float = 2 },
-//         },
-//     });
-//     try runTest("(2;3f)&(2;3f)", .{
-//         .list = &[_]TestValue{
-//             .{ .int = 4 },
-//             .{ .float = 9 },
-//         },
-//     });
-//     try runTest("(1b;(2;3f))&(0N;(0n;0N))", .{
-//         .list = &[_]TestValue{
-//             .{ .int = Value.null_int },
-//             .{ .float_list = &[_]TestValue{
-//                 .{ .float = Value.null_float },
-//                 .{ .float = Value.null_float },
-//             } },
-//         },
-//     });
-//     try runTestError("(0b;1;2;3;4;5;6;7;8;9)&(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MinError.incompatible_types);
-//     try runTestError("(0b;1;2;3;4;5;6;7;8;9)&(\"a\";-0w;0w;0n;1f;-0W;0W;0N;1;0b)", MinError.incompatible_types);
-
-//     try runTestError("010b&()", MinError.length_mismatch);
-//     try runTest("01b&(0b;0N)", .{
-//         .int_list = &[_]TestValue{
-//             .{ .int = 0 },
-//             .{ .int = Value.null_int },
-//         },
-//     });
-//     try runTest("010b&(0b;0N;0n)", .{
-//         .list = &[_]TestValue{
-//             .{ .int = 0 },
-//             .{ .int = Value.null_int },
-//             .{ .float = Value.null_float },
-//         },
-//     });
-//     try runTestError("0101010101b&(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MinError.incompatible_types);
-//     try runTestError("0101010101b&(\"a\";-0w;0w;0n;1f;-0W;0W;0N;1;0b)", MinError.incompatible_types);
-
-//     try runTestError("0 1 2&()", MinError.length_mismatch);
-//     try runTest("0 1&(0b;0N)", .{
-//         .int_list = &[_]TestValue{
-//             .{ .int = 0 },
-//             .{ .int = Value.null_int },
-//         },
-//     });
-//     try runTest("0 1 2&(0b;0N;0n)", .{
-//         .list = &[_]TestValue{
-//             .{ .int = 0 },
-//             .{ .int = Value.null_int },
-//             .{ .float = Value.null_float },
-//         },
-//     });
-//     try runTestError("0 1 2 3 4 5 6 7 8 9&(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MinError.incompatible_types);
-//     try runTestError("0 1 2 3 4 5 6 7 8 9&(\"a\";-0w;0w;0n;1f;-0W;0W;0N;1;0b)", MinError.incompatible_types);
-
-//     try runTestError("0 1 2f&()", MinError.length_mismatch);
-//     try runTest("0 1 2f&(0b;0N;0n)", .{
-//         .float_list = &[_]TestValue{
-//             .{ .float = 0 },
-//             .{ .float = Value.null_float },
-//             .{ .float = Value.null_float },
-//         },
-//     });
-//     try runTestError("0 1 2 3 4 5 6 7 8 9f&(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MinError.incompatible_types);
-//     try runTestError("0 1 2 3 4 5 6 7 8 9f&(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MinError.incompatible_types);
-
-//     try runTestError("\"abcde\"&()", MinError.incompatible_types);
-
-//     try runTestError("`a`b`c`d`e&()", MinError.incompatible_types);
-
-//     try runTestError("(`a`b!1 2)&()", MinError.length_mismatch);
-//     try runTest("(`a`b!1 2)&(1;2f)", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//             } },
-//             .{ .list = &[_]TestValue{
-//                 .{ .int = 1 },
-//                 .{ .float = 4 },
-//             } },
-//         },
-//     });
-//     try runTestError("(`a`b!1 2)&(0b;1;2f)", MinError.length_mismatch);
-
-//     try runTestError("(+`a`b!(,1;,2))&()", MinError.incompatible_types);
-//     try runTestError("(+`a`b!(,1;,2))&(1;2f)", MinError.incompatible_types);
-//     try runTestError("(+`a`b!(,1;,2))&(0b;1;2f)", MinError.incompatible_types);
-// }
-
-// test "min dictionary" {
-//     try runTest("1b&()!()", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .list = &[_]TestValue{} },
-//             .{ .list = &[_]TestValue{} },
-//         },
-//     });
-//     try runTest("1b&`a`b!1 2", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//             } },
-//             .{ .int_list = &[_]TestValue{
-//                 .{ .int = 1 },
-//                 .{ .int = 2 },
-//             } },
-//         },
-//     });
-
-//     try runTest("1&()!()", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .list = &[_]TestValue{} },
-//             .{ .list = &[_]TestValue{} },
-//         },
-//     });
-//     try runTest("1&`a`b!1 2", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//             } },
-//             .{ .int_list = &[_]TestValue{
-//                 .{ .int = 1 },
-//                 .{ .int = 2 },
-//             } },
-//         },
-//     });
-
-//     try runTest("1f&()!()", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .list = &[_]TestValue{} },
-//             .{ .list = &[_]TestValue{} },
-//         },
-//     });
-//     try runTest("1f&`a`b!1 2", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//             } },
-//             .{ .float_list = &[_]TestValue{
-//                 .{ .float = 1 },
-//                 .{ .float = 2 },
-//             } },
-//         },
-//     });
-
-//     try runTestError("\"a\"&`a`b!1 2", MinError.incompatible_types);
-
-//     try runTestError("`symbol&`a`b!1 2", MinError.incompatible_types);
-
-//     try runTest("()&()!()", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .list = &[_]TestValue{} },
-//             .{ .list = &[_]TestValue{} },
-//         },
-//     });
-//     try runTestError("()&`a`b!1 2", MinError.length_mismatch);
-//     try runTest("(1;2f)&`a`b!1 2", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//             } },
-//             .{ .list = &[_]TestValue{
-//                 .{ .int = 1 },
-//                 .{ .float = 4 },
-//             } },
-//         },
-//     });
-//     try runTestError("(0b;1;2f)&`a`b!1 2", MinError.length_mismatch);
-
-//     try runTest("(`boolean$())&()!()", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .list = &[_]TestValue{} },
-//             .{ .list = &[_]TestValue{} },
-//         },
-//     });
-//     try runTestError("(`boolean$())&`a`b!1 2", MinError.length_mismatch);
-//     try runTest("10b&`a`b!1 2", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//             } },
-//             .{ .int_list = &[_]TestValue{
-//                 .{ .int = 1 },
-//                 .{ .int = 0 },
-//             } },
-//         },
-//     });
-//     try runTestError("101b&`a`b!1 2", MinError.length_mismatch);
-
-//     try runTest("(`int$())&()!()", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .list = &[_]TestValue{} },
-//             .{ .list = &[_]TestValue{} },
-//         },
-//     });
-//     try runTestError("(`int$())&`a`b!1 2", MinError.length_mismatch);
-//     try runTest("1 2&`a`b!1 2", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//             } },
-//             .{ .int_list = &[_]TestValue{
-//                 .{ .int = 1 },
-//                 .{ .int = 4 },
-//             } },
-//         },
-//     });
-//     try runTestError("1 2 3&`a`b!1 2", MinError.length_mismatch);
-
-//     try runTest("(`float$())&()!()", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .list = &[_]TestValue{} },
-//             .{ .list = &[_]TestValue{} },
-//         },
-//     });
-//     try runTestError("(`float$())&`a`b!1 2", MinError.length_mismatch);
-//     try runTest("1 2f&`a`b!1 2", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//             } },
-//             .{ .float_list = &[_]TestValue{
-//                 .{ .float = 1 },
-//                 .{ .float = 4 },
-//             } },
-//         },
-//     });
-//     try runTestError("1 2 3f&`a`b!1 2", MinError.length_mismatch);
-
-//     try runTestError("\"\"&`a`b!1 2", MinError.incompatible_types);
-//     try runTestError("\"12\"&`a`b!1 2", MinError.incompatible_types);
-//     try runTestError("\"123\"&`a`b!1 2", MinError.incompatible_types);
-
-//     try runTestError("(`$())&`a`b!1 2", MinError.incompatible_types);
-//     try runTestError("`5`4&`a`b!1 2", MinError.incompatible_types);
-//     try runTestError("`5`4`3&`a`b!1 2", MinError.incompatible_types);
-
-//     try runTest("(()!())&()!()", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .list = &[_]TestValue{} },
-//             .{ .list = &[_]TestValue{} },
-//         },
-//     });
-//     try runTest("(`a`b!1 2)&`a`b!1 2", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//             } },
-//             .{ .int_list = &[_]TestValue{
-//                 .{ .int = 1 },
-//                 .{ .int = 4 },
-//             } },
-//         },
-//     });
-//     try runTest("(`b`a!1 2)&`a`b!1 2", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "b" },
-//                 .{ .symbol = "a" },
-//             } },
-//             .{ .int_list = &[_]TestValue{
-//                 .{ .int = 2 },
-//                 .{ .int = 2 },
-//             } },
-//         },
-//     });
-//     try runTest("(`a`b!1 2)&`b`a!1 2", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//             } },
-//             .{ .int_list = &[_]TestValue{
-//                 .{ .int = 2 },
-//                 .{ .int = 2 },
-//             } },
-//         },
-//     });
-//     try runTest("(`a`b!1 2)&`c`d!1 2", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//                 .{ .symbol = "c" },
-//                 .{ .symbol = "d" },
-//             } },
-//             .{ .int_list = &[_]TestValue{
-//                 .{ .int = 1 },
-//                 .{ .int = 2 },
-//                 .{ .int = 1 },
-//                 .{ .int = 2 },
-//             } },
-//         },
-//     });
-//     try runTestError("(`a`b!1 2)&`a`b!(1;\"2\")", MinError.incompatible_types);
-
-//     try runTestError("(+`a`b!(,1;,2))&`a`b!1 2", MinError.incompatible_types);
-// }
-
-// test "min table" {
-//     try runTest("1b&+`a`b!(,1;,2)", .{
-//         .table = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//             } },
-//             .{ .list = &[_]TestValue{
-//                 .{ .int_list = &[_]TestValue{
-//                     .{ .int = 1 },
-//                 } },
-//                 .{ .int_list = &[_]TestValue{
-//                     .{ .int = 2 },
-//                 } },
-//             } },
-//         },
-//     });
-
-//     try runTest("1&+`a`b!(,1;,2)", .{
-//         .table = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//             } },
-//             .{ .list = &[_]TestValue{
-//                 .{ .int_list = &[_]TestValue{
-//                     .{ .int = 1 },
-//                 } },
-//                 .{ .int_list = &[_]TestValue{
-//                     .{ .int = 2 },
-//                 } },
-//             } },
-//         },
-//     });
-
-//     try runTest("1f&+`a`b!(,1;,2)", .{
-//         .table = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//             } },
-//             .{ .list = &[_]TestValue{
-//                 .{ .float_list = &[_]TestValue{
-//                     .{ .float = 1 },
-//                 } },
-//                 .{ .float_list = &[_]TestValue{
-//                     .{ .float = 2 },
-//                 } },
-//             } },
-//         },
-//     });
-
-//     try runTestError("\"a\"&+`a`b!(,1;,2)", MinError.incompatible_types);
-
-//     try runTestError("`symbol&+`a`b!(,1;,2)", MinError.incompatible_types);
-
-//     try runTestError("()&+`a`b!(,1;,2)", MinError.incompatible_types);
-//     try runTestError("(1;2f)&+`a`b!(,1;,2)", MinError.incompatible_types);
-//     try runTestError("(0b;1;2f)&+`a`b!(,1;,2)", MinError.incompatible_types);
-
-//     try runTestError("(`boolean$())&+`a`b!(,1;,2)", MinError.incompatible_types);
-//     try runTestError("10b&+`a`b!(,1;,2)", MinError.incompatible_types);
-//     try runTestError("101b&+`a`b!(,1;,2)", MinError.incompatible_types);
-
-//     try runTestError("(`int$())&+`a`b!(,1;,2)", MinError.incompatible_types);
-//     try runTestError("1 2&+`a`b!(,1;,2)", MinError.incompatible_types);
-//     try runTestError("1 2 3&+`a`b!(,1;,2)", MinError.incompatible_types);
-
-//     try runTestError("(`float$())&+`a`b!(,1;,2)", MinError.incompatible_types);
-//     try runTestError("1 2f&+`a`b!(,1;,2)", MinError.incompatible_types);
-//     try runTestError("1 2 3f&+`a`b!(,1;,2)", MinError.incompatible_types);
-
-//     try runTestError("\"\"&+`a`b!(,1;,2)", MinError.incompatible_types);
-//     try runTestError("\"12\"&+`a`b!(,1;,2)", MinError.incompatible_types);
-//     try runTestError("\"123\"&+`a`b!(,1;,2)", MinError.incompatible_types);
-
-//     try runTestError("(`$())&+`a`b!(,1;,2)", MinError.incompatible_types);
-//     try runTestError("`5`4&+`a`b!(,1;,2)", MinError.incompatible_types);
-//     try runTestError("`5`4`3&+`a`b!(,1;,2)", MinError.incompatible_types);
-
-//     try runTestError("(`a`b!1 2)&+`a`b!(,1;,2)", MinError.incompatible_types);
-
-//     try runTest("(+`a`b!(,1;,2))&+`a`b!(,1;,2)", .{
-//         .table = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//             } },
-//             .{ .list = &[_]TestValue{
-//                 .{ .int_list = &[_]TestValue{
-//                     .{ .int = 1 },
-//                 } },
-//                 .{ .int_list = &[_]TestValue{
-//                     .{ .int = 4 },
-//                 } },
-//             } },
-//         },
-//     });
-//     try runTest("(+`b`a!(,1;,2))&+`a`b!(,1;,2)", .{
-//         .table = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "b" },
-//                 .{ .symbol = "a" },
-//             } },
-//             .{ .list = &[_]TestValue{
-//                 .{ .int_list = &[_]TestValue{
-//                     .{ .int = 2 },
-//                 } },
-//                 .{ .int_list = &[_]TestValue{
-//                     .{ .int = 2 },
-//                 } },
-//             } },
-//         },
-//     });
-//     try runTest("(+`a`b!(,1;,2))&+`b`a!(,1;,2)", .{
-//         .table = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//             } },
-//             .{ .list = &[_]TestValue{
-//                 .{ .int_list = &[_]TestValue{
-//                     .{ .int = 2 },
-//                 } },
-//                 .{ .int_list = &[_]TestValue{
-//                     .{ .int = 2 },
-//                 } },
-//             } },
-//         },
-//     });
-//     try runTestError("(+`a`b!(,1;,2))&+`a`b!(,1;,`symbol)", MinError.incompatible_types);
-//     try runTestError("(+`a`b!(,1;,2))&+`a`b!(1 1;2 2)", MinError.length_mismatch);
-//     try runTest("(+`a`b!(,1;,2))&+`a`b`c!(,1;,2;,3)", .{
-//         .table = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//                 .{ .symbol = "c" },
-//             } },
-//             .{ .list = &[_]TestValue{
-//                 .{ .int_list = &[_]TestValue{
-//                     .{ .int = 1 },
-//                 } },
-//                 .{ .int_list = &[_]TestValue{
-//                     .{ .int = 4 },
-//                 } },
-//                 .{ .int_list = &[_]TestValue{
-//                     .{ .int = 3 },
-//                 } },
-//             } },
-//         },
-//     });
-//     try runTest("(+`a`b`c!(,1;,2;,3))&+`a`b!(,1;,2)", .{
-//         .table = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//                 .{ .symbol = "c" },
-//             } },
-//             .{ .list = &[_]TestValue{
-//                 .{ .int_list = &[_]TestValue{
-//                     .{ .int = 1 },
-//                 } },
-//                 .{ .int_list = &[_]TestValue{
-//                     .{ .int = 4 },
-//                 } },
-//                 .{ .int_list = &[_]TestValue{
-//                     .{ .int = 3 },
-//                 } },
-//             } },
-//         },
-//     });
-// }
+test "min float" {
+    try runTest("1b&0f", .{ .float = 0 });
+    try runTest("1b&`float$()", .{ .float_list = &[_]TestValue{} });
+    try runTest("1b&0 1 0n 0w -0w", .{
+        .float_list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = 1 },
+            .{ .float = -Value.inf_float },
+        },
+    });
+
+    try runTest("1&0f", .{ .float = 0 });
+    try runTest("1&`float$()", .{ .float_list = &[_]TestValue{} });
+    try runTest("1&0 1 0n 0w -0w", .{
+        .float_list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = 1 },
+            .{ .float = -Value.inf_float },
+        },
+    });
+
+    try runTest("1f&0f", .{ .float = 0 });
+    try runTest("1f&`float$()", .{ .float_list = &[_]TestValue{} });
+    try runTest("1f&0 1 0n 0w -0w", .{
+        .float_list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = 1 },
+            .{ .float = -Value.inf_float },
+        },
+    });
+
+    try runTestError("\"a\"&0f", MinError.incompatible_types);
+    try runTestError("\"a\"&`float$()", MinError.incompatible_types);
+    try runTestError("\"a\"&0 1 0n 0w -0w", MinError.incompatible_types);
+
+    try runTestError("`symbol&0f", MinError.incompatible_types);
+    try runTestError("`symbol&`float$()", MinError.incompatible_types);
+    try runTestError("`symbol&0 1 0n 0w -0w", MinError.incompatible_types);
+
+    try runTest("()&0f", .{ .list = &[_]TestValue{} });
+    try runTest("(1b;2;3f)&0f", .{
+        .float_list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = 0 },
+            .{ .float = 0 },
+        },
+    });
+    try runTestError("(1b;2;3f;`symbol)&0f", MinError.incompatible_types);
+    try runTest("()&`float$()", .{ .list = &[_]TestValue{} });
+    try runTestError("()&0 1 0n 0w -0w", MinError.length_mismatch);
+    try runTestError("(1b;2;3f;4;5)&`float$()", MinError.length_mismatch);
+    try runTest("(1b;2;3f;4;5)&0 1 0n 0w -0w", .{
+        .float_list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = 4 },
+            .{ .float = -Value.inf_float },
+        },
+    });
+    try runTestError("(1b;2;3f;4)&0 1 0n 0w -0w", MinError.length_mismatch);
+    try runTestError("(1b;2;3f;4;\"a\")&0 1 0n 0w -0w", MinError.incompatible_types);
+    try runTestError("(1b;2;3f;4;`symbol)&0 1 0n 0w -0w", MinError.incompatible_types);
+
+    try runTest("11111b&0f", .{
+        .float_list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = 0 },
+            .{ .float = 0 },
+            .{ .float = 0 },
+            .{ .float = 0 },
+        },
+    });
+    try runTestError("11111b&`float$()", MinError.length_mismatch);
+    try runTest("11111b&0 1 0n 0w -0w", .{
+        .float_list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = 1 },
+            .{ .float = -Value.inf_float },
+        },
+    });
+    try runTestError("11111b&0 1 0n 0w -0w 2", MinError.length_mismatch);
+
+    try runTest("5 4 3 2 1&0f", .{
+        .float_list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = 0 },
+            .{ .float = 0 },
+            .{ .float = 0 },
+            .{ .float = 0 },
+        },
+    });
+    try runTestError("5 4 3 2 1&`float$()", MinError.length_mismatch);
+    try runTest("5 4 3 2 1&0 1 0n 0w -0w", .{
+        .float_list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = 2 },
+            .{ .float = -Value.inf_float },
+        },
+    });
+    try runTestError("5 4 3 2 1&0 1 0n 0w -0w 2", MinError.length_mismatch);
+
+    try runTest("5 4 3 2 1f&0f", .{
+        .float_list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = 0 },
+            .{ .float = 0 },
+            .{ .float = 0 },
+            .{ .float = 0 },
+        },
+    });
+    try runTestError("5 4 3 2 1f&`float$()", MinError.length_mismatch);
+    try runTest("5 4 3 2 1f&0 1 0n 0w -0w", .{
+        .float_list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = 2 },
+            .{ .float = -Value.inf_float },
+        },
+    });
+    try runTestError("5 4 3 2 1f&0 1 0n 0w -0w 2", MinError.length_mismatch);
+
+    try runTestError("\"abcde\"&0f", MinError.incompatible_types);
+    try runTestError("\"abcde\"&`float$()", MinError.incompatible_types);
+    try runTestError("\"abcde\"&0 1 0n 0w -0w", MinError.incompatible_types);
+    try runTestError("\"abcde\"&0 1 0n 0w -0w 2", MinError.incompatible_types);
+
+    try runTestError("`a`b`c`d`e&0f", MinError.incompatible_types);
+    try runTestError("`a`b`c`d`e&`float$()", MinError.incompatible_types);
+    try runTestError("`a`b`c`d`e&0 1 0n 0w -0w", MinError.incompatible_types);
+    try runTestError("`a`b`c`d`e&0 1 0n 0w -0w 2", MinError.incompatible_types);
+
+    try runTest("(()!())&0f", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTest("(`a`b!1 2)&0f", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 0 },
+                .{ .float = 0 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)&`float$()", MinError.length_mismatch);
+    try runTest("(`a`b!1 2)&0 1f", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 0 },
+                .{ .float = 1 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)&0 1 2f", MinError.length_mismatch);
+
+    try runTest("(+`a`b!(,1;,2))&0f", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 0 },
+                } },
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 0 },
+                } },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(,1;,`symbol))&0f", MinError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))&`float$()", MinError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))&0 1f", MinError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))&0 1 2f", MinError.incompatible_types);
+}
+
+test "min char" {
+    try runTestError("1b&\"a\"", MinError.incompatible_types);
+    try runTestError("1b&\"\"", MinError.incompatible_types);
+    try runTestError("1b&\"abcde\"", MinError.incompatible_types);
+
+    try runTestError("1&\"a\"", MinError.incompatible_types);
+    try runTestError("1&\"\"", MinError.incompatible_types);
+    try runTestError("1&\"abcde\"", MinError.incompatible_types);
+
+    try runTestError("1f&\"a\"", MinError.incompatible_types);
+    try runTestError("1f&\"\"", MinError.incompatible_types);
+    try runTestError("1f&\"abcde\"", MinError.incompatible_types);
+
+    try runTestError("\"1\"&\"a\"", MinError.incompatible_types);
+    try runTestError("\"1\"&\"\"", MinError.incompatible_types);
+    try runTestError("\"1\"&\"abcde\"", MinError.incompatible_types);
+
+    try runTestError("`symbol&\"a\"", MinError.incompatible_types);
+    try runTestError("`symbol&\"\"", MinError.incompatible_types);
+    try runTestError("`symbol&\"abcde\"", MinError.incompatible_types);
+
+    try runTestError("()&\"a\"", MinError.incompatible_types);
+    try runTestError("()&\"\"", MinError.incompatible_types);
+    try runTestError("()&\"abcde\"", MinError.incompatible_types);
+
+    try runTestError("10011b&\"a\"", MinError.incompatible_types);
+    try runTestError("10011b&\"\"", MinError.incompatible_types);
+    try runTestError("10011b&\"abcde\"", MinError.incompatible_types);
+
+    try runTestError("5 4 3 2 1&\"a\"", MinError.incompatible_types);
+    try runTestError("5 4 3 2 1&\"\"", MinError.incompatible_types);
+    try runTestError("5 4 3 2 1&\"abcde\"", MinError.incompatible_types);
+
+    try runTestError("5 4 3 2 1f&\"a\"", MinError.incompatible_types);
+    try runTestError("5 4 3 2 1f&\"\"", MinError.incompatible_types);
+    try runTestError("5 4 3 2 1f&\"abcde\"", MinError.incompatible_types);
+
+    try runTestError("\"54321\"&\"a\"", MinError.incompatible_types);
+    try runTestError("\"54321\"&\"\"", MinError.incompatible_types);
+    try runTestError("\"54321\"&\"abcde\"", MinError.incompatible_types);
+
+    try runTestError("`a`b`c`d`e&\"a\"", MinError.incompatible_types);
+    try runTestError("`a`b`c`d`e&\"\"", MinError.incompatible_types);
+    try runTestError("`a`b`c`d`e&\"abcde\"", MinError.incompatible_types);
+
+    try runTestError("(`a`b!1 2)&\"a\"", MinError.incompatible_types);
+    try runTestError("(`a`b!1 2)&\"\"", MinError.incompatible_types);
+    try runTestError("(`a`b!1 2)&\"ab\"", MinError.incompatible_types);
+
+    try runTestError("(+`a`b!(,1;,2))&\"a\"", MinError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))&\"\"", MinError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))&\"ab\"", MinError.incompatible_types);
+}
+
+test "min symbol" {
+    try runTestError("1b&`symbol", MinError.incompatible_types);
+    try runTestError("1b&`$()", MinError.incompatible_types);
+    try runTestError("1b&`a`b`c`d`e", MinError.incompatible_types);
+
+    try runTestError("1&`symbol", MinError.incompatible_types);
+    try runTestError("1&`$()", MinError.incompatible_types);
+    try runTestError("1&`a`b`c`d`e", MinError.incompatible_types);
+
+    try runTestError("1f&`symbol", MinError.incompatible_types);
+    try runTestError("1f&`$()", MinError.incompatible_types);
+    try runTestError("1f&`a`b`c`d`e", MinError.incompatible_types);
+
+    try runTestError("\"a\"&`symbol", MinError.incompatible_types);
+    try runTestError("\"a\"&`$()", MinError.incompatible_types);
+    try runTestError("\"a\"&`a`b`c`d`e", MinError.incompatible_types);
+
+    try runTestError("`symbol&`a", MinError.incompatible_types);
+    try runTestError("`symbol&`$()", MinError.incompatible_types);
+    try runTestError("`symbol&`a`b`c`d`e", MinError.incompatible_types);
+
+    try runTestError("()&`symbol", MinError.incompatible_types);
+    try runTestError("()&`$()", MinError.incompatible_types);
+    try runTestError("()&`a`b`c`d`e", MinError.incompatible_types);
+
+    try runTestError("10011b&`symbol", MinError.incompatible_types);
+    try runTestError("10011b&`$()", MinError.incompatible_types);
+    try runTestError("10011b&`a`b`c`d`e", MinError.incompatible_types);
+
+    try runTestError("5 4 3 2 1&`symbol", MinError.incompatible_types);
+    try runTestError("5 4 3 2 1&`$()", MinError.incompatible_types);
+    try runTestError("5 4 3 2 1&`a`b`c`d`e", MinError.incompatible_types);
+
+    try runTestError("5 4 3 2 1f&`symbol", MinError.incompatible_types);
+    try runTestError("5 4 3 2 1f&`$()", MinError.incompatible_types);
+    try runTestError("5 4 3 2 1f&`a`b`c`d`e", MinError.incompatible_types);
+
+    try runTestError("\"54321\"&`symbol", MinError.incompatible_types);
+    try runTestError("\"54321\"&`$()", MinError.incompatible_types);
+    try runTestError("\"54321\"&`a`b`c`d`e", MinError.incompatible_types);
+
+    try runTestError("`5`4`3`2`1&`symbol", MinError.incompatible_types);
+    try runTestError("`5`4`3`2`1&`$()", MinError.incompatible_types);
+    try runTestError("`5`4`3`2`1&`a`b`c`d`e", MinError.incompatible_types);
+
+    try runTestError("(`a`b!1 2)&`symbol", MinError.incompatible_types);
+    try runTestError("(`a`b!1 2)&`$()", MinError.incompatible_types);
+    try runTestError("(`a`b!1 2)&`a`b", MinError.incompatible_types);
+
+    try runTestError("(+`a`b!(,1;,2))&`symbol", MinError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))&`$()", MinError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))&`a`b", MinError.incompatible_types);
+}
+
+test "min list" {
+    try runTest("1b&()", .{ .list = &[_]TestValue{} });
+    try runTest("1b&(0b;1;0N;0W;-0W)", .{
+        .list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .int = 1 },
+            .{ .int = Value.null_int },
+            .{ .int = 1 },
+            .{ .int = -Value.inf_int },
+        },
+    });
+    try runTest("1b&(0b;1;0N;0W;-0W;1f;0n;0w;-0w)", .{
+        .list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .int = 1 },
+            .{ .int = Value.null_int },
+            .{ .int = 1 },
+            .{ .int = -Value.inf_int },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = 1 },
+            .{ .float = -Value.inf_float },
+        },
+    });
+    try runTestError("1b&(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MinError.incompatible_types);
+    try runTestError("1b&(\"a\";-0w;0w;0n;1f;-0W;0W;0N;1;0b)", MinError.incompatible_types);
+
+    try runTest("1&()", .{ .list = &[_]TestValue{} });
+    try runTest("1&(0b;1;0N;0W;-0W)", .{
+        .int_list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 1 },
+            .{ .int = Value.null_int },
+            .{ .int = 1 },
+            .{ .int = -Value.inf_int },
+        },
+    });
+    try runTest("1&(0b;1;0N;0W;-0W;1f;0n;0w;-0w)", .{
+        .list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 1 },
+            .{ .int = Value.null_int },
+            .{ .int = 1 },
+            .{ .int = -Value.inf_int },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = 1 },
+            .{ .float = -Value.inf_float },
+        },
+    });
+    try runTestError("1&(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MinError.incompatible_types);
+    try runTestError("1&(\"a\";-0w;0w;0n;1f;-0W;0W;0N;1;0b)", MinError.incompatible_types);
+
+    try runTest("1f&()", .{ .list = &[_]TestValue{} });
+    try runTest("1f&(0b;1;0N;0W;-0W;1f;0n;0w;-0w)", .{
+        .float_list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = 1 },
+            .{ .float = -Value.inf_int },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = 1 },
+            .{ .float = -Value.inf_float },
+        },
+    });
+    try runTestError("1f&(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MinError.incompatible_types);
+    try runTestError("1f&(\"a\";-0w;0w;0n;1f;-0W;0W;0N;1;0b)", MinError.incompatible_types);
+
+    try runTestError("\"a\"&()", MinError.incompatible_types);
+
+    try runTestError("`symbol&()", MinError.incompatible_types);
+
+    try runTest("()&()", .{ .list = &[_]TestValue{} });
+    try runTestError("(0N;0n)&()", MinError.length_mismatch);
+    try runTestError("()&(0N;0n)", MinError.length_mismatch);
+    try runTest("(1b;2)&(1b;2)", .{
+        .list = &[_]TestValue{
+            .{ .boolean = true },
+            .{ .int = 2 },
+        },
+    });
+    try runTest("(1b;2f)&(2f;1b)", .{
+        .float_list = &[_]TestValue{
+            .{ .float = 1 },
+            .{ .float = 1 },
+        },
+    });
+    try runTest("(2;3f)&(2;3f)", .{
+        .list = &[_]TestValue{
+            .{ .int = 2 },
+            .{ .float = 3 },
+        },
+    });
+    try runTest("(1b;(2;3f))&(0N;(0n;0N))", .{
+        .list = &[_]TestValue{
+            .{ .int = Value.null_int },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = Value.null_float },
+                .{ .float = Value.null_float },
+            } },
+        },
+    });
+    try runTestError("(0b;1;2;3;4;5;6;7;8;9)&(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MinError.incompatible_types);
+    try runTestError("(0b;1;2;3;4;5;6;7;8;9)&(\"a\";-0w;0w;0n;1f;-0W;0W;0N;1;0b)", MinError.incompatible_types);
+
+    try runTestError("010b&()", MinError.length_mismatch);
+    try runTest("01b&(0b;0N)", .{
+        .list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .int = Value.null_int },
+        },
+    });
+    try runTest("010b&(0b;0N;0n)", .{
+        .list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .int = Value.null_int },
+            .{ .float = Value.null_float },
+        },
+    });
+    try runTestError("0101010101b&(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MinError.incompatible_types);
+    try runTestError("0101010101b&(\"a\";-0w;0w;0n;1f;-0W;0W;0N;1;0b)", MinError.incompatible_types);
+
+    try runTestError("0 1 2&()", MinError.length_mismatch);
+    try runTest("0 1&(0b;0N)", .{
+        .int_list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = Value.null_int },
+        },
+    });
+    try runTest("0 1 2&(0b;0N;0n)", .{
+        .list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = Value.null_int },
+            .{ .float = Value.null_float },
+        },
+    });
+    try runTestError("0 1 2 3 4 5 6 7 8 9&(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MinError.incompatible_types);
+    try runTestError("0 1 2 3 4 5 6 7 8 9&(\"a\";-0w;0w;0n;1f;-0W;0W;0N;1;0b)", MinError.incompatible_types);
+
+    try runTestError("0 1 2f&()", MinError.length_mismatch);
+    try runTest("0 1 2f&(0b;0N;0n)", .{
+        .float_list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = Value.null_float },
+            .{ .float = Value.null_float },
+        },
+    });
+    try runTestError("0 1 2 3 4 5 6 7 8 9f&(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MinError.incompatible_types);
+    try runTestError("0 1 2 3 4 5 6 7 8 9f&(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", MinError.incompatible_types);
+
+    try runTestError("\"abcde\"&()", MinError.incompatible_types);
+
+    try runTestError("`a`b`c`d`e&()", MinError.incompatible_types);
+
+    try runTestError("(`a`b!1 2)&()", MinError.length_mismatch);
+    try runTest("(`a`b!1 2)&(1;2f)", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .float = 2 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)&(0b;1;2f)", MinError.length_mismatch);
+
+    try runTestError("(+`a`b!(,1;,2))&()", MinError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))&(1;2f)", MinError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))&(0b;1;2f)", MinError.incompatible_types);
+}
+
+test "min dictionary" {
+    try runTest("1b&()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTest("1b&`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 1 },
+            } },
+        },
+    });
+
+    try runTest("1&()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTest("1&`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 1 },
+            } },
+        },
+    });
+
+    try runTest("1f&()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTest("1f&`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 1 },
+                .{ .float = 1 },
+            } },
+        },
+    });
+
+    try runTestError("\"a\"&`a`b!1 2", MinError.incompatible_types);
+
+    try runTestError("`symbol&`a`b!1 2", MinError.incompatible_types);
+
+    try runTest("()&()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTestError("()&`a`b!1 2", MinError.length_mismatch);
+    try runTest("(1;2f)&`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .float = 2 },
+            } },
+        },
+    });
+    try runTestError("(0b;1;2f)&`a`b!1 2", MinError.length_mismatch);
+
+    try runTest("(`boolean$())&()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTestError("(`boolean$())&`a`b!1 2", MinError.length_mismatch);
+    try runTest("10b&`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 0 },
+            } },
+        },
+    });
+    try runTestError("101b&`a`b!1 2", MinError.length_mismatch);
+
+    try runTest("(`int$())&()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTestError("(`int$())&`a`b!1 2", MinError.length_mismatch);
+    try runTest("1 2&`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 2 },
+            } },
+        },
+    });
+    try runTestError("1 2 3&`a`b!1 2", MinError.length_mismatch);
+
+    try runTest("(`float$())&()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTestError("(`float$())&`a`b!1 2", MinError.length_mismatch);
+    try runTest("1 2f&`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 1 },
+                .{ .float = 2 },
+            } },
+        },
+    });
+    try runTestError("1 2 3f&`a`b!1 2", MinError.length_mismatch);
+
+    try runTestError("\"\"&`a`b!1 2", MinError.incompatible_types);
+    try runTestError("\"12\"&`a`b!1 2", MinError.incompatible_types);
+    try runTestError("\"123\"&`a`b!1 2", MinError.incompatible_types);
+
+    try runTestError("(`$())&`a`b!1 2", MinError.incompatible_types);
+    try runTestError("`5`4&`a`b!1 2", MinError.incompatible_types);
+    try runTestError("`5`4`3&`a`b!1 2", MinError.incompatible_types);
+
+    try runTest("(()!())&()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTest("(`a`b!1 2)&`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 2 },
+            } },
+        },
+    });
+    try runTest("(`b`a!1 2)&`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "b" },
+                .{ .symbol = "a" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 1 },
+            } },
+        },
+    });
+    try runTest("(`a`b!1 2)&`b`a!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 1 },
+            } },
+        },
+    });
+    try runTest("(`a`b!1 2)&`c`d!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+                .{ .symbol = "c" },
+                .{ .symbol = "d" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 2 },
+                .{ .int = 1 },
+                .{ .int = 2 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)&`a`b!(1;\"2\")", MinError.incompatible_types);
+
+    try runTestError("(+`a`b!(,1;,2))&`a`b!1 2", MinError.incompatible_types);
+}
+
+test "min table" {
+    try runTest("1b&+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+            } },
+        },
+    });
+
+    try runTest("1&+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+            } },
+        },
+    });
+
+    try runTest("1f&+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 1 },
+                } },
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 1 },
+                } },
+            } },
+        },
+    });
+
+    try runTestError("\"a\"&+`a`b!(,1;,2)", MinError.incompatible_types);
+
+    try runTestError("`symbol&+`a`b!(,1;,2)", MinError.incompatible_types);
+
+    try runTestError("()&+`a`b!(,1;,2)", MinError.incompatible_types);
+    try runTestError("(1;2f)&+`a`b!(,1;,2)", MinError.incompatible_types);
+    try runTestError("(0b;1;2f)&+`a`b!(,1;,2)", MinError.incompatible_types);
+
+    try runTestError("(`boolean$())&+`a`b!(,1;,2)", MinError.incompatible_types);
+    try runTestError("10b&+`a`b!(,1;,2)", MinError.incompatible_types);
+    try runTestError("101b&+`a`b!(,1;,2)", MinError.incompatible_types);
+
+    try runTestError("(`int$())&+`a`b!(,1;,2)", MinError.incompatible_types);
+    try runTestError("1 2&+`a`b!(,1;,2)", MinError.incompatible_types);
+    try runTestError("1 2 3&+`a`b!(,1;,2)", MinError.incompatible_types);
+
+    try runTestError("(`float$())&+`a`b!(,1;,2)", MinError.incompatible_types);
+    try runTestError("1 2f&+`a`b!(,1;,2)", MinError.incompatible_types);
+    try runTestError("1 2 3f&+`a`b!(,1;,2)", MinError.incompatible_types);
+
+    try runTestError("\"\"&+`a`b!(,1;,2)", MinError.incompatible_types);
+    try runTestError("\"12\"&+`a`b!(,1;,2)", MinError.incompatible_types);
+    try runTestError("\"123\"&+`a`b!(,1;,2)", MinError.incompatible_types);
+
+    try runTestError("(`$())&+`a`b!(,1;,2)", MinError.incompatible_types);
+    try runTestError("`5`4&+`a`b!(,1;,2)", MinError.incompatible_types);
+    try runTestError("`5`4`3&+`a`b!(,1;,2)", MinError.incompatible_types);
+
+    try runTestError("(`a`b!1 2)&+`a`b!(,1;,2)", MinError.incompatible_types);
+
+    try runTest("(+`a`b!(,1;,2))&+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+            } },
+        },
+    });
+    try runTest("(+`b`a!(,1;,2))&+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "b" },
+                .{ .symbol = "a" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+            } },
+        },
+    });
+    try runTest("(+`a`b!(,1;,2))&+`b`a!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(,1;,2))&+`a`b!(,1;,`symbol)", MinError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))&+`a`b!(1 1;2 2)", MinError.length_mismatch);
+    try runTest("(+`a`b!(,1;,2))&+`a`b`c!(,1;,2;,3)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+                .{ .symbol = "c" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 3 },
+                } },
+            } },
+        },
+    });
+    try runTest("(+`a`b`c!(,1;,2;,3))&+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+                .{ .symbol = "c" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 3 },
+                } },
+            } },
+        },
+    });
+}
