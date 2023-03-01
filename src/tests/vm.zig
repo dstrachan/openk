@@ -425,6 +425,6 @@ test "dictionaries" {
 }
 
 test "stress" {
-    // try runTest("*&!1000", .{ .int = 1 });
+    try runTest("*&!1000", .{ .int = 1 });
     // try runTest("#&!1000", .{ .int = 499500 });
 }
