@@ -49,10 +49,7 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                     list[i] = try add(vm, x, value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
-                    .int => .{ .int_list = list },
-                    else => .{ .list = list },
-                });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .boolean_list => |bool_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
@@ -102,10 +99,7 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                     list[i] = try add(vm, x, value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
-                    .int => .{ .int_list = list },
-                    else => .{ .list = list },
-                });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .boolean_list => |bool_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
@@ -155,10 +149,7 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                     list[i] = try add(vm, x, value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
-                    .float => .{ .float_list = list },
-                    else => .{ .list = list },
-                });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .boolean_list => |bool_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
@@ -205,10 +196,7 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                     list[i] = try add(vm, value, y);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
-                    .int => .{ .int_list = list },
-                    else => .{ .list = list },
-                });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .int => blk: {
                 const list = vm.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
@@ -219,10 +207,7 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                     list[i] = try add(vm, value, y);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
-                    .int => .{ .int_list = list },
-                    else => .{ .list = list },
-                });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .float => blk: {
                 const list = vm.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
@@ -233,10 +218,7 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                     list[i] = try add(vm, value, y);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
-                    .float => .{ .float_list = list },
-                    else => .{ .list = list },
-                });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .list => |list_y| blk: {
                 if (list_x.len != list_y.len) return runtimeError(AddError.length_mismatch);
@@ -249,11 +231,7 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                     list[i] = try add(vm, list_x[i], value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
-                    .int => .{ .int_list = list },
-                    .float => .{ .float_list = list },
-                    else => .{ .list = list },
-                });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .boolean_list => |bool_list_y| blk: {
                 if (list_x.len != bool_list_y.len) return runtimeError(AddError.length_mismatch);
@@ -266,10 +244,7 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                     list[i] = try add(vm, list_x[i], value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
-                    .int => .{ .int_list = list },
-                    else => .{ .list = list },
-                });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .int_list => |int_list_y| blk: {
                 if (list_x.len != int_list_y.len) return runtimeError(AddError.length_mismatch);
@@ -282,10 +257,7 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                     list[i] = try add(vm, list_x[i], value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
-                    .int => .{ .int_list = list },
-                    else => .{ .list = list },
-                });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .float_list => |float_list_y| blk: {
                 if (list_x.len != float_list_y.len) return runtimeError(AddError.length_mismatch);
@@ -298,10 +270,7 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                     list[i] = try add(vm, list_x[i], value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
-                    .float => .{ .float_list = list },
-                    else => .{ .list = list },
-                });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .dictionary => |dict_y| blk: {
                 if (dict_y.value.asList().len == 0) break :blk y.ref();
@@ -345,10 +314,7 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                     list[i] = try add(vm, bool_list_x[i], value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
-                    .int => .{ .int_list = list },
-                    else => .{ .list = list },
-                });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .boolean_list => |bool_list_y| blk: {
                 if (bool_list_x.len != bool_list_y.len) return runtimeError(AddError.length_mismatch);
@@ -419,10 +385,7 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                     list[i] = try add(vm, int_list_x[i], value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
-                    .int => .{ .int_list = list },
-                    else => .{ .list = list },
-                });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .boolean_list => |bool_list_y| blk: {
                 if (int_list_x.len != bool_list_y.len) return runtimeError(AddError.length_mismatch);
