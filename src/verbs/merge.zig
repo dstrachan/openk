@@ -81,7 +81,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .table => blk: {
                 const list = vm.allocator.alloc(*Value, 2) catch std.debug.panic("Failed to create list.", .{});
                 list[0] = x.ref();
-                list[1] = try first(vm, y);
+                list[1] = first(vm, y);
                 break :blk vm.initValue(.{ .list = list });
             },
             else => runtimeError(MergeError.incompatible_types),
@@ -99,7 +99,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .table => blk: {
                 const list = vm.allocator.alloc(*Value, 2) catch std.debug.panic("Failed to create list.", .{});
                 list[0] = x.ref();
-                list[1] = try first(vm, y);
+                list[1] = first(vm, y);
                 break :blk vm.initValue(.{ .list = list });
             },
             else => runtimeError(MergeError.incompatible_types),
@@ -117,7 +117,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .table => blk: {
                 const list = vm.allocator.alloc(*Value, 2) catch std.debug.panic("Failed to create list.", .{});
                 list[0] = x.ref();
-                list[1] = try first(vm, y);
+                list[1] = first(vm, y);
                 break :blk vm.initValue(.{ .list = list });
             },
             else => runtimeError(MergeError.incompatible_types),
@@ -135,7 +135,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .table => blk: {
                 const list = vm.allocator.alloc(*Value, 2) catch std.debug.panic("Failed to create list.", .{});
                 list[0] = x.ref();
-                list[1] = try first(vm, y);
+                list[1] = first(vm, y);
                 break :blk vm.initValue(.{ .list = list });
             },
             else => runtimeError(MergeError.incompatible_types),
@@ -153,7 +153,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
             .table => blk: {
                 const list = vm.allocator.alloc(*Value, 2) catch std.debug.panic("Failed to create list.", .{});
                 list[0] = x.ref();
-                list[1] = try first(vm, y);
+                list[1] = first(vm, y);
                 break :blk vm.initValue(.{ .list = list });
             },
             else => runtimeError(MergeError.incompatible_types),
@@ -178,7 +178,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
                 for (list_x, 0..) |v, i| {
                     list[i] = v.ref();
                 }
-                list[list_x.len] = try first(vm, y);
+                list[list_x.len] = first(vm, y);
                 break :blk vm.initValue(.{ .list = list });
             },
             else => runtimeError(MergeError.incompatible_types),
@@ -199,7 +199,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
                 for (bool_list_x, 0..) |v, i| {
                     list[i] = v.ref();
                 }
-                list[bool_list_x.len] = try first(vm, y);
+                list[bool_list_x.len] = first(vm, y);
                 break :blk vm.initValue(.{ .list = list });
             },
             else => runtimeError(MergeError.incompatible_types),
@@ -220,7 +220,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
                 for (int_list_x, 0..) |v, i| {
                     list[i] = v.ref();
                 }
-                list[int_list_x.len] = try first(vm, y);
+                list[int_list_x.len] = first(vm, y);
                 break :blk vm.initValue(.{ .list = list });
             },
             else => runtimeError(MergeError.incompatible_types),
@@ -241,7 +241,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
                 for (float_list_x, 0..) |v, i| {
                     list[i] = v.ref();
                 }
-                list[float_list_x.len] = try first(vm, y);
+                list[float_list_x.len] = first(vm, y);
                 break :blk vm.initValue(.{ .list = list });
             },
             else => runtimeError(MergeError.incompatible_types),
@@ -262,7 +262,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
                 for (char_list_x, 0..) |v, i| {
                     list[i] = v.ref();
                 }
-                list[char_list_x.len] = try first(vm, y);
+                list[char_list_x.len] = first(vm, y);
                 break :blk vm.initValue(.{ .list = list });
             },
             else => runtimeError(MergeError.incompatible_types),
@@ -283,7 +283,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
                 for (symbol_list_x, 0..) |v, i| {
                     list[i] = v.ref();
                 }
-                list[symbol_list_x.len] = try first(vm, y);
+                list[symbol_list_x.len] = first(vm, y);
                 break :blk vm.initValue(.{ .list = list });
             },
             else => runtimeError(MergeError.incompatible_types),
@@ -340,14 +340,14 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
         .table => |table_x| switch (y.as) {
             .boolean, .int, .float, .char, .symbol => blk: {
                 const list = vm.allocator.alloc(*Value, 2) catch std.debug.panic("Failed to create list.", .{});
-                list[0] = try first(vm, x);
+                list[0] = first(vm, x);
                 list[1] = y.ref();
                 break :blk vm.initValue(.{ .list = list });
             },
             .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_y| blk: {
                 if (list_y.len == 0) break :blk x.ref();
                 const list = vm.allocator.alloc(*Value, list_y.len + 1) catch std.debug.panic("Failed to create list.", .{});
-                list[0] = try first(vm, x);
+                list[0] = first(vm, x);
                 for (list_y, 0..) |v, i| {
                     list[i + 1] = v.ref();
                 }
