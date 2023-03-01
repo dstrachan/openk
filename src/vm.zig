@@ -484,7 +484,7 @@ pub const VM = struct {
         const x = self.pop();
         defer x.deref(self.allocator);
 
-        const value = try verbs.first(self, x);
+        const value = verbs.first(self, x);
         try self.push(value);
     }
 

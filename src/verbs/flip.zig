@@ -47,14 +47,7 @@ pub fn flip(vm: *VM, x: *Value) FlipError!*Value {
                     };
                     if (list_type == null and @as(ValueType, inner_list[0].as) != @as(ValueType, inner_list[j].as)) list_type = .list;
                 }
-                list[i] = vm.initValue(switch (if (list_type) |list_type_value| list_type_value else @as(ValueType, inner_list[0].as)) {
-                    .boolean => .{ .boolean_list = inner_list },
-                    .int => .{ .int_list = inner_list },
-                    .float => .{ .float_list = inner_list },
-                    .char => .{ .char_list = inner_list },
-                    .symbol => .{ .symbol_list = inner_list },
-                    else => .{ .list = inner_list },
-                });
+                list[i] = vm.initListAtoms(inner_list, list_type);
             }
             break :blk vm.initValue(.{ .list = list });
         },
@@ -70,40 +63,12 @@ pub fn flip(vm: *VM, x: *Value) FlipError!*Value {
             var i: usize = 0;
             while (i < column_count) : (i += 1) {
                 value_list[i] = switch (dict_x.value.as.list[i].as) {
-                    .boolean => inner_blk: {
+                    .boolean, .int, .float, .char, .symbol => inner_blk: {
                         const inner_list = vm.allocator.alloc(*Value, table_len) catch std.debug.panic("Failed to create list.", .{});
                         for (inner_list) |*inner_list_value| {
                             inner_list_value.* = dict_x.value.as.list[i].ref();
                         }
-                        break :inner_blk vm.initValue(.{ .boolean_list = inner_list });
-                    },
-                    .int => inner_blk: {
-                        const inner_list = vm.allocator.alloc(*Value, table_len) catch std.debug.panic("Failed to create list.", .{});
-                        for (inner_list) |*inner_list_value| {
-                            inner_list_value.* = dict_x.value.as.list[i].ref();
-                        }
-                        break :inner_blk vm.initValue(.{ .int_list = inner_list });
-                    },
-                    .float => inner_blk: {
-                        const inner_list = vm.allocator.alloc(*Value, table_len) catch std.debug.panic("Failed to create list.", .{});
-                        for (inner_list) |*inner_list_value| {
-                            inner_list_value.* = dict_x.value.as.list[i].ref();
-                        }
-                        break :inner_blk vm.initValue(.{ .float_list = inner_list });
-                    },
-                    .char => inner_blk: {
-                        const inner_list = vm.allocator.alloc(*Value, table_len) catch std.debug.panic("Failed to create list.", .{});
-                        for (inner_list) |*inner_list_value| {
-                            inner_list_value.* = dict_x.value.as.list[i].ref();
-                        }
-                        break :inner_blk vm.initValue(.{ .char_list = inner_list });
-                    },
-                    .symbol => inner_blk: {
-                        const inner_list = vm.allocator.alloc(*Value, table_len) catch std.debug.panic("Failed to create list.", .{});
-                        for (inner_list) |*inner_list_value| {
-                            inner_list_value.* = dict_x.value.as.list[i].ref();
-                        }
-                        break :inner_blk vm.initValue(.{ .symbol_list = inner_list });
+                        break :inner_blk vm.initListAtoms(inner_list, inner_list[0].as);
                     },
                     .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => dict_x.value.as.list[i].ref(),
                     else => unreachable,

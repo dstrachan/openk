@@ -44,10 +44,7 @@ pub fn divide(vm: *VM, x: *Value, y: *Value) DivideError!*Value {
                     list[i] = try divide(vm, x, value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
-                    .float => .{ .float_list = list },
-                    else => .{ .list = list },
-                });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .boolean_list => |bool_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
@@ -97,10 +94,7 @@ pub fn divide(vm: *VM, x: *Value, y: *Value) DivideError!*Value {
                     list[i] = try divide(vm, x, value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
-                    .float => .{ .float_list = list },
-                    else => .{ .list = list },
-                });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .boolean_list => |bool_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
@@ -150,10 +144,7 @@ pub fn divide(vm: *VM, x: *Value, y: *Value) DivideError!*Value {
                     list[i] = try divide(vm, x, value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
-                    .float => .{ .float_list = list },
-                    else => .{ .list = list },
-                });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .boolean_list => |bool_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
@@ -200,10 +191,7 @@ pub fn divide(vm: *VM, x: *Value, y: *Value) DivideError!*Value {
                     list[i] = try divide(vm, value, y);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
-                    .float => .{ .float_list = list },
-                    else => .{ .list = list },
-                });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .list, .boolean_list, .int_list, .float_list => |list_y| blk: {
                 if (list_x.len != list_y.len) return runtimeError(DivideError.length_mismatch);
@@ -216,10 +204,7 @@ pub fn divide(vm: *VM, x: *Value, y: *Value) DivideError!*Value {
                     list[i] = try divide(vm, list_x[i], value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
-                    .float => .{ .float_list = list },
-                    else => .{ .list = list },
-                });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .dictionary => |dict_y| blk: {
                 if (dict_y.value.asList().len == 0) break :blk y.ref();
@@ -263,10 +248,7 @@ pub fn divide(vm: *VM, x: *Value, y: *Value) DivideError!*Value {
                     list[i] = try divide(vm, bool_list_x[i], value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
-                    .float => .{ .float_list = list },
-                    else => .{ .list = list },
-                });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .boolean_list => |bool_list_y| blk: {
                 if (bool_list_x.len != bool_list_y.len) return runtimeError(DivideError.length_mismatch);
@@ -337,10 +319,7 @@ pub fn divide(vm: *VM, x: *Value, y: *Value) DivideError!*Value {
                     list[i] = try divide(vm, int_list_x[i], value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
-                    .float => .{ .float_list = list },
-                    else => .{ .list = list },
-                });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .boolean_list => |bool_list_y| blk: {
                 if (int_list_x.len != bool_list_y.len) return runtimeError(DivideError.length_mismatch);
@@ -411,10 +390,7 @@ pub fn divide(vm: *VM, x: *Value, y: *Value) DivideError!*Value {
                     list[i] = try divide(vm, float_list_x[i], value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
-                    .float => .{ .float_list = list },
-                    else => .{ .list = list },
-                });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .boolean_list => |bool_list_y| blk: {
                 if (float_list_x.len != bool_list_y.len) return runtimeError(DivideError.length_mismatch);
