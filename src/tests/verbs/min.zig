@@ -216,218 +216,218 @@ test "min boolean" {
     try runTestError("(+`a`b!(,1;,2))&010b", MinError.incompatible_types);
 }
 
-// test "min int" {
-//     try runTest("1b&0", .{ .int = 0 });
-//     try runTest("1b&`int$()", .{ .int_list = &[_]TestValue{} });
-//     try runTest("1b&0 1 0N 0W -0W", .{
-//         .int_list = &[_]TestValue{
-//             .{ .int = 0 },
-//             .{ .int = 1 },
-//             .{ .int = Value.null_int },
-//             .{ .int = Value.inf_int },
-//             .{ .int = -Value.inf_int },
-//         },
-//     });
+test "min int" {
+    try runTest("1b&0", .{ .int = 0 });
+    try runTest("1b&`int$()", .{ .int_list = &[_]TestValue{} });
+    try runTest("1b&0 1 0N 0W -0W", .{
+        .int_list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 1 },
+            .{ .int = Value.null_int },
+            .{ .int = 1 },
+            .{ .int = -Value.inf_int },
+        },
+    });
 
-//     try runTest("1&0", .{ .int = 0 });
-//     try runTest("1&`int$()", .{ .int_list = &[_]TestValue{} });
-//     try runTest("1&0 1 0N 0W -0W", .{
-//         .int_list = &[_]TestValue{
-//             .{ .int = 0 },
-//             .{ .int = 1 },
-//             .{ .int = Value.null_int },
-//             .{ .int = Value.inf_int },
-//             .{ .int = -Value.inf_int },
-//         },
-//     });
+    try runTest("1&0", .{ .int = 0 });
+    try runTest("1&`int$()", .{ .int_list = &[_]TestValue{} });
+    try runTest("1&0 1 0N 0W -0W", .{
+        .int_list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 1 },
+            .{ .int = Value.null_int },
+            .{ .int = 1 },
+            .{ .int = -Value.inf_int },
+        },
+    });
 
-//     try runTest("1f&0", .{ .float = 0 });
-//     try runTest("1f&`int$()", .{ .float_list = &[_]TestValue{} });
-//     try runTest("1f&0 1 0N 0W -0W", .{
-//         .float_list = &[_]TestValue{
-//             .{ .float = 0 },
-//             .{ .float = 1 },
-//             .{ .float = Value.null_float },
-//             .{ .float = Value.inf_int },
-//             .{ .float = -Value.inf_int },
-//         },
-//     });
+    try runTest("1f&0", .{ .float = 0 });
+    try runTest("1f&`int$()", .{ .float_list = &[_]TestValue{} });
+    try runTest("1f&0 1 0N 0W -0W", .{
+        .float_list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = 1 },
+            .{ .float = -Value.inf_int },
+        },
+    });
 
-//     try runTestError("\"a\"&0", MinError.incompatible_types);
-//     try runTestError("\"a\"&`int$()", MinError.incompatible_types);
-//     try runTestError("\"a\"&0 1 0N 0W -0W", MinError.incompatible_types);
+    try runTestError("\"a\"&0", MinError.incompatible_types);
+    try runTestError("\"a\"&`int$()", MinError.incompatible_types);
+    try runTestError("\"a\"&0 1 0N 0W -0W", MinError.incompatible_types);
 
-//     try runTestError("`symbol&0", MinError.incompatible_types);
-//     try runTestError("`symbol&`int$()", MinError.incompatible_types);
-//     try runTestError("`symbol&0 1 0N 0W -0W", MinError.incompatible_types);
+    try runTestError("`symbol&0", MinError.incompatible_types);
+    try runTestError("`symbol&`int$()", MinError.incompatible_types);
+    try runTestError("`symbol&0 1 0N 0W -0W", MinError.incompatible_types);
 
-//     try runTest("()&0", .{ .list = &[_]TestValue{} });
-//     try runTest("(1b;2)&0", .{
-//         .int_list = &[_]TestValue{
-//             .{ .int = 0 },
-//             .{ .int = 0 },
-//         },
-//     });
-//     try runTest("(1b;2;3f)&0", .{
-//         .list = &[_]TestValue{
-//             .{ .int = 0 },
-//             .{ .int = 0 },
-//             .{ .float = 0 },
-//         },
-//     });
-//     try runTestError("(1b;2;3f;`symbol)&0", MinError.incompatible_types);
-//     try runTest("()&`int$()", .{ .list = &[_]TestValue{} });
-//     try runTestError("()&0 1 0N 0W -0W", MinError.length_mismatch);
-//     try runTestError("(1b;2;3;4;5)&`int$()", MinError.length_mismatch);
-//     try runTest("(1b;2;3;4;5)&0 1 0N 0W -0W", .{
-//         .int_list = &[_]TestValue{
-//             .{ .int = 0 },
-//             .{ .int = 2 },
-//             .{ .int = Value.null_int },
-//             .{ .int = -4 },
-//             .{ .int = -9223372036854775803 },
-//         },
-//     });
-//     try runTest("(1b;2;3f;4;5)&0 1 0N 0W -0W", .{
-//         .list = &[_]TestValue{
-//             .{ .int = 0 },
-//             .{ .int = 2 },
-//             .{ .float = Value.null_float },
-//             .{ .int = -4 },
-//             .{ .int = -9223372036854775803 },
-//         },
-//     });
-//     try runTestError("(1b;2;3f;4)&0 1 0N 0W -0W", MinError.length_mismatch);
-//     try runTestError("(1b;2;3f;4;\"a\")&0 1 0N 0W -0W", MinError.incompatible_types);
-//     try runTestError("(1b;2;3f;4;`symbol)&0 1 0N 0W -0W", MinError.incompatible_types);
+    try runTest("()&0", .{ .list = &[_]TestValue{} });
+    try runTest("(1b;2)&0", .{
+        .int_list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 0 },
+        },
+    });
+    try runTest("(1b;2;3f)&0", .{
+        .list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 0 },
+            .{ .float = 0 },
+        },
+    });
+    try runTestError("(1b;2;3f;`symbol)&0", MinError.incompatible_types);
+    try runTest("()&`int$()", .{ .list = &[_]TestValue{} });
+    try runTestError("()&0 1 0N 0W -0W", MinError.length_mismatch);
+    try runTestError("(1b;2;3;4;5)&`int$()", MinError.length_mismatch);
+    try runTest("(1b;2;3;4;5)&0 1 0N 0W -0W", .{
+        .int_list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 1 },
+            .{ .int = Value.null_int },
+            .{ .int = 4 },
+            .{ .int = -Value.inf_int },
+        },
+    });
+    try runTest("(1b;2;3f;4;5)&0 1 0N 0W -0W", .{
+        .list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 1 },
+            .{ .float = Value.null_float },
+            .{ .int = 4 },
+            .{ .int = -Value.inf_int },
+        },
+    });
+    try runTestError("(1b;2;3f;4)&0 1 0N 0W -0W", MinError.length_mismatch);
+    try runTestError("(1b;2;3f;4;\"a\")&0 1 0N 0W -0W", MinError.incompatible_types);
+    try runTestError("(1b;2;3f;4;`symbol)&0 1 0N 0W -0W", MinError.incompatible_types);
 
-//     try runTest("11111b&0", .{
-//         .int_list = &[_]TestValue{
-//             .{ .int = 0 },
-//             .{ .int = 0 },
-//             .{ .int = 0 },
-//             .{ .int = 0 },
-//             .{ .int = 0 },
-//         },
-//     });
-//     try runTestError("11111b&`int$()", MinError.length_mismatch);
-//     try runTest("11111b&0 1 0N 0W -0W", .{
-//         .int_list = &[_]TestValue{
-//             .{ .int = 0 },
-//             .{ .int = 1 },
-//             .{ .int = Value.null_int },
-//             .{ .int = Value.inf_int },
-//             .{ .int = -Value.inf_int },
-//         },
-//     });
-//     try runTestError("11111b&0 1 0N 0W -0W 2", MinError.length_mismatch);
+    try runTest("11111b&0", .{
+        .int_list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 0 },
+            .{ .int = 0 },
+            .{ .int = 0 },
+            .{ .int = 0 },
+        },
+    });
+    try runTestError("11111b&`int$()", MinError.length_mismatch);
+    try runTest("11111b&0 1 0N 0W -0W", .{
+        .int_list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 1 },
+            .{ .int = Value.null_int },
+            .{ .int = 1 },
+            .{ .int = -Value.inf_int },
+        },
+    });
+    try runTestError("11111b&0 1 0N 0W -0W 2", MinError.length_mismatch);
 
-//     try runTest("5 4 3 2 1&0", .{
-//         .int_list = &[_]TestValue{
-//             .{ .int = 0 },
-//             .{ .int = 0 },
-//             .{ .int = 0 },
-//             .{ .int = 0 },
-//             .{ .int = 0 },
-//         },
-//     });
-//     try runTestError("5 4 3 2 1&`int$()", MinError.length_mismatch);
-//     try runTest("5 4 3 2 1&0 1 0N 0W -0W", .{
-//         .int_list = &[_]TestValue{
-//             .{ .int = 0 },
-//             .{ .int = 4 },
-//             .{ .int = Value.null_int },
-//             .{ .int = -2 },
-//             .{ .int = -Value.inf_int },
-//         },
-//     });
-//     try runTestError("5 4 3 2 1&0 1 0N 0W -0W 2", MinError.length_mismatch);
+    try runTest("5 4 3 2 1&0", .{
+        .int_list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 0 },
+            .{ .int = 0 },
+            .{ .int = 0 },
+            .{ .int = 0 },
+        },
+    });
+    try runTestError("5 4 3 2 1&`int$()", MinError.length_mismatch);
+    try runTest("5 4 3 2 1&0 1 0N 0W -0W", .{
+        .int_list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 1 },
+            .{ .int = Value.null_int },
+            .{ .int = 2 },
+            .{ .int = -Value.inf_int },
+        },
+    });
+    try runTestError("5 4 3 2 1&0 1 0N 0W -0W 2", MinError.length_mismatch);
 
-//     try runTest("5 4 3 2 1f&0", .{
-//         .float_list = &[_]TestValue{
-//             .{ .float = 0 },
-//             .{ .float = 0 },
-//             .{ .float = 0 },
-//             .{ .float = 0 },
-//             .{ .float = 0 },
-//         },
-//     });
-//     try runTestError("5 4 3 2 1f&`int$()", MinError.length_mismatch);
-//     try runTest("5 4 3 2 1f&0 1 0N 0W -0W", .{
-//         .float_list = &[_]TestValue{
-//             .{ .float = 0 },
-//             .{ .float = 4 },
-//             .{ .float = Value.null_float },
-//             .{ .float = Value.inf_int & 2 },
-//             .{ .float = -Value.inf_int },
-//         },
-//     });
-//     try runTestError("5 4 3 2 1f&0 1 0N 0W -0W 2", MinError.length_mismatch);
+    try runTest("5 4 3 2 1f&0", .{
+        .float_list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = 0 },
+            .{ .float = 0 },
+            .{ .float = 0 },
+            .{ .float = 0 },
+        },
+    });
+    try runTestError("5 4 3 2 1f&`int$()", MinError.length_mismatch);
+    try runTest("5 4 3 2 1f&0 1 0N 0W -0W", .{
+        .float_list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = 1 },
+            .{ .float = Value.null_float },
+            .{ .float = 2 },
+            .{ .float = -Value.inf_int },
+        },
+    });
+    try runTestError("5 4 3 2 1f&0 1 0N 0W -0W 2", MinError.length_mismatch);
 
-//     try runTestError("\"abcde\"&0", MinError.incompatible_types);
-//     try runTestError("\"abcde\"&`int$()", MinError.incompatible_types);
-//     try runTestError("\"abcde\"&0 1 0N 0W -0W", MinError.incompatible_types);
-//     try runTestError("\"abcde\"&0 1 0N 0W -0W 2", MinError.incompatible_types);
+    try runTestError("\"abcde\"&0", MinError.incompatible_types);
+    try runTestError("\"abcde\"&`int$()", MinError.incompatible_types);
+    try runTestError("\"abcde\"&0 1 0N 0W -0W", MinError.incompatible_types);
+    try runTestError("\"abcde\"&0 1 0N 0W -0W 2", MinError.incompatible_types);
 
-//     try runTestError("`a`b`c`d`e&0", MinError.incompatible_types);
-//     try runTestError("`a`b`c`d`e&`int$()", MinError.incompatible_types);
-//     try runTestError("`a`b`c`d`e&0 1 0N 0W -0W", MinError.incompatible_types);
-//     try runTestError("`a`b`c`d`e&0 1 0N 0W -0W 2", MinError.incompatible_types);
+    try runTestError("`a`b`c`d`e&0", MinError.incompatible_types);
+    try runTestError("`a`b`c`d`e&`int$()", MinError.incompatible_types);
+    try runTestError("`a`b`c`d`e&0 1 0N 0W -0W", MinError.incompatible_types);
+    try runTestError("`a`b`c`d`e&0 1 0N 0W -0W 2", MinError.incompatible_types);
 
-//     try runTest("(()!())&0", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .list = &[_]TestValue{} },
-//             .{ .list = &[_]TestValue{} },
-//         },
-//     });
-//     try runTest("(`a`b!1 2)&0", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//             } },
-//             .{ .int_list = &[_]TestValue{
-//                 .{ .int = 0 },
-//                 .{ .int = 0 },
-//             } },
-//         },
-//     });
-//     try runTestError("(`a`b!1 2)&`int$()", MinError.length_mismatch);
-//     try runTest("(`a`b!1 2)&0 1", .{
-//         .dictionary = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//             } },
-//             .{ .int_list = &[_]TestValue{
-//                 .{ .int = 0 },
-//                 .{ .int = 2 },
-//             } },
-//         },
-//     });
-//     try runTestError("(`a`b!1 2)&0 1 2", MinError.length_mismatch);
+    try runTest("(()!())&0", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTest("(`a`b!1 2)&0", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 0 },
+                .{ .int = 0 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)&`int$()", MinError.length_mismatch);
+    try runTest("(`a`b!1 2)&0 1", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 0 },
+                .{ .int = 1 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)&0 1 2", MinError.length_mismatch);
 
-//     try runTest("(+`a`b!(,1;,2))&0", .{
-//         .table = &[_]TestValue{
-//             .{ .symbol_list = &[_]TestValue{
-//                 .{ .symbol = "a" },
-//                 .{ .symbol = "b" },
-//             } },
-//             .{ .list = &[_]TestValue{
-//                 .{ .int_list = &[_]TestValue{
-//                     .{ .int = 0 },
-//                 } },
-//                 .{ .int_list = &[_]TestValue{
-//                     .{ .int = 0 },
-//                 } },
-//             } },
-//         },
-//     });
-//     try runTestError("(+`a`b!(,1;,`symbol))&0", MinError.incompatible_types);
-//     try runTestError("(+`a`b!(,1;,2))&`int$()", MinError.incompatible_types);
-//     try runTestError("(+`a`b!(,1;,2))&0 1", MinError.incompatible_types);
-//     try runTestError("(+`a`b!(,1;,2))&0 1 2", MinError.incompatible_types);
-// }
+    try runTest("(+`a`b!(,1;,2))&0", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 0 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 0 },
+                } },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(,1;,`symbol))&0", MinError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))&`int$()", MinError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))&0 1", MinError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))&0 1 2", MinError.incompatible_types);
+}
 
 // test "min float" {
 //     try runTest("1b&0f", .{ .float = 0 });
