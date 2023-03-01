@@ -187,7 +187,7 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
             else => runtimeError(MultiplyError.incompatible_types),
         },
         .list => |list_x| switch (y.as) {
-            .boolean => blk: {
+            .boolean, .int, .float => blk: {
                 const list = vm.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
                 var list_type: ?ValueType = if (list_x.len == 0) .list else null;
@@ -198,74 +198,13 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 }
                 break :blk vm.initListAtoms(list, list_type);
             },
-            .int => blk: {
-                const list = vm.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                errdefer vm.allocator.free(list);
-                var list_type: ?ValueType = if (list_x.len == 0) .list else null;
-                for (list_x, 0..) |value, i| {
-                    errdefer for (list[0..i]) |v| v.deref(vm.allocator);
-                    list[i] = try multiply(vm, value, y);
-                    if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
-                }
-                break :blk vm.initListAtoms(list, list_type);
-            },
-            .float => blk: {
-                const list = vm.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
-                errdefer vm.allocator.free(list);
-                var list_type: ?ValueType = if (list_x.len == 0) .list else null;
-                for (list_x, 0..) |value, i| {
-                    errdefer for (list[0..i]) |v| v.deref(vm.allocator);
-                    list[i] = try multiply(vm, value, y);
-                    if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
-                }
-                break :blk vm.initListAtoms(list, list_type);
-            },
-            .list => |list_y| blk: {
+            .list, .boolean_list, .int_list, .float_list => |list_y| blk: {
                 if (list_x.len != list_y.len) return runtimeError(MultiplyError.length_mismatch);
 
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
                 var list_type: ?ValueType = if (list_y.len == 0) .list else null;
                 for (list_y, 0..) |value, i| {
-                    errdefer for (list[0..i]) |v| v.deref(vm.allocator);
-                    list[i] = try multiply(vm, list_x[i], value);
-                    if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
-                }
-                break :blk vm.initListAtoms(list, list_type);
-            },
-            .boolean_list => |bool_list_y| blk: {
-                if (list_x.len != bool_list_y.len) return runtimeError(MultiplyError.length_mismatch);
-
-                const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                errdefer vm.allocator.free(list);
-                var list_type: ?ValueType = if (bool_list_y.len == 0) .list else null;
-                for (bool_list_y, 0..) |value, i| {
-                    errdefer for (list[0..i]) |v| v.deref(vm.allocator);
-                    list[i] = try multiply(vm, list_x[i], value);
-                    if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
-                }
-                break :blk vm.initListAtoms(list, list_type);
-            },
-            .int_list => |int_list_y| blk: {
-                if (list_x.len != int_list_y.len) return runtimeError(MultiplyError.length_mismatch);
-
-                const list = vm.allocator.alloc(*Value, int_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                errdefer vm.allocator.free(list);
-                var list_type: ?ValueType = if (int_list_y.len == 0) .list else null;
-                for (int_list_y, 0..) |value, i| {
-                    errdefer for (list[0..i]) |v| v.deref(vm.allocator);
-                    list[i] = try multiply(vm, list_x[i], value);
-                    if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
-                }
-                break :blk vm.initListAtoms(list, list_type);
-            },
-            .float_list => |float_list_y| blk: {
-                if (list_x.len != float_list_y.len) return runtimeError(MultiplyError.length_mismatch);
-
-                const list = vm.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
-                errdefer vm.allocator.free(list);
-                var list_type: ?ValueType = if (float_list_y.len == 0) .list else null;
-                for (float_list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try multiply(vm, list_x[i], value);
                     if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;

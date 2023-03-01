@@ -384,13 +384,11 @@ pub fn divide(vm: *VM, x: *Value, y: *Value) DivideError!*Value {
 
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
-                var list_type: ?ValueType = if (list_y.len == 0) .list else null;
                 for (list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try divide(vm, float_list_x[i], value);
-                    if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initListAtoms(list, list_type);
+                break :blk vm.initValue(.{ .float_list = list });
             },
             .boolean_list => |bool_list_y| blk: {
                 if (float_list_x.len != bool_list_y.len) return runtimeError(DivideError.length_mismatch);
