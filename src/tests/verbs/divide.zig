@@ -9,39 +9,39 @@ const TestValue = vm_mod.TestValue;
 const DivideError = @import("../../verbs/divide.zig").DivideError;
 
 test "divide boolean" {
-    try runTest("1b%0b", .{ .float = 1 });
+    try runTest("1b%0b", .{ .float = Value.inf_float });
     try runTest("1b%`boolean$()", .{ .float_list = &[_]TestValue{} });
     try runTest("1b%00000b", .{
         .float_list = &[_]TestValue{
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
         },
     });
 
-    try runTest("1%0b", .{ .float = 1 });
+    try runTest("1%0b", .{ .float = Value.inf_float });
     try runTest("1%`boolean$()", .{ .float_list = &[_]TestValue{} });
     try runTest("1%00000b", .{
         .float_list = &[_]TestValue{
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
         },
     });
 
-    try runTest("1f%0b", .{ .float = 1 });
+    try runTest("1f%0b", .{ .float = Value.inf_float });
     try runTest("1f%`boolean$()", .{ .float_list = &[_]TestValue{} });
     try runTest("1f%00000b", .{
         .float_list = &[_]TestValue{
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
         },
     });
 
@@ -56,15 +56,15 @@ test "divide boolean" {
     try runTest("()%0b", .{ .list = &[_]TestValue{} });
     try runTest("(1b;2)%0b", .{
         .float_list = &[_]TestValue{
-            .{ .float = 1 },
-            .{ .float = 2 },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
         },
     });
     try runTest("(1b;2;3f)%0b", .{
         .float_list = &[_]TestValue{
-            .{ .float = 1 },
-            .{ .float = 2 },
-            .{ .float = 3 },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
         },
     });
     try runTestError("(1b;2;3f;`symbol)%0b", DivideError.incompatible_types);
@@ -90,63 +90,63 @@ test "divide boolean" {
 
     try runTest("11111b%0b", .{
         .float_list = &[_]TestValue{
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
         },
     });
     try runTestError("11111b%`boolean$()", DivideError.length_mismatch);
     try runTest("11111b%00000b", .{
         .float_list = &[_]TestValue{
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
         },
     });
     try runTestError("11111b%000000b", DivideError.length_mismatch);
 
     try runTest("5 4 3 2 1%0b", .{
         .float_list = &[_]TestValue{
-            .{ .float = 5 },
-            .{ .float = 4 },
-            .{ .float = 3 },
-            .{ .float = 2 },
-            .{ .float = 1 },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
         },
     });
     try runTestError("5 4 3 2 1%`boolean$()", DivideError.length_mismatch);
     try runTest("5 4 3 2 1%00000b", .{
         .float_list = &[_]TestValue{
-            .{ .float = 5 },
-            .{ .float = 4 },
-            .{ .float = 3 },
-            .{ .float = 2 },
-            .{ .float = 1 },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
         },
     });
     try runTestError("5 4 3 2 1%000000b", DivideError.length_mismatch);
 
     try runTest("5 4 3 2 1f%0b", .{
         .float_list = &[_]TestValue{
-            .{ .float = 5 },
-            .{ .float = 4 },
-            .{ .float = 3 },
-            .{ .float = 2 },
-            .{ .float = 1 },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
         },
     });
     try runTestError("5 4 3 2 1f%`boolean$()", DivideError.length_mismatch);
     try runTest("5 4 3 2 1f%00000b", .{
         .float_list = &[_]TestValue{
-            .{ .float = 5 },
-            .{ .float = 4 },
-            .{ .float = 3 },
-            .{ .float = 2 },
-            .{ .float = 1 },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
         },
     });
     try runTestError("5 4 3 2 1f%000000b", DivideError.length_mismatch);
@@ -160,10 +160,64 @@ test "divide boolean" {
     try runTestError("`a`b`c`d`e%`boolean$()", DivideError.incompatible_types);
     try runTestError("`a`b`c`d`e%00000b", DivideError.incompatible_types);
     try runTestError("`a`b`c`d`e%000000b", DivideError.incompatible_types);
+
+    try runTest("(()!())%0b", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTest("(`a`b!1 2)%0b", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = Value.inf_float },
+                .{ .float = Value.inf_float },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)%`boolean$()", DivideError.length_mismatch);
+    try runTest("(`a`b!1 2)%01b", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = Value.inf_float },
+                .{ .float = 2 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)%010b", DivideError.length_mismatch);
+
+    try runTest("(+`a`b!(,1;,2))%0b", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = Value.inf_float },
+                } },
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = Value.inf_float },
+                } },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(,1;,`symbol))%0b", DivideError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))%`boolean$()", DivideError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))%01b", DivideError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))%010b", DivideError.incompatible_types);
 }
 
 test "divide int" {
-    try runTest("1b%0", .{ .float = 1 });
+    try runTest("1b%0", .{ .float = Value.inf_float });
     try runTest("1b%`int$()", .{ .float_list = &[_]TestValue{} });
     try runTest("1b%0 1 0N 0W -0W", .{
         .float_list = &[_]TestValue{
@@ -175,7 +229,7 @@ test "divide int" {
         },
     });
 
-    try runTest("1%0", .{ .float = 1 });
+    try runTest("1%0", .{ .float = Value.inf_float });
     try runTest("1%`int$()", .{ .float_list = &[_]TestValue{} });
     try runTest("1%0 1 0N 0W -0W", .{
         .float_list = &[_]TestValue{
@@ -187,7 +241,7 @@ test "divide int" {
         },
     });
 
-    try runTest("1f%0", .{ .float = 1 });
+    try runTest("1f%0", .{ .float = Value.inf_float });
     try runTest("1f%`int$()", .{ .float_list = &[_]TestValue{} });
     try runTest("1f%0 1 0N 0W -0W", .{
         .float_list = &[_]TestValue{
@@ -210,15 +264,15 @@ test "divide int" {
     try runTest("()%0", .{ .list = &[_]TestValue{} });
     try runTest("(1b;2)%0", .{
         .float_list = &[_]TestValue{
-            .{ .float = 1 },
-            .{ .float = 2 },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
         },
     });
     try runTest("(1b;2;3f)%0", .{
         .float_list = &[_]TestValue{
-            .{ .float = 1 },
-            .{ .float = 2 },
-            .{ .float = 3 },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
         },
     });
     try runTestError("(1b;2;3f;`symbol)%0", DivideError.incompatible_types);
@@ -240,11 +294,11 @@ test "divide int" {
 
     try runTest("11111b%0", .{
         .float_list = &[_]TestValue{
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
         },
     });
     try runTestError("11111b%`int$()", DivideError.length_mismatch);
@@ -261,11 +315,11 @@ test "divide int" {
 
     try runTest("5 4 3 2 1%0", .{
         .float_list = &[_]TestValue{
-            .{ .float = 5 },
-            .{ .float = 4 },
-            .{ .float = 3 },
-            .{ .float = 2 },
-            .{ .float = 1 },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
         },
     });
     try runTestError("5 4 3 2 1%`int$()", DivideError.length_mismatch);
@@ -282,11 +336,11 @@ test "divide int" {
 
     try runTest("5 4 3 2 1f%0", .{
         .float_list = &[_]TestValue{
-            .{ .float = 5 },
-            .{ .float = 4 },
-            .{ .float = 3 },
-            .{ .float = 2 },
-            .{ .float = 1 },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
         },
     });
     try runTestError("5 4 3 2 1f%`int$()", DivideError.length_mismatch);
@@ -310,10 +364,64 @@ test "divide int" {
     try runTestError("`a`b`c`d`e%`int$()", DivideError.incompatible_types);
     try runTestError("`a`b`c`d`e%0 1 0N 0W -0W", DivideError.incompatible_types);
     try runTestError("`a`b`c`d`e%0 1 0N 0W -0W 2", DivideError.incompatible_types);
+
+    try runTest("(()!())%0", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTest("(`a`b!1 2)%0", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = Value.inf_float },
+                .{ .float = Value.inf_float },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)%`int$()", DivideError.length_mismatch);
+    try runTest("(`a`b!1 2)%0 1", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = Value.inf_float },
+                .{ .float = 2 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)%0 1 2", DivideError.length_mismatch);
+
+    try runTest("(+`a`b!(,1;,2))%0", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = Value.inf_float },
+                } },
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = Value.inf_float },
+                } },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(,1;,`symbol))%0", DivideError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))%`int$()", DivideError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))%0 1", DivideError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))%0 1 2", DivideError.incompatible_types);
 }
 
 test "divide float" {
-    try runTest("1b%0f", .{ .float = 1 });
+    try runTest("1b%0f", .{ .float = Value.inf_float });
     try runTest("1b%`float$()", .{ .float_list = &[_]TestValue{} });
     try runTest("1b%0 1 0n 0w -0w", .{
         .float_list = &[_]TestValue{
@@ -325,7 +433,7 @@ test "divide float" {
         },
     });
 
-    try runTest("1%0f", .{ .float = 1 });
+    try runTest("1%0f", .{ .float = Value.inf_float });
     try runTest("1%`float$()", .{ .float_list = &[_]TestValue{} });
     try runTest("1%0 1 0n 0w -0w", .{
         .float_list = &[_]TestValue{
@@ -337,7 +445,7 @@ test "divide float" {
         },
     });
 
-    try runTest("1f%0f", .{ .float = 1 });
+    try runTest("1f%0f", .{ .float = Value.inf_float });
     try runTest("1f%`float$()", .{ .float_list = &[_]TestValue{} });
     try runTest("1f%0 1 0n 0w -0w", .{
         .float_list = &[_]TestValue{
@@ -360,9 +468,9 @@ test "divide float" {
     try runTest("()%0f", .{ .list = &[_]TestValue{} });
     try runTest("(1b;2;3f)%0f", .{
         .float_list = &[_]TestValue{
-            .{ .float = 1 },
-            .{ .float = 2 },
-            .{ .float = 3 },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
         },
     });
     try runTestError("(1b;2;3f;`symbol)%0f", DivideError.incompatible_types);
@@ -384,11 +492,11 @@ test "divide float" {
 
     try runTest("11111b%0f", .{
         .float_list = &[_]TestValue{
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
         },
     });
     try runTestError("11111b%`float$()", DivideError.length_mismatch);
@@ -405,11 +513,11 @@ test "divide float" {
 
     try runTest("5 4 3 2 1%0f", .{
         .float_list = &[_]TestValue{
-            .{ .float = 5 },
-            .{ .float = 4 },
-            .{ .float = 3 },
-            .{ .float = 2 },
-            .{ .float = 1 },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
         },
     });
     try runTestError("5 4 3 2 1%`float$()", DivideError.length_mismatch);
@@ -426,11 +534,11 @@ test "divide float" {
 
     try runTest("5 4 3 2 1f%0f", .{
         .float_list = &[_]TestValue{
-            .{ .float = 5 },
-            .{ .float = 4 },
-            .{ .float = 3 },
-            .{ .float = 2 },
-            .{ .float = 1 },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
         },
     });
     try runTestError("5 4 3 2 1f%`float$()", DivideError.length_mismatch);
@@ -454,6 +562,62 @@ test "divide float" {
     try runTestError("`a`b`c`d`e%`float$()", DivideError.incompatible_types);
     try runTestError("`a`b`c`d`e%0 1 0n 0w -0w", DivideError.incompatible_types);
     try runTestError("`a`b`c`d`e%0 1 0n 0w -0w 2", DivideError.incompatible_types);
+
+    try runTest("(()!())%0f", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTest("(`a`b!1 2)%0f", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = Value.inf_float },
+                .{ .float = Value.inf_float },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)%`float$()", DivideError.length_mismatch);
+    try runTest("(`a`b!1 2)%0 1f", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = Value.inf_float },
+                .{ .float = 2 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)%0 1 2f", DivideError.length_mismatch);
+
+    try runTest("(+`a`b!(,1;,2))%0f", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{
+                .list = &[_]TestValue{
+                    .{ .float_list = &[_]TestValue{
+                        .{ .float = Value.inf_float },
+                    } },
+                    .{ .float_list = &[_]TestValue{
+                        .{ .float = Value.inf_float },
+                    } },
+                },
+            },
+        },
+    });
+    try runTestError("(+`a`b!(,1;,`symbol))%0f", DivideError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))%`float$()", DivideError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))%0 1f", DivideError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))%0 1 2f", DivideError.incompatible_types);
 }
 
 test "divide char" {
@@ -500,6 +664,14 @@ test "divide char" {
     try runTestError("`a`b`c`d`e%\"a\"", DivideError.incompatible_types);
     try runTestError("`a`b`c`d`e%\"\"", DivideError.incompatible_types);
     try runTestError("`a`b`c`d`e%\"abcde\"", DivideError.incompatible_types);
+
+    try runTestError("(`a`b!1 2)%\"a\"", DivideError.incompatible_types);
+    try runTestError("(`a`b!1 2)%\"\"", DivideError.incompatible_types);
+    try runTestError("(`a`b!1 2)%\"ab\"", DivideError.incompatible_types);
+
+    try runTestError("(+`a`b!(,1;,2))%\"a\"", DivideError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))%\"\"", DivideError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))%\"ab\"", DivideError.incompatible_types);
 }
 
 test "divide symbol" {
@@ -546,6 +718,14 @@ test "divide symbol" {
     try runTestError("`5`4`3`2`1%`symbol", DivideError.incompatible_types);
     try runTestError("`5`4`3`2`1%`$()", DivideError.incompatible_types);
     try runTestError("`5`4`3`2`1%`a`b`c`d`e", DivideError.incompatible_types);
+
+    try runTestError("(`a`b!1 2)%`symbol", DivideError.incompatible_types);
+    try runTestError("(`a`b!1 2)%`$()", DivideError.incompatible_types);
+    try runTestError("(`a`b!1 2)%`a`b", DivideError.incompatible_types);
+
+    try runTestError("(+`a`b!(,1;,2))%`symbol", DivideError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))%`$()", DivideError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))%`a`b", DivideError.incompatible_types);
 }
 
 test "divide list" {
@@ -691,4 +871,414 @@ test "divide list" {
     try runTestError("\"abcde\"%()", DivideError.incompatible_types);
 
     try runTestError("`a`b`c`d`e%()", DivideError.incompatible_types);
+
+    try runTestError("(`a`b!1 2)%()", DivideError.length_mismatch);
+    try runTest("(`a`b!1 2)%(1;2f)", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 1 },
+                .{ .float = 1 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)%(0b;1;2f)", DivideError.length_mismatch);
+
+    try runTestError("(+`a`b!(,1;,2))%()", DivideError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))%(1;2f)", DivideError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))%(0b;1;2f)", DivideError.incompatible_types);
+}
+
+test "divide dictionary" {
+    try runTest("1b%()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTest("1b%`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 1 },
+                .{ .float = 0.5 },
+            } },
+        },
+    });
+
+    try runTest("1%()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTest("1%`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 1 },
+                .{ .float = 0.5 },
+            } },
+        },
+    });
+
+    try runTest("1f%()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTest("1f%`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 1 },
+                .{ .float = 0.5 },
+            } },
+        },
+    });
+
+    try runTestError("\"a\"%`a`b!1 2", DivideError.incompatible_types);
+
+    try runTestError("`symbol%`a`b!1 2", DivideError.incompatible_types);
+
+    try runTest("()%()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTestError("()%`a`b!1 2", DivideError.length_mismatch);
+    try runTest("(1;2f)%`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 1 },
+                .{ .float = 1 },
+            } },
+        },
+    });
+    try runTestError("(0b;1;2f)%`a`b!1 2", DivideError.length_mismatch);
+
+    try runTest("(`boolean$())%()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTestError("(`boolean$())%`a`b!1 2", DivideError.length_mismatch);
+    try runTest("10b%`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 1 },
+                .{ .float = 0 },
+            } },
+        },
+    });
+    try runTestError("101b%`a`b!1 2", DivideError.length_mismatch);
+
+    try runTest("(`int$())%()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTestError("(`int$())%`a`b!1 2", DivideError.length_mismatch);
+    try runTest("1 2%`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 1 },
+                .{ .float = 1 },
+            } },
+        },
+    });
+    try runTestError("1 2 3%`a`b!1 2", DivideError.length_mismatch);
+
+    try runTest("(`float$())%()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTestError("(`float$())%`a`b!1 2", DivideError.length_mismatch);
+    try runTest("1 2f%`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 1 },
+                .{ .float = 1 },
+            } },
+        },
+    });
+    try runTestError("1 2 3f%`a`b!1 2", DivideError.length_mismatch);
+
+    try runTestError("\"\"%`a`b!1 2", DivideError.incompatible_types);
+    try runTestError("\"12\"%`a`b!1 2", DivideError.incompatible_types);
+    try runTestError("\"123\"%`a`b!1 2", DivideError.incompatible_types);
+
+    try runTestError("(`$())%`a`b!1 2", DivideError.incompatible_types);
+    try runTestError("`5`4%`a`b!1 2", DivideError.incompatible_types);
+    try runTestError("`5`4`3%`a`b!1 2", DivideError.incompatible_types);
+
+    try runTest("(()!())%()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTest("(`a`b!1 2)%`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 1 },
+                .{ .float = 1 },
+            } },
+        },
+    });
+    try runTest("(`b`a!1 2)%`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "b" },
+                .{ .symbol = "a" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 0.5 },
+                .{ .float = 2 },
+            } },
+        },
+    });
+    try runTest("(`a`b!1 2)%`b`a!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 0.5 },
+                .{ .float = 2 },
+            } },
+        },
+    });
+    try runTest("(`a`b!1 2)%`c`d!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+                .{ .symbol = "c" },
+                .{ .symbol = "d" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 2 },
+                .{ .int = 1 },
+                .{ .int = 2 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)%`a`b!(1;\"2\")", DivideError.incompatible_types);
+
+    try runTestError("(+`a`b!(,1;,2))%`a`b!1 2", DivideError.incompatible_types);
+}
+
+test "divide table" {
+    try runTest("1b%+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 1 },
+                } },
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 0.5 },
+                } },
+            } },
+        },
+    });
+
+    try runTest("1%+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 1 },
+                } },
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 0.5 },
+                } },
+            } },
+        },
+    });
+
+    try runTest("1f%+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 1 },
+                } },
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 0.5 },
+                } },
+            } },
+        },
+    });
+
+    try runTestError("\"a\"%+`a`b!(,1;,2)", DivideError.incompatible_types);
+
+    try runTestError("`symbol%+`a`b!(,1;,2)", DivideError.incompatible_types);
+
+    try runTestError("()%+`a`b!(,1;,2)", DivideError.incompatible_types);
+    try runTestError("(1;2f)%+`a`b!(,1;,2)", DivideError.incompatible_types);
+    try runTestError("(0b;1;2f)%+`a`b!(,1;,2)", DivideError.incompatible_types);
+
+    try runTestError("(`boolean$())%+`a`b!(,1;,2)", DivideError.incompatible_types);
+    try runTestError("10b%+`a`b!(,1;,2)", DivideError.incompatible_types);
+    try runTestError("101b%+`a`b!(,1;,2)", DivideError.incompatible_types);
+
+    try runTestError("(`int$())%+`a`b!(,1;,2)", DivideError.incompatible_types);
+    try runTestError("1 2%+`a`b!(,1;,2)", DivideError.incompatible_types);
+    try runTestError("1 2 3%+`a`b!(,1;,2)", DivideError.incompatible_types);
+
+    try runTestError("(`float$())%+`a`b!(,1;,2)", DivideError.incompatible_types);
+    try runTestError("1 2f%+`a`b!(,1;,2)", DivideError.incompatible_types);
+    try runTestError("1 2 3f%+`a`b!(,1;,2)", DivideError.incompatible_types);
+
+    try runTestError("\"\"%+`a`b!(,1;,2)", DivideError.incompatible_types);
+    try runTestError("\"12\"%+`a`b!(,1;,2)", DivideError.incompatible_types);
+    try runTestError("\"123\"%+`a`b!(,1;,2)", DivideError.incompatible_types);
+
+    try runTestError("(`$())%+`a`b!(,1;,2)", DivideError.incompatible_types);
+    try runTestError("`5`4%+`a`b!(,1;,2)", DivideError.incompatible_types);
+    try runTestError("`5`4`3%+`a`b!(,1;,2)", DivideError.incompatible_types);
+
+    try runTestError("(`a`b!1 2)%+`a`b!(,1;,2)", DivideError.incompatible_types);
+
+    try runTest("(+`a`b!(,1;,2))%+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 1 },
+                } },
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 1 },
+                } },
+            } },
+        },
+    });
+    try runTest("(+`b`a!(,1;,2))%+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "b" },
+                .{ .symbol = "a" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 0.5 },
+                } },
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 2 },
+                } },
+            } },
+        },
+    });
+    try runTest("(+`a`b!(,1;,2))%+`b`a!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 0.5 },
+                } },
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 2 },
+                } },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(,1;,2))%+`a`b!(,1;,`symbol)", DivideError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))%+`a`b!(1 1;2 2)", DivideError.length_mismatch);
+    try runTest("(+`a`b!(,1;,2))%+`a`b`c!(,1;,2;,3)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+                .{ .symbol = "c" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 1 },
+                } },
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 3 },
+                } },
+            } },
+        },
+    });
+    try runTest("(+`a`b`c!(,1;,2;,3))%+`a`b!(,1;,2)", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+                .{ .symbol = "c" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 1 },
+                } },
+                .{ .float_list = &[_]TestValue{
+                    .{ .float = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 3 },
+                } },
+            } },
+        },
+    });
 }
