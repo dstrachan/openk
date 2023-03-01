@@ -41,7 +41,7 @@ pub fn more(vm: *VM, x: *Value, y: *Value) MoreError!*Value {
         .boolean => |bool_x| switch (y.as) {
             .boolean => |bool_y| vm.initValue(.{ .boolean = moreBool(bool_x, bool_y) }),
             .int => |int_y| vm.initValue(.{ .boolean = moreInt(@boolToInt(bool_x), int_y) }),
-            .float => |float_y| vm.initValue(.{ .boolean = moreFloat(utils_mod.intToFloat(@boolToInt(bool_x)), float_y) }),
+            .float => |float_y| vm.initValue(.{ .boolean = moreFloat(if (bool_x) 1 else 0, float_y) }),
             .list => |list_y| blk: {
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 var list_type: ?ValueType = null;
@@ -71,7 +71,7 @@ pub fn more(vm: *VM, x: *Value, y: *Value) MoreError!*Value {
             .float_list => |float_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 for (float_list_y, 0..) |value, i| {
-                    list[i] = vm.initValue(.{ .boolean = moreFloat(utils_mod.intToFloat(@boolToInt(bool_x)), value.as.float) });
+                    list[i] = vm.initValue(.{ .boolean = moreFloat(if (bool_x) 1 else 0, value.as.float) });
                 }
                 break :blk vm.initValue(.{ .boolean_list = list });
             },
@@ -117,7 +117,7 @@ pub fn more(vm: *VM, x: *Value, y: *Value) MoreError!*Value {
             else => unreachable,
         },
         .float => |float_x| switch (y.as) {
-            .boolean => |bool_y| vm.initValue(.{ .boolean = moreFloat(float_x, utils_mod.intToFloat(@boolToInt(bool_y))) }),
+            .boolean => |bool_y| vm.initValue(.{ .boolean = moreFloat(float_x, if (bool_y) 1 else 0) }),
             .int => |int_y| vm.initValue(.{ .boolean = moreFloat(float_x, utils_mod.intToFloat(int_y)) }),
             .float => |float_y| vm.initValue(.{ .boolean = moreFloat(float_x, float_y) }),
             .list => |list_y| blk: {
@@ -135,7 +135,7 @@ pub fn more(vm: *VM, x: *Value, y: *Value) MoreError!*Value {
             .boolean_list => |bool_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 for (bool_list_y, 0..) |value, i| {
-                    list[i] = vm.initValue(.{ .boolean = moreFloat(float_x, utils_mod.intToFloat(@boolToInt(value.as.boolean))) });
+                    list[i] = vm.initValue(.{ .boolean = moreFloat(float_x, if (value.as.boolean) 1 else 0) });
                 }
                 break :blk vm.initValue(.{ .boolean_list = list });
             },
@@ -200,7 +200,7 @@ pub fn more(vm: *VM, x: *Value, y: *Value) MoreError!*Value {
             .float => |float_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                 for (bool_list_x, 0..) |value, i| {
-                    list[i] = vm.initValue(.{ .boolean = moreFloat(utils_mod.intToFloat(@boolToInt(value.as.boolean)), float_y) });
+                    list[i] = vm.initValue(.{ .boolean = moreFloat(if (value.as.boolean) 1 else 0, float_y) });
                 }
                 break :blk vm.initValue(.{ .boolean_list = list });
             },
@@ -233,7 +233,7 @@ pub fn more(vm: *VM, x: *Value, y: *Value) MoreError!*Value {
             .float_list => |float_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, bool_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                 for (bool_list_x, 0..) |value, i| {
-                    list[i] = vm.initValue(.{ .boolean = moreFloat(utils_mod.intToFloat(@boolToInt(value.as.boolean)), float_list_y[i].as.float) });
+                    list[i] = vm.initValue(.{ .boolean = moreFloat(if (value.as.boolean) 1 else 0, float_list_y[i].as.float) });
                 }
                 break :blk vm.initValue(.{ .boolean_list = list });
             },
@@ -300,7 +300,7 @@ pub fn more(vm: *VM, x: *Value, y: *Value) MoreError!*Value {
             .boolean => |bool_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                 for (float_list_x, 0..) |value, i| {
-                    list[i] = vm.initValue(.{ .boolean = moreFloat(value.as.float, utils_mod.intToFloat(@boolToInt(bool_y))) });
+                    list[i] = vm.initValue(.{ .boolean = moreFloat(value.as.float, if (bool_y) 1 else 0) });
                 }
                 break :blk vm.initValue(.{ .boolean_list = list });
             },
@@ -333,7 +333,7 @@ pub fn more(vm: *VM, x: *Value, y: *Value) MoreError!*Value {
             .boolean_list => |bool_list_y| blk: {
                 const list = vm.allocator.alloc(*Value, float_list_x.len) catch std.debug.panic("Failed to create list.", .{});
                 for (float_list_x, 0..) |value, i| {
-                    list[i] = vm.initValue(.{ .boolean = moreFloat(value.as.float, utils_mod.intToFloat(@boolToInt(bool_list_y[i].as.boolean))) });
+                    list[i] = vm.initValue(.{ .boolean = moreFloat(value.as.float, if (bool_list_y[i].as.boolean) 1 else 0) });
                 }
                 break :blk vm.initValue(.{ .boolean_list = list });
             },
