@@ -107,7 +107,10 @@ pub fn runTest(input: []const u8, expected: TestValue) !void {
     const result = try vm.interpret(input);
     defer result.deref(std.testing.allocator);
 
-    try compareValues(expected, result.as);
+    compareValues(expected, result.as) catch |e| {
+        std.debug.print("result: '{}'\n", .{result.as});
+        return e;
+    };
 }
 
 pub fn runTestError(input: []const u8, expected: anyerror) !void {
@@ -427,4 +430,88 @@ test "dictionaries" {
 test "stress" {
     try runTest("*&!1000", .{ .int = 1 });
     // try runTest("#&!1000", .{ .int = 499500 });
+}
+
+test "null/inf min" {
+    try runTest("0N&0N", .{ .int = Value.null_int });
+    try runTest("0N&0W", .{ .int = Value.null_int });
+    try runTest("0N&-0W", .{ .int = Value.null_int });
+    try runTest("0W&0N", .{ .int = Value.null_int });
+    try runTest("0W&0W", .{ .int = Value.inf_int });
+    try runTest("0W&-0W", .{ .int = -Value.inf_int });
+    try runTest("-0W&0N", .{ .int = Value.null_int });
+    try runTest("-0W&0W", .{ .int = -Value.inf_int });
+    try runTest("-0W&-0W", .{ .int = -Value.inf_int });
+
+    try runTest("0N&0n", .{ .float = Value.null_float });
+    try runTest("0N&0w", .{ .float = Value.null_float });
+    try runTest("0N&-0w", .{ .float = Value.null_float });
+    try runTest("0W&0n", .{ .float = Value.null_float });
+    try runTest("0W&0w", .{ .float = Value.inf_int });
+    try runTest("0W&-0w", .{ .float = -Value.inf_float });
+    try runTest("-0W&0n", .{ .float = Value.null_float });
+    try runTest("-0W&0w", .{ .float = -Value.inf_int });
+    try runTest("-0W&-0w", .{ .float = -Value.inf_float });
+
+    try runTest("0n&0N", .{ .float = Value.null_float });
+    try runTest("0n&0W", .{ .float = Value.null_float });
+    try runTest("0n&-0W", .{ .float = Value.null_float });
+    try runTest("0w&0N", .{ .float = Value.null_float });
+    try runTest("0w&0W", .{ .float = Value.inf_int });
+    try runTest("0w&-0W", .{ .float = -Value.inf_int });
+    try runTest("-0w&0N", .{ .float = Value.null_float });
+    try runTest("-0w&0W", .{ .float = -Value.inf_float });
+    try runTest("-0w&-0W", .{ .float = -Value.inf_float });
+
+    try runTest("0n&0n", .{ .float = Value.null_float });
+    try runTest("0n&0w", .{ .float = Value.null_float });
+    try runTest("0n&-0w", .{ .float = Value.null_float });
+    try runTest("0w&0n", .{ .float = Value.null_float });
+    try runTest("0w&0w", .{ .float = Value.inf_float });
+    try runTest("0w&-0w", .{ .float = -Value.inf_float });
+    try runTest("-0w&0n", .{ .float = Value.null_float });
+    try runTest("-0w&0w", .{ .float = -Value.inf_float });
+    try runTest("-0w&-0w", .{ .float = -Value.inf_float });
+}
+
+test "null/inf max" {
+    try runTest("0N|0N", .{ .int = Value.null_int });
+    try runTest("0N|0W", .{ .int = Value.inf_int });
+    try runTest("0N|-0W", .{ .int = -Value.inf_int });
+    try runTest("0W|0N", .{ .int = Value.inf_int });
+    try runTest("0W|0W", .{ .int = Value.inf_int });
+    try runTest("0W|-0W", .{ .int = Value.inf_int });
+    try runTest("-0W|0N", .{ .int = -Value.inf_int });
+    try runTest("-0W|0W", .{ .int = Value.inf_int });
+    try runTest("-0W|-0W", .{ .int = -Value.inf_int });
+
+    try runTest("0N|0n", .{ .float = Value.null_float });
+    try runTest("0N|0w", .{ .float = Value.inf_float });
+    try runTest("0N|-0w", .{ .float = -Value.inf_float });
+    try runTest("0W|0n", .{ .float = Value.inf_int });
+    try runTest("0W|0w", .{ .float = Value.inf_float });
+    try runTest("0W|-0w", .{ .float = Value.inf_int });
+    try runTest("-0W|0n", .{ .float = -Value.inf_int });
+    try runTest("-0W|0w", .{ .float = Value.inf_float });
+    try runTest("-0W|-0w", .{ .float = -Value.inf_int });
+
+    try runTest("0n|0N", .{ .float = Value.null_float });
+    try runTest("0n|0W", .{ .float = Value.inf_int });
+    try runTest("0n|-0W", .{ .float = -Value.inf_int });
+    try runTest("0w|0N", .{ .float = Value.inf_float });
+    try runTest("0w|0W", .{ .float = Value.inf_float });
+    try runTest("0w|-0W", .{ .float = Value.inf_float });
+    try runTest("-0w|0N", .{ .float = -Value.inf_float });
+    try runTest("-0w|0W", .{ .float = Value.inf_int });
+    try runTest("-0w|-0W", .{ .float = -Value.inf_int });
+
+    try runTest("0n|0n", .{ .float = Value.null_float });
+    try runTest("0n|0w", .{ .float = Value.inf_float });
+    try runTest("0n|-0w", .{ .float = -Value.inf_float });
+    try runTest("0w|0n", .{ .float = Value.inf_float });
+    try runTest("0w|0w", .{ .float = Value.inf_float });
+    try runTest("0w|-0w", .{ .float = Value.inf_float });
+    try runTest("-0w|0n", .{ .float = -Value.inf_float });
+    try runTest("-0w|0w", .{ .float = Value.inf_float });
+    try runTest("-0w|-0w", .{ .float = -Value.inf_float });
 }
