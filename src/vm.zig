@@ -558,7 +558,11 @@ pub const VM = struct {
     }
 
     fn opReverse(self: *Self) !void {
-        return self.monadicVerb();
+        const x = self.pop();
+        defer x.deref(self.allocator);
+
+        const value = verbs.reverse(self, x);
+        try self.push(value);
     }
 
     fn opMax(self: *Self) !void {
