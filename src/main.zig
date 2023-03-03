@@ -125,6 +125,7 @@ test {
     _ = @import("tests/verbs/min.zig");
     _ = @import("tests/verbs/multiply.zig");
     _ = @import("tests/verbs/negate.zig");
+    _ = @import("tests/verbs/reverse.zig");
     _ = @import("tests/verbs/sqrt.zig");
     _ = @import("tests/verbs/subtract.zig");
     _ = @import("tests/verbs/where.zig");
