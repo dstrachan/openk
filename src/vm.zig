@@ -594,7 +594,11 @@ pub const VM = struct {
     }
 
     fn opDescend(self: *Self) !void {
-        return self.monadicVerb();
+        const x = self.pop();
+        defer x.deref(self.allocator);
+
+        const value = try verbs.descend(self, x);
+        try self.push(value);
     }
 
     fn opMore(self: *Self) !void {

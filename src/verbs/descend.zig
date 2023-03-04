@@ -12,59 +12,59 @@ const ValueType = value_mod.ValueType;
 const vm_mod = @import("../vm.zig");
 const VM = vm_mod.VM;
 
-pub const AscendError = error{
+pub const DescendError = error{
     invalid_type,
 };
 
-fn runtimeError(comptime err: AscendError) AscendError!*Value {
+fn runtimeError(comptime err: DescendError) DescendError!*Value {
     switch (err) {
-        AscendError.invalid_type => print("Can only ascend lists values.\n", .{}),
+        DescendError.invalid_type => print("Can only descend lists values.\n", .{}),
     }
     return err;
 }
 
-fn asc(context: void, a: Pair, b: Pair) bool {
+fn desc(context: void, a: Pair, b: Pair) bool {
     _ = context;
     return switch (a.value.as) {
         .boolean => |bool_a| switch (b.value.as) {
-            .boolean => |bool_b| @boolToInt(bool_a) < @boolToInt(bool_b),
-            else => true,
+            .boolean => |bool_b| @boolToInt(bool_a) > @boolToInt(bool_b),
+            else => false,
         },
         .int => |int_a| switch (b.value.as) {
-            .boolean => false,
-            .int => |int_b| int_a < int_b,
-            else => true,
+            .boolean => true,
+            .int => |int_b| int_a > int_b,
+            else => false,
         },
         .float => |float_a| switch (b.value.as) {
-            .boolean, .int => false,
-            .float => |float_b| float_a < float_b,
-            else => true,
+            .boolean, .int => true,
+            .float => |float_b| float_a > float_b,
+            else => false,
         },
         .char => |char_a| switch (b.value.as) {
-            .boolean, .int, .float => false,
-            .char => |char_b| char_a < char_b,
-            else => true,
+            .boolean, .int, .float => true,
+            .char => |char_b| char_a > char_b,
+            else => false,
         },
         .symbol => |symbol_a| switch (b.value.as) {
-            .boolean, .int, .float, .char => false,
-            .symbol => |symbol_b| std.mem.order(u8, symbol_a, symbol_b) == .lt,
-            else => true,
+            .boolean, .int, .float, .char => true,
+            .symbol => |symbol_b| std.mem.order(u8, symbol_a, symbol_b) == .gt,
+            else => false,
         },
         .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_a| switch (b.value.as) {
             .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_b| blk: {
-                if (@as(ValueType, a.value.as) != b.value.as) break :blk @enumToInt(a.value.as) < @enumToInt(b.value.as);
+                if (@as(ValueType, a.value.as) != b.value.as) break :blk @enumToInt(a.value.as) > @enumToInt(b.value.as);
 
                 const len = std.math.min(list_a.len, list_b.len);
 
                 var i: usize = 0;
                 while (i < len) : (i += 1) {
                     if (list_a[i].eql(list_b[i])) continue;
-                    break :blk asc({}, .{ .value = list_a[i] }, .{ .value = list_b[i] });
+                    break :blk desc({}, .{ .value = list_a[i] }, .{ .value = list_b[i] });
                 }
 
-                break :blk list_a.len < list_b.len;
+                break :blk list_a.len > list_b.len;
             },
-            else => @enumToInt(a.value.as) < @enumToInt(b.value.as),
+            else => @enumToInt(a.value.as) > @enumToInt(b.value.as),
         },
         else => unreachable,
     };
@@ -75,7 +75,7 @@ const Pair = struct {
     index: *Value = undefined,
 };
 
-pub fn ascend(vm: *VM, x: *Value) AscendError!*Value {
+pub fn descend(vm: *VM, x: *Value) DescendError!*Value {
     return switch (x.as) {
         .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_x| blk: {
             if (list_x.len == 0) break :blk vm.initValue(.{ .int_list = &[_]*Value{} });
@@ -88,7 +88,7 @@ pub fn ascend(vm: *VM, x: *Value) AscendError!*Value {
                     .index = vm.initValue(.{ .int = @intCast(i64, i) }),
                 };
             }
-            std.sort.sort(Pair, pairs, {}, asc);
+            std.sort.sort(Pair, pairs, {}, desc);
             const list = vm.allocator.alloc(*Value, pairs.len) catch std.debug.panic("Failed to create list.", .{});
             for (pairs, 0..) |p, i| {
                 list[i] = p.index;
@@ -106,7 +106,7 @@ pub fn ascend(vm: *VM, x: *Value) AscendError!*Value {
                     .index = dict_x.key.asList()[i].ref(),
                 };
             }
-            std.sort.sort(Pair, pairs, {}, asc);
+            std.sort.sort(Pair, pairs, {}, desc);
             const list = vm.allocator.alloc(*Value, pairs.len) catch std.debug.panic("Failed to create list.", .{});
             for (pairs, 0..) |p, i| {
                 list[i] = p.index;
@@ -131,7 +131,7 @@ pub fn ascend(vm: *VM, x: *Value) AscendError!*Value {
                     .index = vm.initValue(.{ .int = @intCast(i64, i) }),
                 };
             }
-            std.sort.sort(Pair, pairs, {}, asc);
+            std.sort.sort(Pair, pairs, {}, desc);
             const list = vm.allocator.alloc(*Value, len) catch std.debug.panic("Failed to create list.", .{});
             for (pairs, 0..) |p, j| {
                 p.value.deref(vm.allocator);
@@ -139,6 +139,6 @@ pub fn ascend(vm: *VM, x: *Value) AscendError!*Value {
             }
             break :blk vm.initValue(.{ .int_list = list });
         },
-        else => runtimeError(AscendError.invalid_type),
+        else => runtimeError(DescendError.invalid_type),
     };
 }

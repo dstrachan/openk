@@ -103,7 +103,6 @@ test "ascend symbol" {
     });
 }
 
-// TODO: boolean < int < float < char < symbol < list
 test "ascend list" {
     try runTest("<()", .{ .int_list = &[_]TestValue{} });
 
