@@ -58,7 +58,8 @@ fn asc(context: void, a: Pair, b: Pair) bool {
 
                 var i: usize = 0;
                 while (i < len) : (i += 1) {
-                    if (asc({}, .{ .value = list_a[i] }, .{ .value = list_b[i] })) break :blk true;
+                    if (list_a[i].eql(list_b[i])) continue;
+                    break :blk asc({}, .{ .value = list_a[i] }, .{ .value = list_b[i] });
                 }
 
                 break :blk list_a.len < list_b.len;
@@ -88,9 +89,53 @@ pub fn ascend(vm: *VM, x: *Value) AscendError!*Value {
                 };
             }
             std.sort.sort(Pair, pairs, {}, asc);
-            const list = vm.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
+            const list = vm.allocator.alloc(*Value, pairs.len) catch std.debug.panic("Failed to create list.", .{});
             for (pairs, 0..) |p, i| {
                 list[i] = p.index;
+            }
+            break :blk vm.initValue(.{ .int_list = list });
+        },
+        .dictionary => |dict_x| blk: {
+            if (dict_x.key.asList().len == 0) break :blk dict_x.key.ref();
+
+            const pairs = vm.allocator.alloc(Pair, dict_x.key.asList().len) catch std.debug.panic("Failed to create list.", .{});
+            defer vm.allocator.free(pairs);
+            for (dict_x.value.asList(), 0..) |v, i| {
+                pairs[i] = .{
+                    .value = v,
+                    .index = dict_x.key.asList()[i].ref(),
+                };
+            }
+            std.sort.sort(Pair, pairs, {}, asc);
+            const list = vm.allocator.alloc(*Value, pairs.len) catch std.debug.panic("Failed to create list.", .{});
+            for (pairs, 0..) |p, i| {
+                list[i] = p.index;
+            }
+            break :blk vm.initList(list, dict_x.key.as);
+        },
+        .table => |table_x| blk: {
+            const len = table_x.values.as.list[0].asList().len;
+            if (len == 0) break :blk vm.initValue(.{ .int_list = &[_]*Value{} });
+
+            const pairs = vm.allocator.alloc(Pair, len) catch std.debug.panic("Failed to create list.", .{});
+            defer vm.allocator.free(pairs);
+            var i: usize = 0;
+            while (i < len) : (i += 1) {
+                const list = vm.allocator.alloc(*Value, table_x.columns.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
+                for (list, 0..) |*v, j| {
+                    v.* = table_x.values.as.list[j].asList()[i].ref();
+                }
+                const value = vm.initValue(.{ .list = list });
+                pairs[i] = .{
+                    .value = value,
+                    .index = vm.initValue(.{ .int = @intCast(i64, i) }),
+                };
+            }
+            std.sort.sort(Pair, pairs, {}, asc);
+            const list = vm.allocator.alloc(*Value, len) catch std.debug.panic("Failed to create list.", .{});
+            for (pairs, 0..) |p, j| {
+                p.value.deref(vm.allocator);
+                list[j] = p.index;
             }
             break :blk vm.initValue(.{ .int_list = list });
         },
