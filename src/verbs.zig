@@ -1,4 +1,5 @@
 pub const add = @import("verbs/add.zig").add;
+pub const ascend = @import("verbs/ascend.zig").ascend;
 pub const dict = @import("verbs/dict.zig").dict;
 pub const divide = @import("verbs/divide.zig").divide;
 pub const enlist = @import("verbs/enlist.zig").enlist;
