@@ -186,188 +186,61 @@ test "ascend list" {
 }
 
 test "ascend dictionary" {
-    return error.SkipZigTest;
-    //    try runTest("<()!()", .{
-    //        .dictionary = &[_]TestValue{
-    //            .{ .list = &[_]TestValue{} },
-    //            .{ .list = &[_]TestValue{} },
-    //        },
-    //    });
-    //    try runTest("<`a`b!1 2", .{
-    //        .dictionary = &[_]TestValue{
-    //            .{ .symbol_list = &[_]TestValue{
-    //                .{ .symbol = "b" },
-    //                .{ .symbol = "a" },
-    //            } },
-    //            .{ .int_list = &[_]TestValue{
-    //                .{ .int = 2 },
-    //                .{ .int = 1 },
-    //            } },
-    //        },
-    //    });
-    //    try runTest("<`a`b!(();())", .{
-    //        .dictionary = &[_]TestValue{
-    //            .{ .symbol_list = &[_]TestValue{
-    //                .{ .symbol = "b" },
-    //                .{ .symbol = "a" },
-    //            } },
-    //            .{ .list = &[_]TestValue{
-    //                .{ .list = &[_]TestValue{} },
-    //                .{ .list = &[_]TestValue{} },
-    //            } },
-    //        },
-    //    });
-    //    try runTest("<`a`b!(`int$();`float$())", .{
-    //        .dictionary = &[_]TestValue{
-    //            .{ .symbol_list = &[_]TestValue{
-    //                .{ .symbol = "b" },
-    //                .{ .symbol = "a" },
-    //            } },
-    //            .{ .list = &[_]TestValue{
-    //                .{ .float_list = &[_]TestValue{} },
-    //                .{ .int_list = &[_]TestValue{} },
-    //            } },
-    //        },
-    //    });
-    //    try runTest("<`a`b!(,1;,2)", .{
-    //        .dictionary = &[_]TestValue{
-    //            .{ .symbol_list = &[_]TestValue{
-    //                .{ .symbol = "b" },
-    //                .{ .symbol = "a" },
-    //            } },
-    //            .{ .list = &[_]TestValue{
-    //                .{ .int_list = &[_]TestValue{
-    //                    .{ .int = 2 },
-    //                } },
-    //                .{ .int_list = &[_]TestValue{
-    //                    .{ .int = 1 },
-    //                } },
-    //            } },
-    //        },
-    //    });
-    //    try runTest("<`a`b!(1 2;3 4)", .{
-    //        .dictionary = &[_]TestValue{
-    //            .{ .symbol_list = &[_]TestValue{
-    //                .{ .symbol = "b" },
-    //                .{ .symbol = "a" },
-    //            } },
-    //            .{ .list = &[_]TestValue{
-    //                .{ .int_list = &[_]TestValue{
-    //                    .{ .int = 3 },
-    //                    .{ .int = 4 },
-    //                } },
-    //                .{ .int_list = &[_]TestValue{
-    //                    .{ .int = 1 },
-    //                    .{ .int = 2 },
-    //                } },
-    //            } },
-    //        },
-    //    });
-    //    try runTest("<`a`b!(1;2 3)", .{
-    //        .dictionary = &[_]TestValue{
-    //            .{ .symbol_list = &[_]TestValue{
-    //                .{ .symbol = "b" },
-    //                .{ .symbol = "a" },
-    //            } },
-    //            .{ .list = &[_]TestValue{
-    //                .{ .int_list = &[_]TestValue{
-    //                    .{ .int = 2 },
-    //                    .{ .int = 3 },
-    //                } },
-    //                .{ .int = 1 },
-    //            } },
-    //        },
-    //    });
-    //    try runTest("<1 2!3 4", .{
-    //        .dictionary = &[_]TestValue{
-    //            .{ .int_list = &[_]TestValue{
-    //                .{ .int = 2 },
-    //                .{ .int = 1 },
-    //            } },
-    //            .{ .int_list = &[_]TestValue{
-    //                .{ .int = 4 },
-    //                .{ .int = 3 },
-    //            } },
-    //        },
-    //    });
+    try runTest("<()!()", .{ .list = &[_]TestValue{} });
+    try runTest("<(`$())!()", .{ .symbol_list = &[_]TestValue{} });
+
+    try runTest("<`a`b!2 1", .{
+        .symbol_list = &[_]TestValue{
+            .{ .symbol = "b" },
+            .{ .symbol = "a" },
+        },
+    });
+
+    try runTest("<10 20!2 1", .{
+        .int_list = &[_]TestValue{
+            .{ .int = 20 },
+            .{ .int = 10 },
+        },
+    });
+
+    try runTest("<`a`b`c!(0b;1;2f)", .{
+        .symbol_list = &[_]TestValue{
+            .{ .symbol = "a" },
+            .{ .symbol = "b" },
+            .{ .symbol = "c" },
+        },
+    });
+    try runTest("<`a`b`c!(1b;0;-1f)", .{
+        .symbol_list = &[_]TestValue{
+            .{ .symbol = "a" },
+            .{ .symbol = "b" },
+            .{ .symbol = "c" },
+        },
+    });
 }
 
 test "ascend table" {
-    return error.SkipZigTest;
-    //    try runTest("<+`a`b!(();())", .{
-    //        .table = &[_]TestValue{
-    //            .{ .symbol_list = &[_]TestValue{
-    //                .{ .symbol = "a" },
-    //                .{ .symbol = "b" },
-    //            } },
-    //            .{ .list = &[_]TestValue{
-    //                .{ .list = &[_]TestValue{} },
-    //                .{ .list = &[_]TestValue{} },
-    //            } },
-    //        },
-    //    });
-    //    try runTest("<+`a`b!(`int$();`float$())", .{
-    //        .table = &[_]TestValue{
-    //            .{ .symbol_list = &[_]TestValue{
-    //                .{ .symbol = "a" },
-    //                .{ .symbol = "b" },
-    //            } },
-    //            .{ .list = &[_]TestValue{
-    //                .{ .int_list = &[_]TestValue{} },
-    //                .{ .float_list = &[_]TestValue{} },
-    //            } },
-    //        },
-    //    });
-    //    try runTest("<+`a`b!(,1;,2)", .{
-    //        .table = &[_]TestValue{
-    //            .{ .symbol_list = &[_]TestValue{
-    //                .{ .symbol = "a" },
-    //                .{ .symbol = "b" },
-    //            } },
-    //            .{ .list = &[_]TestValue{
-    //                .{ .int_list = &[_]TestValue{
-    //                    .{ .int = 1 },
-    //                } },
-    //                .{ .int_list = &[_]TestValue{
-    //                    .{ .int = 2 },
-    //                } },
-    //            } },
-    //        },
-    //    });
-    //    try runTest("<+`a`b!(1 2;3 4)", .{
-    //        .table = &[_]TestValue{
-    //            .{ .symbol_list = &[_]TestValue{
-    //                .{ .symbol = "a" },
-    //                .{ .symbol = "b" },
-    //            } },
-    //            .{ .list = &[_]TestValue{
-    //                .{ .int_list = &[_]TestValue{
-    //                    .{ .int = 2 },
-    //                    .{ .int = 1 },
-    //                } },
-    //                .{ .int_list = &[_]TestValue{
-    //                    .{ .int = 4 },
-    //                    .{ .int = 3 },
-    //                } },
-    //            } },
-    //        },
-    //    });
-    //    try runTest("<+`a`b!(1;2 3)", .{
-    //        .table = &[_]TestValue{
-    //            .{ .symbol_list = &[_]TestValue{
-    //                .{ .symbol = "a" },
-    //                .{ .symbol = "b" },
-    //            } },
-    //            .{ .list = &[_]TestValue{
-    //                .{ .int_list = &[_]TestValue{
-    //                    .{ .int = 1 },
-    //                    .{ .int = 1 },
-    //                } },
-    //                .{ .int_list = &[_]TestValue{
-    //                    .{ .int = 3 },
-    //                    .{ .int = 2 },
-    //                } },
-    //            } },
-    //        },
-    //    });
+    try runTest("<+`a`b!(();())", .{ .int_list = &[_]TestValue{} });
+    try runTest("<+`a`b!(`int$();`float$())", .{ .int_list = &[_]TestValue{} });
+
+    try runTest("<+`a`b!(,1;,2)", .{
+        .int_list = &[_]TestValue{
+            .{ .int = 0 },
+        },
+    });
+
+    try runTest("<+`a`b!(1 2;3 4)", .{
+        .int_list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 1 },
+        },
+    });
+
+    try runTest("<+`a`b!(1 2 1;20 10 10)", .{
+        .int_list = &[_]TestValue{
+            .{ .int = 2 },
+            .{ .int = 0 },
+            .{ .int = 1 },
+        },
+    });
 }
