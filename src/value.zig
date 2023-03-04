@@ -418,30 +418,35 @@ pub const Value = struct {
         return true;
     }
 
-    pub fn asList(self: *Value) []*Value {
+    pub fn asList(self: *Self) []*Self {
         return switch (self.as) {
             .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list| list,
             else => unreachable,
         };
     }
 
-    pub fn asArrayList(value: *Value, allocator: std.mem.Allocator) std.ArrayList(*Value) {
-        const list = value.asList();
-        var array_list = std.ArrayList(*Value).initCapacity(allocator, list.len) catch std.debug.panic("Failed to create list.", .{});
-        for (list) |v| {
+    pub fn dupeAsList(self: *Self, allocator: std.mem.Allocator) []*Self {
+        const list = allocator.alloc(*Self, self.asList().len) catch std.debug.panic("Failed to create list.", .{});
+        for (self.asList(), 0..) |v, i| list[i] = v.ref();
+        return list;
+    }
+
+    pub fn asArrayList(self: *Self, allocator: std.mem.Allocator) std.ArrayList(*Self) {
+        var array_list = std.ArrayList(*Self).initCapacity(allocator, self.asList().len) catch std.debug.panic("Failed to create list.", .{});
+        for (self.asList()) |v| {
             array_list.append(v.ref()) catch std.debug.panic("Failed to append item.", .{});
         }
         return array_list;
     }
 
-    pub fn indexOf(self: *Value, value: *Value) ?usize {
+    pub fn indexOf(self: *Self, value: *Self) ?usize {
         for (self.asList(), 0..) |v, i| {
             if (v.eql(value)) return i;
         }
         return null;
     }
 
-    pub fn in(self: *Value, haystack: []*Value) bool {
+    pub fn in(self: *Self, haystack: []*Self) bool {
         for (haystack) |v| {
             if (self.eql(v)) return true;
         }
