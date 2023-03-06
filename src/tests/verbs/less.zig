@@ -217,163 +217,157 @@ test "less boolean" {
 }
 
 test "less int" {
-    if (true) return error.SkipZigTest;
-    try runTest("1b<0", .{ .int = 1 });
-    try runTest("1b<`int$()", .{ .int_list = &[_]TestValue{} });
-    try runTest("1b<0 1 0N 0W -0W", .{
-        .int_list = &[_]TestValue{
-            .{ .int = 1 },
-            .{ .int = 1 },
-            .{ .int = 1 },
-            .{ .int = Value.inf_int },
-            .{ .int = 1 },
+    try runTest("1b<0", .{ .boolean = false });
+    try runTest("1b<`int$()", .{ .boolean_list = &[_]TestValue{} });
+    try runTest("1b<0 1 2 3 4", .{
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = true },
+            .{ .boolean = true },
         },
     });
 
-    try runTest("1<0", .{ .int = 1 });
-    try runTest("1<`int$()", .{ .int_list = &[_]TestValue{} });
-    try runTest("1<0 1 0N 0W -0W", .{
-        .int_list = &[_]TestValue{
-            .{ .int = 1 },
-            .{ .int = 1 },
-            .{ .int = 1 },
-            .{ .int = Value.inf_int },
-            .{ .int = 1 },
+    try runTest("1<0", .{ .boolean = false });
+    try runTest("1<`int$()", .{ .boolean_list = &[_]TestValue{} });
+    try runTest("1<0 1 2 3 4", .{
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = true },
+            .{ .boolean = true },
         },
     });
 
-    try runTest("1f<0", .{ .float = 1 });
-    try runTest("1f<`int$()", .{ .float_list = &[_]TestValue{} });
-    try runTest("1f<0 1 0N 0W -0W", .{
-        .float_list = &[_]TestValue{
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = Value.inf_int },
-            .{ .float = 1 },
+    try runTest("1f<0", .{ .boolean = false });
+    try runTest("1f<`int$()", .{ .boolean_list = &[_]TestValue{} });
+    try runTest("1f<0 1 2 3 4", .{
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = true },
+            .{ .boolean = true },
         },
     });
 
     try runTestError("\"a\"<0", LessError.incompatible_types);
     try runTestError("\"a\"<`int$()", LessError.incompatible_types);
-    try runTestError("\"a\"<0 1 0N 0W -0W", LessError.incompatible_types);
+    try runTestError("\"a\"<0 1 2 3 4", LessError.incompatible_types);
 
     try runTestError("`symbol<0", LessError.incompatible_types);
     try runTestError("`symbol<`int$()", LessError.incompatible_types);
-    try runTestError("`symbol<0 1 0N 0W -0W", LessError.incompatible_types);
+    try runTestError("`symbol<0 1 2 3 4", LessError.incompatible_types);
 
     try runTest("()<0", .{ .list = &[_]TestValue{} });
     try runTest("(1b;2)<0", .{
-        .int_list = &[_]TestValue{
-            .{ .int = 1 },
-            .{ .int = 2 },
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
         },
     });
     try runTest("(1b;2;3f)<0", .{
-        .list = &[_]TestValue{
-            .{ .int = 1 },
-            .{ .int = 2 },
-            .{ .float = 3 },
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
         },
     });
     try runTestError("(1b;2;3f;`symbol)<0", LessError.incompatible_types);
     try runTest("()<`int$()", .{ .list = &[_]TestValue{} });
-    try runTestError("()<0 1 0N 0W -0W", LessError.length_mismatch);
-    try runTestError("(1b;2;3;4;5)<`int$()", LessError.length_mismatch);
-    try runTest("(1b;2;3;4;5)<0 1 0N 0W -0W", .{
-        .int_list = &[_]TestValue{
-            .{ .int = 1 },
-            .{ .int = 2 },
-            .{ .int = 3 },
-            .{ .int = Value.inf_int },
-            .{ .int = 5 },
+    try runTestError("()<0 1 2", LessError.length_mismatch);
+    try runTestError("(1b;2)<`int$()", LessError.length_mismatch);
+    try runTest("(1b;2)<0 1", .{
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
         },
     });
-    try runTest("(1b;2;3f;4;5)<0 1 0N 0W -0W", .{
-        .list = &[_]TestValue{
-            .{ .int = 1 },
-            .{ .int = 2 },
-            .{ .float = 3 },
-            .{ .int = Value.inf_int },
-            .{ .int = 5 },
+    try runTest("(1b;2;3f)<0 1 2", .{
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
         },
     });
-    try runTestError("(1b;2;3f;4)<0 1 0N 0W -0W", LessError.length_mismatch);
-    try runTestError("(1b;2;3f;4;\"a\")<0 1 0N 0W -0W", LessError.incompatible_types);
-    try runTestError("(1b;2;3f;4;`symbol)<0 1 0N 0W -0W", LessError.incompatible_types);
+    try runTestError("(1b;2;3f)<0 1 2 3", LessError.length_mismatch);
+    try runTestError("(1b;2;3f;\"a\")<0 1 2 3", LessError.incompatible_types);
+    try runTestError("(1b;2;3f;`symbol)<0 1 2 3", LessError.incompatible_types);
 
     try runTest("11111b<0", .{
-        .int_list = &[_]TestValue{
-            .{ .int = 1 },
-            .{ .int = 1 },
-            .{ .int = 1 },
-            .{ .int = 1 },
-            .{ .int = 1 },
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
         },
     });
     try runTestError("11111b<`int$()", LessError.length_mismatch);
-    try runTest("11111b<0 1 0N 0W -0W", .{
-        .int_list = &[_]TestValue{
-            .{ .int = 1 },
-            .{ .int = 1 },
-            .{ .int = 1 },
-            .{ .int = Value.inf_int },
-            .{ .int = 1 },
+    try runTest("11111b<0 1 2 3 4", .{
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = true },
+            .{ .boolean = true },
         },
     });
-    try runTestError("11111b<0 1 0N 0W -0W 2", LessError.length_mismatch);
+    try runTestError("11111b<0 1 2 3 4 5", LessError.length_mismatch);
 
     try runTest("5 4 3 2 1<0", .{
-        .int_list = &[_]TestValue{
-            .{ .int = 5 },
-            .{ .int = 4 },
-            .{ .int = 3 },
-            .{ .int = 2 },
-            .{ .int = 1 },
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
         },
     });
     try runTestError("5 4 3 2 1<`int$()", LessError.length_mismatch);
-    try runTest("5 4 3 2 1<0 1 0N 0W -0W", .{
-        .int_list = &[_]TestValue{
-            .{ .int = 5 },
-            .{ .int = 4 },
-            .{ .int = 3 },
-            .{ .int = Value.inf_int },
-            .{ .int = 1 },
+    try runTest("5 4 3 2 1<0 1 2 3 4", .{
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = true },
         },
     });
-    try runTestError("5 4 3 2 1<0 1 0N 0W -0W 2", LessError.length_mismatch);
+    try runTestError("5 4 3 2 1<0 1 2 3 4 5", LessError.length_mismatch);
 
     try runTest("5 4 3 2 1f<0", .{
-        .float_list = &[_]TestValue{
-            .{ .float = 5 },
-            .{ .float = 4 },
-            .{ .float = 3 },
-            .{ .float = 2 },
-            .{ .float = 1 },
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
         },
     });
     try runTestError("5 4 3 2 1f<`int$()", LessError.length_mismatch);
-    try runTest("5 4 3 2 1f<0 1 0N 0W -0W", .{
-        .float_list = &[_]TestValue{
-            .{ .float = 5 },
-            .{ .float = 4 },
-            .{ .float = 3 },
-            .{ .float = Value.inf_int },
-            .{ .float = 1 },
+    try runTest("5 4 3 2 1f<0 1 2 3 4", .{
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = true },
         },
     });
-    try runTestError("5 4 3 2 1f<0 1 0N 0W -0W 2", LessError.length_mismatch);
+    try runTestError("5 4 3 2 1f<0 1 2 3 4 5", LessError.length_mismatch);
 
     try runTestError("\"abcde\"<0", LessError.incompatible_types);
     try runTestError("\"abcde\"<`int$()", LessError.incompatible_types);
-    try runTestError("\"abcde\"<0 1 0N 0W -0W", LessError.incompatible_types);
-    try runTestError("\"abcde\"<0 1 0N 0W -0W 2", LessError.incompatible_types);
+    try runTestError("\"abcde\"<0 1 2 3 4", LessError.incompatible_types);
+    try runTestError("\"abcde\"<0 1 2 3 4 5", LessError.incompatible_types);
 
     try runTestError("`a`b`c`d`e<0", LessError.incompatible_types);
     try runTestError("`a`b`c`d`e<`int$()", LessError.incompatible_types);
-    try runTestError("`a`b`c`d`e<0 1 0N 0W -0W", LessError.incompatible_types);
-    try runTestError("`a`b`c`d`e<0 1 0N 0W -0W 2", LessError.incompatible_types);
+    try runTestError("`a`b`c`d`e<0 1 2 3 4", LessError.incompatible_types);
+    try runTestError("`a`b`c`d`e<0 1 2 3 4 5", LessError.incompatible_types);
 
     try runTest("(()!())<0", .{
         .dictionary = &[_]TestValue{
@@ -387,9 +381,9 @@ test "less int" {
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .int_list = &[_]TestValue{
-                .{ .int = 1 },
-                .{ .int = 2 },
+            .{ .boolean_list = &[_]TestValue{
+                .{ .boolean = false },
+                .{ .boolean = false },
             } },
         },
     });
@@ -400,9 +394,9 @@ test "less int" {
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .int_list = &[_]TestValue{
-                .{ .int = 1 },
-                .{ .int = 2 },
+            .{ .boolean_list = &[_]TestValue{
+                .{ .boolean = false },
+                .{ .boolean = false },
             } },
         },
     });
@@ -415,11 +409,11 @@ test "less int" {
                 .{ .symbol = "b" },
             } },
             .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
-                    .{ .int = 1 },
+                .{ .boolean_list = &[_]TestValue{
+                    .{ .boolean = false },
                 } },
-                .{ .int_list = &[_]TestValue{
-                    .{ .int = 2 },
+                .{ .boolean_list = &[_]TestValue{
+                    .{ .boolean = false },
                 } },
             } },
         },
@@ -431,148 +425,157 @@ test "less int" {
 }
 
 test "less float" {
-    if (true) return error.SkipZigTest;
-    try runTest("1b<0f", .{ .float = 1 });
-    try runTest("1b<`float$()", .{ .float_list = &[_]TestValue{} });
-    try runTest("1b<0 1 0n 0w -0w", .{
-        .float_list = &[_]TestValue{
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = Value.inf_float },
-            .{ .float = 1 },
+    try runTest("1b<0f", .{ .boolean = false });
+    try runTest("1b<`float$()", .{ .boolean_list = &[_]TestValue{} });
+    try runTest("1b<0 1 2 3 4f", .{
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = true },
+            .{ .boolean = true },
         },
     });
 
-    try runTest("1<0f", .{ .float = 1 });
-    try runTest("1<`float$()", .{ .float_list = &[_]TestValue{} });
-    try runTest("1<0 1 0n 0w -0w", .{
-        .float_list = &[_]TestValue{
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = Value.inf_float },
-            .{ .float = 1 },
+    try runTest("1<0f", .{ .boolean = false });
+    try runTest("1<`float$()", .{ .boolean_list = &[_]TestValue{} });
+    try runTest("1<0 1 2 3 4f", .{
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = true },
+            .{ .boolean = true },
         },
     });
 
-    try runTest("1f<0f", .{ .float = 1 });
-    try runTest("1f<`float$()", .{ .float_list = &[_]TestValue{} });
-    try runTest("1f<0 1 0n 0w -0w", .{
-        .float_list = &[_]TestValue{
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = Value.inf_float },
-            .{ .float = 1 },
+    try runTest("1f<0f", .{ .boolean = false });
+    try runTest("1f<`float$()", .{ .boolean_list = &[_]TestValue{} });
+    try runTest("1f<0 1 2 3 4f", .{
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = true },
+            .{ .boolean = true },
         },
     });
 
     try runTestError("\"a\"<0f", LessError.incompatible_types);
     try runTestError("\"a\"<`float$()", LessError.incompatible_types);
-    try runTestError("\"a\"<0 1 0n 0w -0w", LessError.incompatible_types);
+    try runTestError("\"a\"<0 1 2 3 4f", LessError.incompatible_types);
 
     try runTestError("`symbol<0f", LessError.incompatible_types);
     try runTestError("`symbol<`float$()", LessError.incompatible_types);
-    try runTestError("`symbol<0 1 0n 0w -0w", LessError.incompatible_types);
+    try runTestError("`symbol<0 1 2 3 4f", LessError.incompatible_types);
 
     try runTest("()<0f", .{ .list = &[_]TestValue{} });
+    try runTest("(1b;2)<0f", .{
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+        },
+    });
     try runTest("(1b;2;3f)<0f", .{
-        .float_list = &[_]TestValue{
-            .{ .float = 1 },
-            .{ .float = 2 },
-            .{ .float = 3 },
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
         },
     });
     try runTestError("(1b;2;3f;`symbol)<0f", LessError.incompatible_types);
     try runTest("()<`float$()", .{ .list = &[_]TestValue{} });
-    try runTestError("()<0 1 0n 0w -0w", LessError.length_mismatch);
-    try runTestError("(1b;2;3f;4;5)<`float$()", LessError.length_mismatch);
-    try runTest("(1b;2;3f;4;5)<0 1 0n 0w -0w", .{
-        .float_list = &[_]TestValue{
-            .{ .float = 1 },
-            .{ .float = 2 },
-            .{ .float = 3 },
-            .{ .float = Value.inf_float },
-            .{ .float = 5 },
+    try runTestError("()<0 1 2f", LessError.length_mismatch);
+    try runTestError("(1b;2)<`float$()", LessError.length_mismatch);
+    try runTest("(1b;2)<0 1f", .{
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
         },
     });
-    try runTestError("(1b;2;3f;4)<0 1 0n 0w -0w", LessError.length_mismatch);
-    try runTestError("(1b;2;3f;4;\"a\")<0 1 0n 0w -0w", LessError.incompatible_types);
-    try runTestError("(1b;2;3f;4;`symbol)<0 1 0n 0w -0w", LessError.incompatible_types);
+    try runTest("(1b;2;3f)<0 1 2f", .{
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+        },
+    });
+    try runTestError("(1b;2;3f)<0 1 2 3f", LessError.length_mismatch);
+    try runTestError("(1b;2;3f;\"a\")<0 1 2 3f", LessError.incompatible_types);
+    try runTestError("(1b;2;3f;`symbol)<0 1 2 3f", LessError.incompatible_types);
 
     try runTest("11111b<0f", .{
-        .float_list = &[_]TestValue{
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
         },
     });
     try runTestError("11111b<`float$()", LessError.length_mismatch);
-    try runTest("11111b<0 1 0n 0w -0w", .{
-        .float_list = &[_]TestValue{
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = Value.inf_float },
-            .{ .float = 1 },
+    try runTest("11111b<0 1 2 3 4f", .{
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = true },
+            .{ .boolean = true },
         },
     });
-    try runTestError("11111b<0 1 0n 0w -0w 2", LessError.length_mismatch);
+    try runTestError("11111b<0 1 2 3 4 5f", LessError.length_mismatch);
 
     try runTest("5 4 3 2 1<0f", .{
-        .float_list = &[_]TestValue{
-            .{ .float = 5 },
-            .{ .float = 4 },
-            .{ .float = 3 },
-            .{ .float = 2 },
-            .{ .float = 1 },
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
         },
     });
     try runTestError("5 4 3 2 1<`float$()", LessError.length_mismatch);
-    try runTest("5 4 3 2 1<0 1 0n 0w -0w", .{
-        .float_list = &[_]TestValue{
-            .{ .float = 5 },
-            .{ .float = 4 },
-            .{ .float = 3 },
-            .{ .float = Value.inf_float },
-            .{ .float = 1 },
+    try runTest("5 4 3 2 1<0 1 2 3 4f", .{
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = true },
         },
     });
-    try runTestError("5 4 3 2 1<0 1 0n 0w -0w 2", LessError.length_mismatch);
+    try runTestError("5 4 3 2 1<0 1 2 3 4 5f", LessError.length_mismatch);
 
     try runTest("5 4 3 2 1f<0f", .{
-        .float_list = &[_]TestValue{
-            .{ .float = 5 },
-            .{ .float = 4 },
-            .{ .float = 3 },
-            .{ .float = 2 },
-            .{ .float = 1 },
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
         },
     });
     try runTestError("5 4 3 2 1f<`float$()", LessError.length_mismatch);
-    try runTest("5 4 3 2 1f<0 1 0n 0w -0w", .{
-        .float_list = &[_]TestValue{
-            .{ .float = 5 },
-            .{ .float = 4 },
-            .{ .float = 3 },
-            .{ .float = Value.inf_float },
-            .{ .float = 1 },
+    try runTest("5 4 3 2 1f<0 1 2 3 4f", .{
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = true },
         },
     });
-    try runTestError("5 4 3 2 1f<0 1 0n 0w -0w 2", LessError.length_mismatch);
+    try runTestError("5 4 3 2 1f<0 1 2 3 4 5f", LessError.length_mismatch);
 
     try runTestError("\"abcde\"<0f", LessError.incompatible_types);
     try runTestError("\"abcde\"<`float$()", LessError.incompatible_types);
-    try runTestError("\"abcde\"<0 1 0n 0w -0w", LessError.incompatible_types);
-    try runTestError("\"abcde\"<0 1 0n 0w -0w 2", LessError.incompatible_types);
+    try runTestError("\"abcde\"<0 1 2 3 4f", LessError.incompatible_types);
+    try runTestError("\"abcde\"<0 1 2 3 4 5f", LessError.incompatible_types);
 
     try runTestError("`a`b`c`d`e<0f", LessError.incompatible_types);
     try runTestError("`a`b`c`d`e<`float$()", LessError.incompatible_types);
-    try runTestError("`a`b`c`d`e<0 1 0n 0w -0w", LessError.incompatible_types);
-    try runTestError("`a`b`c`d`e<0 1 0n 0w -0w 2", LessError.incompatible_types);
+    try runTestError("`a`b`c`d`e<0 1 2 3 4f", LessError.incompatible_types);
+    try runTestError("`a`b`c`d`e<0 1 2 3 4 5f", LessError.incompatible_types);
 
     try runTest("(()!())<0f", .{
         .dictionary = &[_]TestValue{
@@ -586,9 +589,9 @@ test "less float" {
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .float_list = &[_]TestValue{
-                .{ .float = 1 },
-                .{ .float = 2 },
+            .{ .boolean_list = &[_]TestValue{
+                .{ .boolean = false },
+                .{ .boolean = false },
             } },
         },
     });
@@ -599,9 +602,9 @@ test "less float" {
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .float_list = &[_]TestValue{
-                .{ .float = 1 },
-                .{ .float = 2 },
+            .{ .boolean_list = &[_]TestValue{
+                .{ .boolean = false },
+                .{ .boolean = false },
             } },
         },
     });
@@ -614,11 +617,11 @@ test "less float" {
                 .{ .symbol = "b" },
             } },
             .{ .list = &[_]TestValue{
-                .{ .float_list = &[_]TestValue{
-                    .{ .float = 1 },
+                .{ .boolean_list = &[_]TestValue{
+                    .{ .boolean = false },
                 } },
-                .{ .float_list = &[_]TestValue{
-                    .{ .float = 2 },
+                .{ .boolean_list = &[_]TestValue{
+                    .{ .boolean = false },
                 } },
             } },
         },
@@ -630,62 +633,60 @@ test "less float" {
 }
 
 test "less char" {
-    if (true) return error.SkipZigTest;
-    try runTestError("1b&\"a\"", LessError.incompatible_types);
-    try runTestError("1b&\"\"", LessError.incompatible_types);
-    try runTestError("1b&\"abcde\"", LessError.incompatible_types);
+    try runTestError("1b<\"a\"", LessError.incompatible_types);
+    try runTestError("1b<\"\"", LessError.incompatible_types);
+    try runTestError("1b<\"abcde\"", LessError.incompatible_types);
 
-    try runTestError("1&\"a\"", LessError.incompatible_types);
-    try runTestError("1&\"\"", LessError.incompatible_types);
-    try runTestError("1&\"abcde\"", LessError.incompatible_types);
+    try runTestError("1<\"a\"", LessError.incompatible_types);
+    try runTestError("1<\"\"", LessError.incompatible_types);
+    try runTestError("1<\"abcde\"", LessError.incompatible_types);
 
-    try runTestError("1f&\"a\"", LessError.incompatible_types);
-    try runTestError("1f&\"\"", LessError.incompatible_types);
-    try runTestError("1f&\"abcde\"", LessError.incompatible_types);
+    try runTestError("1f<\"a\"", LessError.incompatible_types);
+    try runTestError("1f<\"\"", LessError.incompatible_types);
+    try runTestError("1f<\"abcde\"", LessError.incompatible_types);
 
-    try runTestError("\"1\"&\"a\"", LessError.incompatible_types);
-    try runTestError("\"1\"&\"\"", LessError.incompatible_types);
-    try runTestError("\"1\"&\"abcde\"", LessError.incompatible_types);
+    try runTestError("\"1\"<\"a\"", LessError.incompatible_types);
+    try runTestError("\"1\"<\"\"", LessError.incompatible_types);
+    try runTestError("\"1\"<\"abcde\"", LessError.incompatible_types);
 
-    try runTestError("`symbol&\"a\"", LessError.incompatible_types);
-    try runTestError("`symbol&\"\"", LessError.incompatible_types);
-    try runTestError("`symbol&\"abcde\"", LessError.incompatible_types);
+    try runTestError("`symbol<\"a\"", LessError.incompatible_types);
+    try runTestError("`symbol<\"\"", LessError.incompatible_types);
+    try runTestError("`symbol<\"abcde\"", LessError.incompatible_types);
 
-    try runTestError("()&\"a\"", LessError.incompatible_types);
-    try runTestError("()&\"\"", LessError.incompatible_types);
-    try runTestError("()&\"abcde\"", LessError.incompatible_types);
+    try runTestError("()<\"a\"", LessError.incompatible_types);
+    try runTestError("()<\"\"", LessError.incompatible_types);
+    try runTestError("()<\"abcde\"", LessError.incompatible_types);
 
-    try runTestError("10011b&\"a\"", LessError.incompatible_types);
-    try runTestError("10011b&\"\"", LessError.incompatible_types);
-    try runTestError("10011b&\"abcde\"", LessError.incompatible_types);
+    try runTestError("10011b<\"a\"", LessError.incompatible_types);
+    try runTestError("10011b<\"\"", LessError.incompatible_types);
+    try runTestError("10011b<\"abcde\"", LessError.incompatible_types);
 
-    try runTestError("5 4 3 2 1&\"a\"", LessError.incompatible_types);
-    try runTestError("5 4 3 2 1&\"\"", LessError.incompatible_types);
-    try runTestError("5 4 3 2 1&\"abcde\"", LessError.incompatible_types);
+    try runTestError("5 4 3 2 1<\"a\"", LessError.incompatible_types);
+    try runTestError("5 4 3 2 1<\"\"", LessError.incompatible_types);
+    try runTestError("5 4 3 2 1<\"abcde\"", LessError.incompatible_types);
 
-    try runTestError("5 4 3 2 1f&\"a\"", LessError.incompatible_types);
-    try runTestError("5 4 3 2 1f&\"\"", LessError.incompatible_types);
-    try runTestError("5 4 3 2 1f&\"abcde\"", LessError.incompatible_types);
+    try runTestError("5 4 3 2 1f<\"a\"", LessError.incompatible_types);
+    try runTestError("5 4 3 2 1f<\"\"", LessError.incompatible_types);
+    try runTestError("5 4 3 2 1f<\"abcde\"", LessError.incompatible_types);
 
-    try runTestError("\"54321\"&\"a\"", LessError.incompatible_types);
-    try runTestError("\"54321\"&\"\"", LessError.incompatible_types);
-    try runTestError("\"54321\"&\"abcde\"", LessError.incompatible_types);
+    try runTestError("\"54321\"<\"a\"", LessError.incompatible_types);
+    try runTestError("\"54321\"<\"\"", LessError.incompatible_types);
+    try runTestError("\"54321\"<\"abcde\"", LessError.incompatible_types);
 
-    try runTestError("`a`b`c`d`e&\"a\"", LessError.incompatible_types);
-    try runTestError("`a`b`c`d`e&\"\"", LessError.incompatible_types);
-    try runTestError("`a`b`c`d`e&\"abcde\"", LessError.incompatible_types);
+    try runTestError("`a`b`c`d`e<\"a\"", LessError.incompatible_types);
+    try runTestError("`a`b`c`d`e<\"\"", LessError.incompatible_types);
+    try runTestError("`a`b`c`d`e<\"abcde\"", LessError.incompatible_types);
 
-    try runTestError("(`a`b!1 2)&\"a\"", LessError.incompatible_types);
-    try runTestError("(`a`b!1 2)&\"\"", LessError.incompatible_types);
-    try runTestError("(`a`b!1 2)&\"ab\"", LessError.incompatible_types);
+    try runTestError("(`a`b!1 2)<\"a\"", LessError.incompatible_types);
+    try runTestError("(`a`b!1 2)<\"\"", LessError.incompatible_types);
+    try runTestError("(`a`b!1 2)<\"ab\"", LessError.incompatible_types);
 
-    try runTestError("(+`a`b!(,1;,2))&\"a\"", LessError.incompatible_types);
-    try runTestError("(+`a`b!(,1;,2))&\"\"", LessError.incompatible_types);
-    try runTestError("(+`a`b!(,1;,2))&\"ab\"", LessError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))<\"a\"", LessError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))<\"\"", LessError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))<\"ab\"", LessError.incompatible_types);
 }
 
 test "less symbol" {
-    if (true) return error.SkipZigTest;
     try runTestError("1b<`symbol", LessError.incompatible_types);
     try runTestError("1b<`$()", LessError.incompatible_types);
     try runTestError("1b<`a`b`c`d`e", LessError.incompatible_types);
@@ -740,28 +741,27 @@ test "less symbol" {
 }
 
 test "less list" {
-    if (true) return error.SkipZigTest;
     try runTest("1b<()", .{ .list = &[_]TestValue{} });
     try runTest("1b<(0b;1;0N;0W;-0W)", .{
-        .list = &[_]TestValue{
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
             .{ .boolean = true },
-            .{ .int = 1 },
-            .{ .int = 1 },
-            .{ .int = Value.inf_int },
-            .{ .int = 1 },
+            .{ .boolean = false },
         },
     });
     try runTest("1b<(0b;1;0N;0W;-0W;1f;0n;0w;-0w)", .{
-        .list = &[_]TestValue{
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
             .{ .boolean = true },
-            .{ .int = 1 },
-            .{ .int = 1 },
-            .{ .int = Value.inf_int },
-            .{ .int = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = Value.inf_float },
-            .{ .float = 1 },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = false },
         },
     });
     try runTestError("1b<(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", LessError.incompatible_types);
@@ -769,25 +769,25 @@ test "less list" {
 
     try runTest("1<()", .{ .list = &[_]TestValue{} });
     try runTest("1<(0b;1;0N;0W;-0W)", .{
-        .int_list = &[_]TestValue{
-            .{ .int = 1 },
-            .{ .int = 1 },
-            .{ .int = 1 },
-            .{ .int = Value.inf_int },
-            .{ .int = 1 },
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = false },
         },
     });
     try runTest("1<(0b;1;0N;0W;-0W;1f;0n;0w;-0w)", .{
-        .list = &[_]TestValue{
-            .{ .int = 1 },
-            .{ .int = 1 },
-            .{ .int = 1 },
-            .{ .int = Value.inf_int },
-            .{ .int = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = Value.inf_float },
-            .{ .float = 1 },
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = false },
         },
     });
     try runTestError("1<(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", LessError.incompatible_types);
@@ -795,16 +795,16 @@ test "less list" {
 
     try runTest("1f<()", .{ .list = &[_]TestValue{} });
     try runTest("1f<(0b;1;0N;0W;-0W;1f;0n;0w;-0w)", .{
-        .float_list = &[_]TestValue{
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = Value.inf_int },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = 1 },
-            .{ .float = Value.inf_float },
-            .{ .float = 1 },
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = true },
+            .{ .boolean = false },
         },
     });
     try runTestError("1f<(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", LessError.incompatible_types);
@@ -818,29 +818,29 @@ test "less list" {
     try runTestError("(0N;0n)<()", LessError.length_mismatch);
     try runTestError("()<(0N;0n)", LessError.length_mismatch);
     try runTest("(1b;2)<(1b;2)", .{
-        .list = &[_]TestValue{
-            .{ .boolean = true },
-            .{ .int = 2 },
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
         },
     });
     try runTest("(1b;2f)<(2f;1b)", .{
-        .float_list = &[_]TestValue{
-            .{ .float = 2 },
-            .{ .float = 2 },
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = true },
+            .{ .boolean = false },
         },
     });
     try runTest("(2;3f)<(2;3f)", .{
-        .list = &[_]TestValue{
-            .{ .int = 2 },
-            .{ .float = 3 },
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
         },
     });
     try runTest("(1b;(2;3f))<(0N;(0n;0N))", .{
         .list = &[_]TestValue{
-            .{ .int = 1 },
-            .{ .float_list = &[_]TestValue{
-                .{ .float = 2 },
-                .{ .float = 3 },
+            .{ .boolean = false },
+            .{ .boolean_list = &[_]TestValue{
+                .{ .boolean = false },
+                .{ .boolean = false },
             } },
         },
     });
@@ -849,16 +849,16 @@ test "less list" {
 
     try runTestError("010b<()", LessError.length_mismatch);
     try runTest("01b<(0b;0N)", .{
-        .list = &[_]TestValue{
+        .boolean_list = &[_]TestValue{
             .{ .boolean = false },
-            .{ .int = 1 },
+            .{ .boolean = false },
         },
     });
     try runTest("010b<(0b;0N;0n)", .{
-        .list = &[_]TestValue{
+        .boolean_list = &[_]TestValue{
             .{ .boolean = false },
-            .{ .int = 1 },
-            .{ .float = 0 },
+            .{ .boolean = false },
+            .{ .boolean = false },
         },
     });
     try runTestError("0101010101b<(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", LessError.incompatible_types);
@@ -866,16 +866,16 @@ test "less list" {
 
     try runTestError("0 1 2<()", LessError.length_mismatch);
     try runTest("0 1<(0b;0N)", .{
-        .int_list = &[_]TestValue{
-            .{ .int = 0 },
-            .{ .int = 1 },
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
         },
     });
     try runTest("0 1 2<(0b;0N;0n)", .{
-        .list = &[_]TestValue{
-            .{ .int = 0 },
-            .{ .int = 1 },
-            .{ .float = 2 },
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
         },
     });
     try runTestError("0 1 2 3 4 5 6 7 8 9<(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", LessError.incompatible_types);
@@ -883,10 +883,10 @@ test "less list" {
 
     try runTestError("0 1 2f<()", LessError.length_mismatch);
     try runTest("0 1 2f<(0b;0N;0n)", .{
-        .float_list = &[_]TestValue{
-            .{ .float = 0 },
-            .{ .float = 1 },
-            .{ .float = 2 },
+        .boolean_list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .boolean = false },
+            .{ .boolean = false },
         },
     });
     try runTestError("0 1 2 3 4 5 6 7 8 9f<(0b;1;0N;0W;-0W;1f;0n;0w;-0w;\"a\")", LessError.incompatible_types);
@@ -903,9 +903,9 @@ test "less list" {
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int = 1 },
-                .{ .float = 2 },
+            .{ .boolean_list = &[_]TestValue{
+                .{ .boolean = false },
+                .{ .boolean = false },
             } },
         },
     });
