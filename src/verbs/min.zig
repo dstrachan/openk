@@ -485,29 +485,24 @@ pub fn min(vm: *VM, x: *Value, y: *Value) MinError!*Value {
                 var columns = table_x.columns.asArrayList(vm.allocator);
                 errdefer columns.deinit();
                 errdefer for (columns.items) |v| v.deref(vm.allocator);
-                var columns_list_type: ValueType = table_x.columns.as;
                 var values = table_x.values.asArrayList(vm.allocator);
                 errdefer values.deinit();
                 errdefer for (values.items) |v| v.deref(vm.allocator);
-                var values_list_type: ValueType = table_x.values.as;
                 for (table_y.columns.asList(), 0..) |c_y, i_y| loop: {
                     for (columns.items, 0..) |c_x, i_x| {
                         if (c_x.eql(c_y)) {
                             values.items[i_x].deref(vm.allocator);
                             values.items[i_x] = try min(vm, values.items[i_x], table_y.values.asList()[i_y]);
-                            if (values_list_type != .list and @as(ValueType, values.items[0].as) != values.items[i_x].as) values_list_type = .list;
                             break :loop;
                         }
                     }
                     columns.append(c_y.ref()) catch std.debug.panic("Failed to append item.", .{});
-                    if (columns_list_type != .list and @as(ValueType, columns.items[0].as) != columns.items[columns.items.len - 1].as) columns_list_type = .list;
                     values.append(table_y.values.asList()[i_y].ref()) catch std.debug.panic("Failed to append item.", .{});
-                    if (values_list_type != .list and @as(ValueType, values.items[0].as) != values.items[values.items.len - 1].as) values_list_type = .list;
                 }
                 const columns_list = columns.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
-                const new_columns = vm.initList(columns_list, columns_list_type);
+                const new_columns = vm.initValue(.{ .symbol_list = columns_list });
                 const values_list = values.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
-                const new_values = vm.initList(values_list, values_list_type);
+                const new_values = vm.initValue(.{ .list = values_list });
                 const table = ValueTable.init(.{ .columns = new_columns, .values = new_values }, vm.allocator);
                 break :blk vm.initValue(.{ .table = table });
             },
