@@ -135,11 +135,13 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
 
                 const list = vm.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
+                var list_type: ValueType = .boolean_list;
                 for (list_x, list_y, 0..) |value_x, value_y, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try less(vm, value_x, value_y);
+                    if (list_type != .list and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(.{ .boolean_list = list });
+                break :blk vm.initList(list, list_type);
             },
             .dictionary => |dict_y| blk: {
                 const value = try less(vm, x, dict_y.value);
@@ -172,7 +174,6 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
                     }
                     key.append(k_y.ref()) catch std.debug.panic("Failed to append item.", .{});
                     if (key_list_type != .list and @as(ValueType, key.items[0].as) != key.items[key.items.len - 1].as) key_list_type = .list;
-                    // TODO: What signifies true/false?
                     value.append(vm.initValue(.{ .boolean = true })) catch std.debug.panic("Failed to append item.", .{});
                 }
                 const key_list = key.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
@@ -186,8 +187,40 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
         },
         .table => |table_x| switch (y.as) {
             .boolean, .int, .float => blk: {
-                const values = try less(vm, table_x.values, y);
+                const list = vm.allocator.alloc(*Value, table_x.values.asList().len) catch std.debug.panic("Failed to create list.", .{});
+                errdefer vm.allocator.free(list);
+                for (table_x.values.asList(), 0..) |value, i| {
+                    errdefer for (list[0..i]) |v| v.deref(vm.allocator);
+                    list[i] = try less(vm, value, y);
+                }
+                const values = vm.initValue(.{ .list = list });
                 const table = ValueTable.init(.{ .columns = table_x.columns.ref(), .values = values }, vm.allocator);
+                break :blk vm.initValue(.{ .table = table });
+            },
+            .table => |table_y| blk: {
+                var columns = table_x.columns.asArrayList(vm.allocator);
+                errdefer columns.deinit();
+                errdefer for (columns.items) |v| v.deref(vm.allocator);
+                var values = table_x.values.asArrayList(vm.allocator);
+                errdefer values.deinit();
+                errdefer for (values.items) |v| v.deref(vm.allocator);
+                for (table_y.columns.asList(), 0..) |c_y, i_y| loop: {
+                    for (columns.items, 0..) |c_x, i_x| {
+                        if (c_x.eql(c_y)) {
+                            values.items[i_x].deref(vm.allocator);
+                            values.items[i_x] = try less(vm, values.items[i_x], table_y.values.asList()[i_y]);
+                            break :loop;
+                        }
+                    }
+                    columns.append(c_y.ref()) catch std.debug.panic("Failed to append item.", .{});
+                    // TODO: This should be a list of true booleans
+                    values.append(vm.initValue(.{ .boolean = true })) catch std.debug.panic("Failed to append item.", .{});
+                }
+                const columns_list = columns.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                const new_columns = vm.initValue(.{ .symbol_list = columns_list });
+                const values_list = values.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                const new_values = vm.initValue(.{ .list = values_list });
+                const table = ValueTable.init(.{ .columns = new_columns, .values = new_values }, vm.allocator);
                 break :blk vm.initValue(.{ .table = table });
             },
             else => runtimeError(LessError.incompatible_types),
