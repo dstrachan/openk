@@ -112,6 +112,15 @@ pub const VM = struct {
         });
     }
 
+    pub fn initListIter(self: *Self, list: []*Value) *Value {
+        var list_type: ValueType = list[0].getListType();
+        var i: usize = 1;
+        while (list_type != .list and i < list.len) : (i += 1) {
+            if (list_type != list[i].getListType()) list_type = .list;
+        }
+        return self.initList(list, list_type);
+    }
+
     pub fn initListAtoms(self: *Self, list: []*Value, list_type: ?ValueType) *Value {
         return self.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
             .boolean => .{ .boolean_list = list },

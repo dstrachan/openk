@@ -444,33 +444,37 @@ pub fn min(vm: *VM, x: *Value, y: *Value) MinError!*Value {
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             .dictionary => |dict_y| blk: {
-                var key = dict_x.key.asArrayList(vm.allocator);
-                errdefer key.deinit();
-                errdefer for (key.items) |v| v.deref(vm.allocator);
+                if (dict_x.key.asList().len == 0) break :blk y.ref();
+                if (dict_y.key.asList().len == 0) break :blk x.ref();
+
+                var key_list = dict_x.key.asArrayList(vm.allocator);
+                errdefer key_list.deinit();
+                errdefer for (key_list.items) |v| v.deref(vm.allocator);
                 var key_list_type: ValueType = dict_x.key.as;
-                var value = dict_x.value.asArrayList(vm.allocator);
-                errdefer value.deinit();
-                errdefer for (value.items) |v| v.deref(vm.allocator);
-                var value_list_type: ValueType = dict_x.value.as;
-                for (dict_y.key.asList(), 0..) |k_y, i_y| loop: {
-                    for (key.items, 0..) |k_x, i_x| {
+
+                var value_list = dict_x.value.asArrayList(vm.allocator);
+                errdefer value_list.deinit();
+                errdefer for (value_list.items) |v| v.deref(vm.allocator);
+
+                for (dict_y.key.asList(), dict_y.value.asList()) |k_y, v_y| loop: {
+                    for (key_list.items, value_list.items) |k_x, *v_x| {
                         if (k_x.eql(k_y)) {
-                            value.items[i_x].deref(vm.allocator);
-                            value.items[i_x] = try min(vm, value.items[i_x], dict_y.value.asList()[i_y]);
-                            if (value_list_type != .list and @as(ValueType, value.items[0].as) != value.items[i_x].as) value_list_type = .list;
+                            v_x.*.deref(vm.allocator);
+                            v_x.* = try min(vm, v_x.*, v_y);
                             break :loop;
                         }
                     }
-                    key.append(k_y.ref()) catch std.debug.panic("Failed to append item.", .{});
-                    if (key_list_type != .list and @as(ValueType, key.items[0].as) != key.items[key.items.len - 1].as) key_list_type = .list;
-                    value.append(dict_y.value.asList()[i_y].ref()) catch std.debug.panic("Failed to append item.", .{});
-                    if (value_list_type != .list and @as(ValueType, value.items[0].as) != value.items[value.items.len - 1].as) value_list_type = .list;
+
+                    key_list.append(k_y.ref()) catch std.debug.panic("Failed to append item.", .{});
+                    if (key_list_type != .list and @as(ValueType, key_list.items[0].as) != key_list.items[key_list.items.len - 1].as) key_list_type = .list;
+                    value_list.append(v_y.ref()) catch std.debug.panic("Failed to append item.", .{});
                 }
-                const key_list = key.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
-                const new_key = vm.initList(key_list, key_list_type);
-                const value_list = value.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
-                const new_value = vm.initList(value_list, value_list_type);
-                const dictionary = ValueDictionary.init(.{ .key = new_key, .value = new_value }, vm.allocator);
+
+                const key_slice = key_list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                const value_slice = value_list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                const key = vm.initList(key_slice, key_list_type);
+                const value = vm.initListIter(value_slice);
+                const dictionary = ValueDictionary.init(.{ .key = key, .value = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             else => runtimeError(MinError.incompatible_types),
