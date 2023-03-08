@@ -67,6 +67,17 @@ test "min boolean" {
             .{ .float = 0 },
         },
     });
+    try runTest("(1b;2;3f;(0b;1))&0b", .{
+        .list = &[_]TestValue{
+            .{ .boolean = false },
+            .{ .int = 0 },
+            .{ .float = 0 },
+            .{ .list = &[_]TestValue{
+                .{ .boolean = false },
+                .{ .int = 0 },
+            } },
+        },
+    });
     try runTestError("(1b;2;3f;`symbol)&0b", MinError.incompatible_types);
     try runTest("()&`boolean$()", .{ .list = &[_]TestValue{} });
     try runTestError("()&010b", MinError.length_mismatch);
@@ -275,6 +286,17 @@ test "min int" {
             .{ .float = 0 },
         },
     });
+    try runTest("(1b;2;3f;(0b;1))&0", .{
+        .list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 0 },
+            .{ .float = 0 },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 0 },
+                .{ .int = 0 },
+            } },
+        },
+    });
     try runTestError("(1b;2;3f;`symbol)&0", MinError.incompatible_types);
     try runTest("()&`int$()", .{ .list = &[_]TestValue{} });
     try runTestError("()&0 1 0N 0W -0W", MinError.length_mismatch);
@@ -480,6 +502,17 @@ test "min float" {
             .{ .float = 0 },
             .{ .float = 0 },
             .{ .float = 0 },
+        },
+    });
+    try runTest("(1b;2;3f;(0b;1))&0f", .{
+        .list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = 0 },
+            .{ .float = 0 },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 0 },
+                .{ .float = 0 },
+            } },
         },
     });
     try runTestError("(1b;2;3f;`symbol)&0f", MinError.incompatible_types);
@@ -1071,6 +1104,30 @@ test "min dictionary" {
             .{ .list = &[_]TestValue{} },
         },
     });
+    try runTest("(()!())&`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 2 },
+            } },
+        },
+    });
+    try runTest("(`a`b!1 2)&()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 2 },
+            } },
+        },
+    });
     try runTest("(`a`b!1 2)&`a`b!1 2", .{
         .dictionary = &[_]TestValue{
             .{ .symbol_list = &[_]TestValue{
@@ -1083,6 +1140,19 @@ test "min dictionary" {
             } },
         },
     });
+    try runTest("(`a`b!1 2)&`a`b!1 2f", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 1 },
+                .{ .float = 2 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)&`a`b!(1;`a)", MinError.incompatible_types);
     try runTest("(`b`a!1 2)&`a`b!1 2", .{
         .dictionary = &[_]TestValue{
             .{ .symbol_list = &[_]TestValue{

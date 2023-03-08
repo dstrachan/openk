@@ -67,6 +67,17 @@ test "max boolean" {
             .{ .float = 3 },
         },
     });
+    try runTest("(1b;2;3f;(0b;1))|0b", .{
+        .list = &[_]TestValue{
+            .{ .boolean = true },
+            .{ .int = 2 },
+            .{ .float = 3 },
+            .{ .list = &[_]TestValue{
+                .{ .boolean = false },
+                .{ .int = 1 },
+            } },
+        },
+    });
     try runTestError("(1b;2;3f;`symbol)|0b", MaxError.incompatible_types);
     try runTest("()|`boolean$()", .{ .list = &[_]TestValue{} });
     try runTestError("()|010b", MaxError.length_mismatch);
@@ -275,6 +286,17 @@ test "max int" {
             .{ .float = 3 },
         },
     });
+    try runTest("(1b;2;3f;(0b;1))|0", .{
+        .list = &[_]TestValue{
+            .{ .int = 1 },
+            .{ .int = 2 },
+            .{ .float = 3 },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 0 },
+                .{ .int = 1 },
+            } },
+        },
+    });
     try runTestError("(1b;2;3f;`symbol)|0", MaxError.incompatible_types);
     try runTest("()|`int$()", .{ .list = &[_]TestValue{} });
     try runTestError("()|0 1 0N 0W -0W", MaxError.length_mismatch);
@@ -480,6 +502,17 @@ test "max float" {
             .{ .float = 1 },
             .{ .float = 2 },
             .{ .float = 3 },
+        },
+    });
+    try runTest("(1b;2;3f;(0b;1))|0f", .{
+        .list = &[_]TestValue{
+            .{ .float = 1 },
+            .{ .float = 2 },
+            .{ .float = 3 },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 0 },
+                .{ .float = 1 },
+            } },
         },
     });
     try runTestError("(1b;2;3f;`symbol)|0f", MaxError.incompatible_types);
@@ -1071,6 +1104,30 @@ test "max dictionary" {
             .{ .list = &[_]TestValue{} },
         },
     });
+    try runTest("(()!())|`a`b!1 2", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 2 },
+            } },
+        },
+    });
+    try runTest("(`a`b!1 2)|()!()", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 1 },
+                .{ .int = 2 },
+            } },
+        },
+    });
     try runTest("(`a`b!1 2)|`a`b!1 2", .{
         .dictionary = &[_]TestValue{
             .{ .symbol_list = &[_]TestValue{
@@ -1083,6 +1140,19 @@ test "max dictionary" {
             } },
         },
     });
+    try runTest("(`a`b!1 2)|`a`b!1 2f", .{
+        .dictionary = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 1 },
+                .{ .float = 2 },
+            } },
+        },
+    });
+    try runTestError("(`a`b!1 2)|`a`b!(1;`a)", MaxError.incompatible_types);
     try runTest("(`b`a!1 2)|`a`b!1 2", .{
         .dictionary = &[_]TestValue{
             .{ .symbol_list = &[_]TestValue{

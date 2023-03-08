@@ -452,6 +452,29 @@ pub const Value = struct {
         }
         return false;
     }
+
+    pub fn getListType(self: *Self) ValueType {
+        return switch (self.as) {
+            .boolean => .boolean_list,
+            .int => .int_list,
+            .float => .float_list,
+            .char => .char_list,
+            .symbol => .symbol_list,
+            else => .list,
+        };
+    }
+
+    pub fn isNull(self: *Self) bool {
+        return switch (self.as) {
+            .nil => true,
+            .boolean => false,
+            .int => |i| i == Value.null_int,
+            .float => |f| std.math.isNan(f),
+            .char => |c| c == ' ',
+            .symbol => |s| s.len == 0,
+            else => unreachable,
+        };
+    }
 };
 
 pub const ValueFunction = struct {

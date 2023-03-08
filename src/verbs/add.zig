@@ -6,6 +6,7 @@ const print = utils_mod.print;
 const value_mod = @import("../value.zig");
 const Value = value_mod.Value;
 const ValueDictionary = value_mod.ValueDictionary;
+const ValueHashMapContext = value_mod.ValueHashMapContext;
 const ValueTable = value_mod.ValueTable;
 const ValueType = value_mod.ValueType;
 
@@ -438,33 +439,37 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             .dictionary => |dict_y| blk: {
-                var key = dict_x.key.asArrayList(vm.allocator);
-                errdefer key.deinit();
-                errdefer for (key.items) |v| v.deref(vm.allocator);
+                if (dict_x.key.asList().len == 0) break :blk y.ref();
+                if (dict_y.key.asList().len == 0) break :blk x.ref();
+
+                var key_list = dict_x.key.asArrayList(vm.allocator);
+                errdefer key_list.deinit();
+                errdefer for (key_list.items) |v| v.deref(vm.allocator);
                 var key_list_type: ValueType = dict_x.key.as;
-                var value = dict_x.value.asArrayList(vm.allocator);
-                errdefer value.deinit();
-                errdefer for (value.items) |v| v.deref(vm.allocator);
-                var value_list_type: ValueType = dict_x.value.as;
-                for (dict_y.key.asList(), 0..) |k_y, i_y| loop: {
-                    for (key.items, 0..) |k_x, i_x| {
+
+                var value_list = dict_x.value.asArrayList(vm.allocator);
+                errdefer value_list.deinit();
+                errdefer for (value_list.items) |v| v.deref(vm.allocator);
+
+                for (dict_y.key.asList(), dict_y.value.asList()) |k_y, v_y| loop: {
+                    for (key_list.items, value_list.items) |k_x, *v_x| {
                         if (k_x.eql(k_y)) {
-                            value.items[i_x].deref(vm.allocator);
-                            value.items[i_x] = try add(vm, value.items[i_x], dict_y.value.asList()[i_y]);
-                            if (value_list_type != .list and @as(ValueType, value.items[0].as) != value.items[i_x].as) value_list_type = .list;
+                            v_x.*.deref(vm.allocator);
+                            v_x.* = try add(vm, v_x.*, v_y);
                             break :loop;
                         }
                     }
-                    key.append(k_y.ref()) catch std.debug.panic("Failed to append item.", .{});
-                    if (key_list_type != .list and @as(ValueType, key.items[0].as) != key.items[key.items.len - 1].as) key_list_type = .list;
-                    value.append(dict_y.value.asList()[i_y].ref()) catch std.debug.panic("Failed to append item.", .{});
-                    if (value_list_type != .list and @as(ValueType, value.items[0].as) != value.items[value.items.len - 1].as) value_list_type = .list;
+
+                    key_list.append(k_y.ref()) catch std.debug.panic("Failed to append item.", .{});
+                    if (key_list_type != .list and @as(ValueType, key_list.items[0].as) != key_list.items[key_list.items.len - 1].as) key_list_type = .list;
+                    value_list.append(v_y.ref()) catch std.debug.panic("Failed to append item.", .{});
                 }
-                const key_list = key.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
-                const new_key = vm.initList(key_list, key_list_type);
-                const value_list = value.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
-                const new_value = vm.initList(value_list, value_list_type);
-                const dictionary = ValueDictionary.init(.{ .key = new_key, .value = new_value }, vm.allocator);
+
+                const key_slice = key_list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                const value_slice = value_list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                const key = vm.initList(key_slice, key_list_type);
+                const value = vm.initListIter(value_slice);
+                const dictionary = ValueDictionary.init(.{ .key = key, .value = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             else => runtimeError(AddError.incompatible_types),
@@ -479,29 +484,24 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                 var columns = table_x.columns.asArrayList(vm.allocator);
                 errdefer columns.deinit();
                 errdefer for (columns.items) |v| v.deref(vm.allocator);
-                var columns_list_type: ValueType = table_x.columns.as;
                 var values = table_x.values.asArrayList(vm.allocator);
                 errdefer values.deinit();
                 errdefer for (values.items) |v| v.deref(vm.allocator);
-                var values_list_type: ValueType = table_x.values.as;
                 for (table_y.columns.asList(), 0..) |c_y, i_y| loop: {
                     for (columns.items, 0..) |c_x, i_x| {
                         if (c_x.eql(c_y)) {
                             values.items[i_x].deref(vm.allocator);
                             values.items[i_x] = try add(vm, values.items[i_x], table_y.values.asList()[i_y]);
-                            if (values_list_type != .list and @as(ValueType, values.items[0].as) != values.items[i_x].as) values_list_type = .list;
                             break :loop;
                         }
                     }
                     columns.append(c_y.ref()) catch std.debug.panic("Failed to append item.", .{});
-                    if (columns_list_type != .list and @as(ValueType, columns.items[0].as) != columns.items[columns.items.len - 1].as) columns_list_type = .list;
                     values.append(table_y.values.asList()[i_y].ref()) catch std.debug.panic("Failed to append item.", .{});
-                    if (values_list_type != .list and @as(ValueType, values.items[0].as) != values.items[values.items.len - 1].as) values_list_type = .list;
                 }
                 const columns_list = columns.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
-                const new_columns = vm.initList(columns_list, columns_list_type);
+                const new_columns = vm.initValue(.{ .symbol_list = columns_list });
                 const values_list = values.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
-                const new_values = vm.initList(values_list, values_list_type);
+                const new_values = vm.initValue(.{ .list = values_list });
                 const table = ValueTable.init(.{ .columns = new_columns, .values = new_values }, vm.allocator);
                 break :blk vm.initValue(.{ .table = table });
             },

@@ -515,3 +515,45 @@ test "null/inf max" {
     try runTest("-0w|0w", .{ .float = Value.inf_float });
     try runTest("-0w|-0w", .{ .float = -Value.inf_float });
 }
+
+test "null/inf less" {
+    try runTest("0N<0N", .{ .boolean = false });
+    try runTest("0N<0W", .{ .boolean = true });
+    try runTest("0N<-0W", .{ .boolean = true });
+    try runTest("0W<0N", .{ .boolean = false });
+    try runTest("0W<0W", .{ .boolean = false });
+    try runTest("0W<-0W", .{ .boolean = false });
+    try runTest("-0W<0N", .{ .boolean = false });
+    try runTest("-0W<0W", .{ .boolean = true });
+    try runTest("-0W<-0W", .{ .boolean = false });
+
+    try runTest("0N<0n", .{ .boolean = false });
+    try runTest("0N<0w", .{ .boolean = true });
+    try runTest("0N<-0w", .{ .boolean = true });
+    try runTest("0W<0n", .{ .boolean = false });
+    try runTest("0W<0w", .{ .boolean = true });
+    try runTest("0W<-0w", .{ .boolean = false });
+    try runTest("-0W<0n", .{ .boolean = false });
+    try runTest("-0W<0w", .{ .boolean = true });
+    try runTest("-0W<-0w", .{ .boolean = false });
+
+    try runTest("0n<0N", .{ .boolean = false });
+    try runTest("0n<0W", .{ .boolean = true });
+    try runTest("0n<-0W", .{ .boolean = true });
+    try runTest("0w<0N", .{ .boolean = false });
+    try runTest("0w<0W", .{ .boolean = false });
+    try runTest("0w<-0W", .{ .boolean = false });
+    try runTest("-0w<0N", .{ .boolean = false });
+    try runTest("-0w<0W", .{ .boolean = true });
+    try runTest("-0w<-0W", .{ .boolean = true });
+
+    try runTest("0n<0n", .{ .boolean = false });
+    try runTest("0n<0w", .{ .boolean = true });
+    try runTest("0n<-0w", .{ .boolean = true });
+    try runTest("0w<0n", .{ .boolean = false });
+    try runTest("0w<0w", .{ .boolean = false });
+    try runTest("0w<-0w", .{ .boolean = false });
+    try runTest("-0w<0n", .{ .boolean = false });
+    try runTest("-0w<0w", .{ .boolean = true });
+    try runTest("-0w<-0w", .{ .boolean = false });
+}
