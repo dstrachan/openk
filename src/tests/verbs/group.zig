@@ -489,16 +489,14 @@ test "group dictionary" {
 test "group table" {
     try runTest("=+`a`b!(();())", .{
         .dictionary = &[_]TestValue{
-            .{ .list = &[_]TestValue{
-                .{ .table = &[_]TestValue{
-                    .{ .symbol_list = &[_]TestValue{
-                        .{ .symbol = "a" },
-                        .{ .symbol = "b" },
-                    } },
-                    .{ .list = &[_]TestValue{
-                        .{ .list = &[_]TestValue{} },
-                        .{ .list = &[_]TestValue{} },
-                    } },
+            .{ .table = &[_]TestValue{
+                .{ .symbol_list = &[_]TestValue{
+                    .{ .symbol = "a" },
+                    .{ .symbol = "b" },
+                } },
+                .{ .list = &[_]TestValue{
+                    .{ .list = &[_]TestValue{} },
+                    .{ .list = &[_]TestValue{} },
                 } },
             } },
             .{ .list = &[_]TestValue{} },
@@ -506,16 +504,14 @@ test "group table" {
     });
     try runTest("=+`a`b!(`int$();`float$())", .{
         .dictionary = &[_]TestValue{
-            .{ .list = &[_]TestValue{
-                .{ .table = &[_]TestValue{
-                    .{ .symbol_list = &[_]TestValue{
-                        .{ .symbol = "a" },
-                        .{ .symbol = "b" },
-                    } },
-                    .{ .list = &[_]TestValue{
-                        .{ .list = &[_]TestValue{} },
-                        .{ .list = &[_]TestValue{} },
-                    } },
+            .{ .table = &[_]TestValue{
+                .{ .symbol_list = &[_]TestValue{
+                    .{ .symbol = "a" },
+                    .{ .symbol = "b" },
+                } },
+                .{ .list = &[_]TestValue{
+                    .{ .int_list = &[_]TestValue{} },
+                    .{ .float_list = &[_]TestValue{} },
                 } },
             } },
             .{ .list = &[_]TestValue{} },
@@ -523,23 +519,71 @@ test "group table" {
     });
 
     try runTest("=+`a`b!(,1;,2)", .{
-        .int_list = &[_]TestValue{
-            .{ .int = 0 },
+        .dictionary = &[_]TestValue{
+            .{ .table = &[_]TestValue{
+                .{ .symbol_list = &[_]TestValue{
+                    .{ .symbol = "a" },
+                    .{ .symbol = "b" },
+                } },
+                .{ .list = &[_]TestValue{
+                    .{ .int_list = &[_]TestValue{
+                        .{ .int = 1 },
+                    } },
+                    .{ .int_list = &[_]TestValue{
+                        .{ .int = 2 },
+                    } },
+                } },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 0 },
+                } },
+            } },
         },
     });
 
-    try runTest("=+`a`b!(1 2;3 4)", .{
-        .int_list = &[_]TestValue{
-            .{ .int = 1 },
-            .{ .int = 0 },
-        },
-    });
-
-    try runTest("=+`a`b!(1 2 1;20 10 10)", .{
-        .int_list = &[_]TestValue{
-            .{ .int = 1 },
-            .{ .int = 0 },
-            .{ .int = 2 },
+    try runTest("=+`a`b!(0 1 0 3 2 0;0 2 3 0 1 0)", .{
+        .dictionary = &[_]TestValue{
+            .{ .table = &[_]TestValue{
+                .{ .symbol_list = &[_]TestValue{
+                    .{ .symbol = "a" },
+                    .{ .symbol = "b" },
+                } },
+                .{ .list = &[_]TestValue{
+                    .{ .int_list = &[_]TestValue{
+                        .{ .int = 0 },
+                        .{ .int = 1 },
+                        .{ .int = 0 },
+                        .{ .int = 3 },
+                        .{ .int = 2 },
+                    } },
+                    .{ .int_list = &[_]TestValue{
+                        .{ .int = 0 },
+                        .{ .int = 2 },
+                        .{ .int = 3 },
+                        .{ .int = 0 },
+                        .{ .int = 1 },
+                    } },
+                } },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 0 },
+                    .{ .int = 5 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 1 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 2 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 3 },
+                } },
+                .{ .int_list = &[_]TestValue{
+                    .{ .int = 4 },
+                } },
+            } },
         },
     });
 }
