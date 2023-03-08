@@ -588,3 +588,19 @@ pub const ValueTable = struct {
         allocator.destroy(self);
     }
 };
+
+pub const ValueHashMapContext = struct {
+    const Self = @This();
+
+    pub fn hash(self: Self, value: *Value) u32 {
+        _ = self;
+        std.debug.print("hash {}\n", .{value.as});
+        return 0;
+    }
+
+    pub fn eql(self: Self, a: *Value, b: *Value, b_index: usize) bool {
+        _ = self;
+        _ = b_index;
+        return a.eql(b);
+    }
+};
