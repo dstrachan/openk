@@ -67,6 +67,17 @@ test "multiply boolean" {
             .{ .float = 0 },
         },
     });
+    try runTest("(1b;2;3f;(0b;1))*0b", .{
+        .list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 0 },
+            .{ .float = 0 },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 0 },
+                .{ .int = 0 },
+            } },
+        },
+    });
     try runTestError("(1b;2;3f;`symbol)*0b", MultiplyError.incompatible_types);
     try runTest("()*`boolean$()", .{ .list = &[_]TestValue{} });
     try runTestError("()*010b", MultiplyError.length_mismatch);
@@ -275,6 +286,17 @@ test "multiply int" {
             .{ .float = 0 },
         },
     });
+    try runTest("(1b;2;3f;(0b;1))*0", .{
+        .list = &[_]TestValue{
+            .{ .int = 0 },
+            .{ .int = 0 },
+            .{ .float = 0 },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 0 },
+                .{ .int = 0 },
+            } },
+        },
+    });
     try runTestError("(1b;2;3f;`symbol)*0", MultiplyError.incompatible_types);
     try runTest("()*`int$()", .{ .list = &[_]TestValue{} });
     try runTestError("()*0 1 0N 0W -0W", MultiplyError.length_mismatch);
@@ -480,6 +502,17 @@ test "multiply float" {
             .{ .float = 0 },
             .{ .float = 0 },
             .{ .float = 0 },
+        },
+    });
+    try runTest("(1b;2;3f;(0b;1))*0f", .{
+        .list = &[_]TestValue{
+            .{ .float = 0 },
+            .{ .float = 0 },
+            .{ .float = 0 },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 0 },
+                .{ .float = 0 },
+            } },
         },
     });
     try runTestError("(1b;2;3f;`symbol)*0f", MultiplyError.incompatible_types);

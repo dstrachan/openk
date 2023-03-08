@@ -67,6 +67,17 @@ test "divide boolean" {
             .{ .float = Value.inf_float },
         },
     });
+    try runTest("(1b;2;3f;(0b;1))%0b", .{
+        .list = &[_]TestValue{
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = Value.null_float },
+                .{ .float = Value.inf_float },
+            } },
+        },
+    });
     try runTestError("(1b;2;3f;`symbol)%0b", DivideError.incompatible_types);
     try runTest("()%`boolean$()", .{ .list = &[_]TestValue{} });
     try runTestError("()%010b", DivideError.length_mismatch);
@@ -275,6 +286,17 @@ test "divide int" {
             .{ .float = Value.inf_float },
         },
     });
+    try runTest("(1b;2;3f;(0b;1))%0", .{
+        .list = &[_]TestValue{
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = Value.null_float },
+                .{ .float = Value.inf_float },
+            } },
+        },
+    });
     try runTestError("(1b;2;3f;`symbol)%0", DivideError.incompatible_types);
     try runTest("()%`int$()", .{ .list = &[_]TestValue{} });
     try runTestError("()%0 1 0N 0W -0W", DivideError.length_mismatch);
@@ -471,6 +493,17 @@ test "divide float" {
             .{ .float = Value.inf_float },
             .{ .float = Value.inf_float },
             .{ .float = Value.inf_float },
+        },
+    });
+    try runTest("(1b;2;3f;(0b;1))%0f", .{
+        .list = &[_]TestValue{
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float = Value.inf_float },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = Value.null_float },
+                .{ .float = Value.inf_float },
+            } },
         },
     });
     try runTestError("(1b;2;3f;`symbol)%0f", DivideError.incompatible_types);

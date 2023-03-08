@@ -67,6 +67,17 @@ test "subtract boolean" {
             .{ .float = 3 },
         },
     });
+    try runTest("(1b;2;3f;(0b;1))-0b", .{
+        .list = &[_]TestValue{
+            .{ .int = 1 },
+            .{ .int = 2 },
+            .{ .float = 3 },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 0 },
+                .{ .int = 1 },
+            } },
+        },
+    });
     try runTestError("(1b;2;3f;`symbol)-0b", SubtractError.incompatible_types);
     try runTest("()-`boolean$()", .{ .list = &[_]TestValue{} });
     try runTestError("()-010b", SubtractError.length_mismatch);
@@ -275,6 +286,17 @@ test "subtract int" {
             .{ .float = 3 },
         },
     });
+    try runTest("(1b;2;3f;(0b;1))-0", .{
+        .list = &[_]TestValue{
+            .{ .int = 1 },
+            .{ .int = 2 },
+            .{ .float = 3 },
+            .{ .int_list = &[_]TestValue{
+                .{ .int = 0 },
+                .{ .int = 1 },
+            } },
+        },
+    });
     try runTestError("(1b;2;3f;`symbol)-0", SubtractError.incompatible_types);
     try runTest("()-`int$()", .{ .list = &[_]TestValue{} });
     try runTestError("()-0 1 0N 0W -0W", SubtractError.length_mismatch);
@@ -480,6 +502,17 @@ test "subtract float" {
             .{ .float = 1 },
             .{ .float = 2 },
             .{ .float = 3 },
+        },
+    });
+    try runTest("(1b;2;3f;(0b;1))-0f", .{
+        .list = &[_]TestValue{
+            .{ .float = 1 },
+            .{ .float = 2 },
+            .{ .float = 3 },
+            .{ .float_list = &[_]TestValue{
+                .{ .float = 0 },
+                .{ .float = 1 },
+            } },
         },
     });
     try runTestError("(1b;2;3f;`symbol)-0f", SubtractError.incompatible_types);
