@@ -124,7 +124,7 @@ test {
     _ = @import("tests/verbs/max.zig");
     _ = @import("tests/verbs/merge.zig");
     _ = @import("tests/verbs/min.zig");
-    //_ = @import("tests/verbs/more.zig");
+    _ = @import("tests/verbs/more.zig");
     _ = @import("tests/verbs/multiply.zig");
     _ = @import("tests/verbs/negate.zig");
     _ = @import("tests/verbs/reverse.zig");
