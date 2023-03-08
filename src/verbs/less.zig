@@ -45,11 +45,13 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
 
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
+                var list_type: ?ValueType = null;
                 for (list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try less(vm, x, value);
+                    if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(.{ .boolean_list = list });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .dictionary => |dict_y| blk: {
                 const value = try less(vm, x, dict_y.value);
@@ -72,11 +74,13 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
 
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
+                var list_type: ?ValueType = null;
                 for (list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try less(vm, x, value);
+                    if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(.{ .boolean_list = list });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .dictionary => |dict_y| blk: {
                 const value = try less(vm, x, dict_y.value);
@@ -99,11 +103,13 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
 
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
+                var list_type: ?ValueType = null;
                 for (list_y, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try less(vm, x, value);
+                    if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(.{ .boolean_list = list });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .dictionary => |dict_y| blk: {
                 const value = try less(vm, x, dict_y.value);
@@ -123,11 +129,13 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
 
                 const list = vm.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
+                var list_type: ?ValueType = null;
                 for (list_x, 0..) |value, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     list[i] = try less(vm, value, y);
+                    if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
                 }
-                break :blk vm.initValue(.{ .boolean_list = list });
+                break :blk vm.initListAtoms(list, list_type);
             },
             .list, .boolean_list, .int_list, .float_list => |list_y| blk: {
                 if (list_x.len != list_y.len) break :blk runtimeError(LessError.length_mismatch);
@@ -157,30 +165,61 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             .dictionary => |dict_y| blk: {
-                var key = dict_x.key.asArrayList(vm.allocator);
-                errdefer key.deinit();
-                errdefer for (key.items) |v| v.deref(vm.allocator);
+                if (dict_x.key.asList().len == 0) {
+                    const list = vm.allocator.alloc(*Value, dict_y.key.asList().len) catch std.debug.panic("Failed to create list.", .{});
+                    for (list) |*v| {
+                        v.* = vm.initValue(.{ .list = &[_]*Value{} });
+                    }
+                    const value = vm.initValue(.{ .list = list });
+                    const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
+                    break :blk vm.initValue(.{ .dictionary = dictionary });
+                }
+                if (dict_y.key.asList().len == 0) {
+                    const list = vm.allocator.alloc(*Value, dict_x.key.asList().len) catch std.debug.panic("Failed to create list.", .{});
+                    for (list) |*v| {
+                        v.* = vm.initValue(.{ .list = &[_]*Value{} });
+                    }
+                    const value = vm.initValue(.{ .list = list });
+                    const dictionary = ValueDictionary.init(.{ .key = dict_x.key.ref(), .value = value }, vm.allocator);
+                    break :blk vm.initValue(.{ .dictionary = dictionary });
+                }
+
+                var key_list = dict_x.key.asArrayList(vm.allocator);
+                errdefer key_list.deinit();
+                errdefer for (key_list.items) |v| v.deref(vm.allocator);
                 var key_list_type: ValueType = dict_x.key.as;
-                var value = dict_x.value.asArrayList(vm.allocator);
-                errdefer value.deinit();
-                errdefer for (value.items) |v| v.deref(vm.allocator);
-                for (dict_y.key.asList(), 0..) |k_y, i_y| loop: {
-                    for (key.items, 0..) |k_x, i_x| {
+
+                var value_list = dict_x.value.asArrayList(vm.allocator);
+                errdefer value_list.deinit();
+                errdefer for (value_list.items) |v| v.deref(vm.allocator);
+
+                for (key_list.items, value_list.items) |k_x, *v_x| {
+                    if (!k_x.in(dict_y.key.asList())) {
+                        v_x.*.deref(vm.allocator);
+                        v_x.* = vm.initValue(.{ .boolean = false });
+                    }
+                }
+
+                for (dict_y.key.asList(), dict_y.value.asList()) |k_y, v_y| loop: {
+                    for (key_list.items, value_list.items) |k_x, *v_x| {
                         if (k_x.eql(k_y)) {
-                            value.items[i_x].deref(vm.allocator);
-                            value.items[i_x] = try less(vm, value.items[i_x], dict_y.value.asList()[i_y]);
+                            const old_x = v_x.*;
+                            defer old_x.deref(vm.allocator);
+                            v_x.* = try less(vm, old_x, v_y);
                             break :loop;
                         }
                     }
-                    key.append(k_y.ref()) catch std.debug.panic("Failed to append item.", .{});
-                    if (key_list_type != .list and @as(ValueType, key.items[0].as) != key.items[key.items.len - 1].as) key_list_type = .list;
-                    value.append(vm.initValue(.{ .boolean = true })) catch std.debug.panic("Failed to append item.", .{});
+
+                    key_list.append(k_y.ref()) catch std.debug.panic("Failed to append item.", .{});
+                    if (key_list_type != .list and @as(ValueType, key_list.items[0].as) != key_list.items[key_list.items.len - 1].as) key_list_type = .list;
+                    value_list.append(vm.initValue(.{ .boolean = !v_y.*.isNull() })) catch std.debug.panic("Failed to append item.", .{});
                 }
-                const key_list = key.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
-                const new_key = vm.initList(key_list, key_list_type);
-                const value_list = value.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
-                const new_value = vm.initList(value_list, .boolean);
-                const dictionary = ValueDictionary.init(.{ .key = new_key, .value = new_value }, vm.allocator);
+
+                const key_slice = key_list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                const value_slice = value_list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
+                const key = vm.initList(key_slice, key_list_type);
+                const value = vm.initListIter(value_slice);
+                const dictionary = ValueDictionary.init(.{ .key = key, .value = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             else => runtimeError(LessError.incompatible_types),
@@ -198,6 +237,8 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
                 break :blk vm.initValue(.{ .table = table });
             },
             .table => |table_y| blk: {
+                if (!table_x.columns.unorderedEql(table_y.columns)) break :blk runtimeError(LessError.length_mismatch);
+
                 var columns = table_x.columns.asArrayList(vm.allocator);
                 errdefer columns.deinit();
                 errdefer for (columns.items) |v| v.deref(vm.allocator);
@@ -212,9 +253,6 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
                             break :loop;
                         }
                     }
-                    columns.append(c_y.ref()) catch std.debug.panic("Failed to append item.", .{});
-                    // TODO: This should be a list of true booleans
-                    values.append(vm.initValue(.{ .boolean = true })) catch std.debug.panic("Failed to append item.", .{});
                 }
                 const columns_list = columns.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
                 const new_columns = vm.initValue(.{ .symbol_list = columns_list });
