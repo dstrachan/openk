@@ -122,18 +122,17 @@ pub fn group(vm: *VM, x: *Value) GroupError!*Value {
             }
 
             const key_slice = key_hash_map.keys();
-            const len = if (key_slice.len > 0) key_slice[0].len else 0;
             defer vm.allocator.free(key_slice);
-            const key_list = vm.allocator.alloc(*Value, len) catch std.debug.panic("Failed to create list.", .{});
+            defer for (key_slice) |v| vm.allocator.free(v);
+            const key_list = vm.allocator.alloc(*Value, key_slice[0].len) catch std.debug.panic("Failed to create list.", .{});
             i = 0;
-            while (i < len) : (i += 1) {
+            while (i < key_slice[0].len) : (i += 1) {
                 const list = vm.allocator.alloc(*Value, key_slice.len) catch std.debug.panic("Failed to create list.", .{});
                 for (key_slice, 0..) |v, j| {
                     list[j] = v[i];
                 }
                 key_list[i] = vm.initValue(.{ .int_list = list });
             }
-            for (key_slice) |k| vm.allocator.free(k);
 
             const values = vm.initValue(.{ .list = key_list });
             const table = ValueTable.init(.{ .columns = table_x.columns.ref(), .values = values }, vm.allocator);
