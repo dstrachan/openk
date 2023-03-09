@@ -588,3 +588,39 @@ pub const ValueTable = struct {
         allocator.destroy(self);
     }
 };
+
+pub const ValueHashMapContext = struct {
+    const Self = @This();
+
+    pub fn hash(self: Self, value: *Value) u32 {
+        _ = self;
+        _ = value;
+        unreachable;
+    }
+
+    pub fn eql(self: Self, a: *Value, b: *Value, b_index: usize) bool {
+        _ = self;
+        _ = b_index;
+        return a.eql(b);
+    }
+};
+
+pub const ValueSliceHashMapContext = struct {
+    const Self = @This();
+
+    pub fn hash(self: Self, value: []*Value) u32 {
+        _ = self;
+        _ = value;
+        unreachable;
+    }
+
+    pub fn eql(self: Self, a: []*Value, b: []*Value, b_index: usize) bool {
+        _ = self;
+        _ = b_index;
+        if (a.len != b.len) return false;
+        for (a, b) |a_value, b_value| {
+            if (!a_value.eql(b_value)) return false;
+        }
+        return true;
+    }
+};

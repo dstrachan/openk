@@ -8,6 +8,7 @@ pub const equal = @import("verbs/equal.zig").equal;
 pub const fill = @import("verbs/fill.zig").fill;
 pub const first = @import("verbs/first.zig").first;
 pub const flip = @import("verbs/flip.zig").flip;
+pub const group = @import("verbs/group.zig").group;
 pub const index = @import("verbs/index.zig").index;
 pub const less = @import("verbs/less.zig").less;
 pub const match = @import("verbs/match.zig").match;

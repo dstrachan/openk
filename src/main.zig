@@ -119,6 +119,7 @@ test {
     _ = @import("tests/verbs/fill.zig");
     _ = @import("tests/verbs/first.zig");
     _ = @import("tests/verbs/flip.zig");
+    _ = @import("tests/verbs/group.zig");
     _ = @import("tests/verbs/index.zig");
     _ = @import("tests/verbs/less.zig");
     _ = @import("tests/verbs/max.zig");
