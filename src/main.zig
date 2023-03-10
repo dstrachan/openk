@@ -115,6 +115,7 @@ test {
     _ = @import("tests/verbs/descend.zig");
     _ = @import("tests/verbs/divide.zig");
     _ = @import("tests/verbs/enum.zig");
+    _ = @import("tests/verbs/equal.zig");
     _ = @import("tests/verbs/fill.zig");
     _ = @import("tests/verbs/first.zig");
     _ = @import("tests/verbs/flip.zig");

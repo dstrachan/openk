@@ -75,7 +75,7 @@ pub fn equal(vm: *VM, x: *Value, y: *Value) EqualError!*Value {
                 }
                 break :blk vm.initValue(.{ .boolean_list = list });
             },
-            else => unreachable,
+            else => runtimeError(EqualError.incompatible_types),
         },
         .int => |int_x| switch (y.as) {
             .boolean => |bool_y| vm.initValue(.{ .boolean = equalInt(int_x, @boolToInt(bool_y)) }),
@@ -114,7 +114,7 @@ pub fn equal(vm: *VM, x: *Value, y: *Value) EqualError!*Value {
                 }
                 break :blk vm.initValue(.{ .boolean_list = list });
             },
-            else => unreachable,
+            else => runtimeError(EqualError.incompatible_types),
         },
         .float => |float_x| switch (y.as) {
             .boolean => |bool_y| vm.initValue(.{ .boolean = equalFloat(float_x, if (bool_y) 1 else 0) }),
@@ -153,7 +153,7 @@ pub fn equal(vm: *VM, x: *Value, y: *Value) EqualError!*Value {
                 }
                 break :blk vm.initValue(.{ .boolean_list = list });
             },
-            else => unreachable,
+            else => runtimeError(EqualError.incompatible_types),
         },
         .list => |list_x| switch (y.as) {
             .boolean, .int, .float => blk: {
@@ -180,7 +180,7 @@ pub fn equal(vm: *VM, x: *Value, y: *Value) EqualError!*Value {
                     else => .{ .list = list },
                 });
             },
-            else => unreachable,
+            else => runtimeError(EqualError.incompatible_types),
         },
         .boolean_list => |bool_list_x| switch (y.as) {
             .boolean => |bool_y| blk: {
@@ -237,7 +237,7 @@ pub fn equal(vm: *VM, x: *Value, y: *Value) EqualError!*Value {
                 }
                 break :blk vm.initValue(.{ .boolean_list = list });
             },
-            else => unreachable,
+            else => runtimeError(EqualError.incompatible_types),
         },
         .int_list => |int_list_x| switch (y.as) {
             .boolean => |bool_y| blk: {
@@ -294,7 +294,7 @@ pub fn equal(vm: *VM, x: *Value, y: *Value) EqualError!*Value {
                 }
                 break :blk vm.initValue(.{ .boolean_list = list });
             },
-            else => unreachable,
+            else => runtimeError(EqualError.incompatible_types),
         },
         .float_list => |float_list_x| switch (y.as) {
             .boolean => |bool_y| blk: {
@@ -351,8 +351,8 @@ pub fn equal(vm: *VM, x: *Value, y: *Value) EqualError!*Value {
                 }
                 break :blk vm.initValue(.{ .boolean_list = list });
             },
-            else => unreachable,
+            else => runtimeError(EqualError.incompatible_types),
         },
-        else => unreachable,
+        else => runtimeError(EqualError.incompatible_types),
     };
 }
