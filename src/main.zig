@@ -107,7 +107,6 @@ test {
     _ = @import("tests/scanner.zig");
     _ = @import("tests/vm.zig");
 
-    // _ = @import("tests/verbs/equal/_imports.zig");
     // _ = @import("tests/verbs/match/_imports.zig");
 
     _ = @import("tests/verbs/add.zig");
