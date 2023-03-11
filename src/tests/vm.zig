@@ -599,3 +599,35 @@ test "null/inf more" {
     try runTest("-0w>0w", .{ .boolean = false });
     try runTest("-0w>-0w", .{ .boolean = false });
 }
+
+test "tests csv" {
+    const file = std.fs.cwd().openFile("./tests/tests.csv", .{ .mode = .read_only }) catch std.debug.panic("Failed to open file", .{});
+    defer file.close();
+
+    const reader = file.reader();
+
+    var buffer: [1024]u8 = undefined;
+    var expression_buffer: [1024]u8 = undefined;
+    _ = try reader.readUntilDelimiterOrEof(&buffer, '\n') orelse unreachable;
+
+    while (true) {
+        const line = try reader.readUntilDelimiterOrEof(&buffer, '\n') orelse break;
+        var prev_index: usize = 0;
+        var values: [4][]const u8 = undefined;
+        var values_index: usize = 0;
+        for (line, 0..) |c, i| {
+            if (c == ',') {
+                values[values_index] = std.mem.trim(u8, line[prev_index..i], &[_]u8{ ' ', '\t' });
+                values_index += 1;
+                prev_index = i + 1;
+            }
+        }
+        values[values_index] = std.mem.trim(u8, line[prev_index..], &[_]u8{ ' ', '\t' });
+
+        const expression = try std.fmt.bufPrint(&expression_buffer, "(({s}){s}{s})~{s}\n", .{ values[1], values[0], values[2], values[3] });
+        runTest(expression, .{ .boolean = true }) catch |e| {
+            std.debug.print("{s}\n", .{expression});
+            return e;
+        };
+    }
+}
