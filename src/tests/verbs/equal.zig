@@ -99,6 +99,7 @@ test "equal boolean" {
     try runTestError("(1b;2;3f;\"a\")=0101b", EqualError.incompatible_types);
     try runTestError("(1b;2;3f;`symbol)=0101b", EqualError.incompatible_types);
 
+    try runTest("(`boolean$())=0b", .{ .boolean_list = &[_]TestValue{} });
     try runTest("11111b=0b", .{
         .boolean_list = &[_]TestValue{
             .{ .boolean = false },
@@ -120,6 +121,7 @@ test "equal boolean" {
     });
     try runTestError("11111b=000000b", EqualError.length_mismatch);
 
+    try runTest("(`int$())=0b", .{ .boolean_list = &[_]TestValue{} });
     try runTest("5 4 3 2 1=0b", .{
         .boolean_list = &[_]TestValue{
             .{ .boolean = false },
@@ -141,6 +143,7 @@ test "equal boolean" {
     });
     try runTestError("5 4 3 2 1=000000b", EqualError.length_mismatch);
 
+    try runTest("(`float$())=0b", .{ .boolean_list = &[_]TestValue{} });
     try runTest("5 4 3 2 1f=0b", .{
         .boolean_list = &[_]TestValue{
             .{ .boolean = false },
@@ -162,11 +165,13 @@ test "equal boolean" {
     });
     try runTestError("5 4 3 2 1f=000000b", EqualError.length_mismatch);
 
+    try runTestError("\"\"=0b", EqualError.incompatible_types);
     try runTestError("\"abcde\"=0b", EqualError.incompatible_types);
     try runTestError("\"abcde\"=`boolean$()", EqualError.incompatible_types);
     try runTestError("\"abcde\"=00000b", EqualError.incompatible_types);
     try runTestError("\"abcde\"=000000b", EqualError.incompatible_types);
 
+    try runTestError("(`$())=0b", EqualError.incompatible_types);
     try runTestError("`a`b`c`d`e=0b", EqualError.incompatible_types);
     try runTestError("`a`b`c`d`e=`boolean$()", EqualError.incompatible_types);
     try runTestError("`a`b`c`d`e=00000b", EqualError.incompatible_types);
@@ -353,6 +358,7 @@ test "equal int" {
     try runTestError("(1b;2;3f;\"a\")=0 1 2 3", EqualError.incompatible_types);
     try runTestError("(1b;2;3f;`symbol)=0 1 2 3", EqualError.incompatible_types);
 
+    try runTest("(`boolean$())=0", .{ .boolean_list = &[_]TestValue{} });
     try runTest("11111b=0", .{
         .boolean_list = &[_]TestValue{
             .{ .boolean = false },
@@ -374,6 +380,7 @@ test "equal int" {
     });
     try runTestError("11111b=0 1 2 3 4 5", EqualError.length_mismatch);
 
+    try runTest("(`int$())=0", .{ .boolean_list = &[_]TestValue{} });
     try runTest("5 4 3 2 1=0", .{
         .boolean_list = &[_]TestValue{
             .{ .boolean = false },
@@ -395,6 +402,7 @@ test "equal int" {
     });
     try runTestError("5 4 3 2 1=0 1 2 3 4 5", EqualError.length_mismatch);
 
+    try runTest("(`float$())=0", .{ .boolean_list = &[_]TestValue{} });
     try runTest("5 4 3 2 1f=0", .{
         .boolean_list = &[_]TestValue{
             .{ .boolean = false },
@@ -416,11 +424,13 @@ test "equal int" {
     });
     try runTestError("5 4 3 2 1f=0 1 2 3 4 5", EqualError.length_mismatch);
 
+    try runTestError("\"\"=0", EqualError.incompatible_types);
     try runTestError("\"abcde\"=0", EqualError.incompatible_types);
     try runTestError("\"abcde\"=`int$()", EqualError.incompatible_types);
     try runTestError("\"abcde\"=0 1 2 3 4", EqualError.incompatible_types);
     try runTestError("\"abcde\"=0 1 2 3 4 5", EqualError.incompatible_types);
 
+    try runTestError("(`$())=0", EqualError.incompatible_types);
     try runTestError("`a`b`c`d`e=0", EqualError.incompatible_types);
     try runTestError("`a`b`c`d`e=`int$()", EqualError.incompatible_types);
     try runTestError("`a`b`c`d`e=0 1 2 3 4", EqualError.incompatible_types);
@@ -572,6 +582,7 @@ test "equal float" {
     try runTestError("(1b;2;3f;\"a\")=0 1 2 3f", EqualError.incompatible_types);
     try runTestError("(1b;2;3f;`symbol)=0 1 2 3f", EqualError.incompatible_types);
 
+    try runTest("(`boolean$())=0f", .{ .boolean_list = &[_]TestValue{} });
     try runTest("11111b=0f", .{
         .boolean_list = &[_]TestValue{
             .{ .boolean = false },
@@ -593,6 +604,7 @@ test "equal float" {
     });
     try runTestError("11111b=0 1 2 3 4 5f", EqualError.length_mismatch);
 
+    try runTest("(`int$())=0f", .{ .boolean_list = &[_]TestValue{} });
     try runTest("5 4 3 2 1=0f", .{
         .boolean_list = &[_]TestValue{
             .{ .boolean = false },
@@ -614,6 +626,7 @@ test "equal float" {
     });
     try runTestError("5 4 3 2 1=0 1 2 3 4 5f", EqualError.length_mismatch);
 
+    try runTest("(`float$())=0f", .{ .boolean_list = &[_]TestValue{} });
     try runTest("5 4 3 2 1f=0f", .{
         .boolean_list = &[_]TestValue{
             .{ .boolean = false },
@@ -635,11 +648,13 @@ test "equal float" {
     });
     try runTestError("5 4 3 2 1f=0 1 2 3 4 5f", EqualError.length_mismatch);
 
+    try runTestError("\"\"=0f", EqualError.incompatible_types);
     try runTestError("\"abcde\"=0f", EqualError.incompatible_types);
     try runTestError("\"abcde\"=`float$()", EqualError.incompatible_types);
     try runTestError("\"abcde\"=0 1 2 3 4f", EqualError.incompatible_types);
     try runTestError("\"abcde\"=0 1 2 3 4 5f", EqualError.incompatible_types);
 
+    try runTestError("(`$())=0f", EqualError.incompatible_types);
     try runTestError("`a`b`c`d`e=0f", EqualError.incompatible_types);
     try runTestError("`a`b`c`d`e=`float$()", EqualError.incompatible_types);
     try runTestError("`a`b`c`d`e=0 1 2 3 4f", EqualError.incompatible_types);
