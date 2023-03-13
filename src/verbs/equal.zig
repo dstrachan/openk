@@ -100,7 +100,10 @@ pub fn equal(vm: *VM, x: *Value, y: *Value) EqualError!*Value {
         },
         .list, .boolean_list, .int_list, .float_list => |list_x| switch (y.as) {
             .boolean, .int, .float => blk: {
-                if (list_x.len == 0) break :blk x.ref();
+                if (list_x.len == 0) {
+                    const list_type = @intToEnum(ValueType, std.math.min(@enumToInt(ValueType.boolean_list), @enumToInt(x.as)));
+                    break :blk vm.initList(&[_]*Value{}, list_type);
+                }
 
                 const list = vm.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
                 var list_type: ValueType = .boolean;
