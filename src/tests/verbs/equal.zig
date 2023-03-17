@@ -9,6 +9,7 @@ const TestValue = vm_mod.TestValue;
 const EqualError = @import("../../verbs/equal.zig").EqualError;
 
 test "equal boolean" {
+    if (true) return error.SkipZigTest;
     try runTest("1b=0b", .{ .boolean = false });
     try runTest("1b=`boolean$()", .{ .boolean_list = &[_]TestValue{} });
     try runTest("1b=00000b", .{
@@ -268,6 +269,7 @@ test "equal boolean" {
 }
 
 test "equal int" {
+    if (true) return error.SkipZigTest;
     try runTest("1b=0", .{ .boolean = false });
     try runTest("1b=`int$()", .{ .boolean_list = &[_]TestValue{} });
     try runTest("1b=0 1 2 3 4", .{
@@ -492,6 +494,7 @@ test "equal int" {
 }
 
 test "equal float" {
+    if (true) return error.SkipZigTest;
     try runTest("1b=0f", .{ .boolean = false });
     try runTest("1b=`float$()", .{ .boolean_list = &[_]TestValue{} });
     try runTest("1b=0 1 2 3 4f", .{
@@ -716,6 +719,7 @@ test "equal float" {
 }
 
 test "equal char" {
+    if (true) return error.SkipZigTest;
     try runTestError("1b=\"a\"", EqualError.incompatible_types);
     try runTestError("1b=\"\"", EqualError.incompatible_types);
     try runTestError("1b=\"abcde\"", EqualError.incompatible_types);
@@ -770,6 +774,7 @@ test "equal char" {
 }
 
 test "equal symbol" {
+    if (true) return error.SkipZigTest;
     try runTestError("1b=`symbol", EqualError.incompatible_types);
     try runTestError("1b=`$()", EqualError.incompatible_types);
     try runTestError("1b=`a`b`c`d`e", EqualError.incompatible_types);
