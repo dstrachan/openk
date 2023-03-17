@@ -313,7 +313,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
                 const new_key = vm.initList(key_list, key_list_type);
                 const value_list = value.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
                 const new_value = vm.initList(value_list, value_list_type);
-                const dictionary = ValueDictionary.init(.{ .key = new_key, .value = new_value }, vm.allocator);
+                const dictionary = ValueDictionary.init(.{ .keys = new_key, .values = new_value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             .table => |table_y| blk: {

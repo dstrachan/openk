@@ -71,7 +71,7 @@ pub fn divide(vm: *VM, x: *Value, y: *Value) DivideError!*Value {
                 if (dict_y.values.asList().len == 0) break :blk y.ref();
 
                 const value = try divide(vm, x, dict_y.values);
-                const dictionary = ValueDictionary.init(.{ .key = dict_y.keys.ref(), .value = value }, vm.allocator);
+                const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             .table => |table_y| blk: {
@@ -121,7 +121,7 @@ pub fn divide(vm: *VM, x: *Value, y: *Value) DivideError!*Value {
                 if (dict_y.values.asList().len == 0) break :blk y.ref();
 
                 const value = try divide(vm, x, dict_y.values);
-                const dictionary = ValueDictionary.init(.{ .key = dict_y.keys.ref(), .value = value }, vm.allocator);
+                const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             .table => |table_y| blk: {
@@ -171,7 +171,7 @@ pub fn divide(vm: *VM, x: *Value, y: *Value) DivideError!*Value {
                 if (dict_y.values.asList().len == 0) break :blk y.ref();
 
                 const value = try divide(vm, x, dict_y.values);
-                const dictionary = ValueDictionary.init(.{ .key = dict_y.keys.ref(), .value = value }, vm.allocator);
+                const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             .table => |table_y| blk: {
@@ -210,7 +210,7 @@ pub fn divide(vm: *VM, x: *Value, y: *Value) DivideError!*Value {
                 if (dict_y.values.asList().len == 0) break :blk y.ref();
 
                 const value = try divide(vm, x, dict_y.values);
-                const dictionary = ValueDictionary.init(.{ .key = dict_y.keys.ref(), .value = value }, vm.allocator);
+                const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             else => runtimeError(DivideError.incompatible_types),
@@ -281,7 +281,7 @@ pub fn divide(vm: *VM, x: *Value, y: *Value) DivideError!*Value {
                 if (dict_y.values.asList().len == 0) break :blk y.ref();
 
                 const value = try divide(vm, x, dict_y.values);
-                const dictionary = ValueDictionary.init(.{ .key = dict_y.keys.ref(), .value = value }, vm.allocator);
+                const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             else => runtimeError(DivideError.incompatible_types),
@@ -352,7 +352,7 @@ pub fn divide(vm: *VM, x: *Value, y: *Value) DivideError!*Value {
                 if (dict_y.values.asList().len == 0) break :blk y.ref();
 
                 const value = try divide(vm, x, dict_y.values);
-                const dictionary = ValueDictionary.init(.{ .key = dict_y.keys.ref(), .value = value }, vm.allocator);
+                const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             else => runtimeError(DivideError.incompatible_types),
@@ -421,7 +421,7 @@ pub fn divide(vm: *VM, x: *Value, y: *Value) DivideError!*Value {
                 if (dict_y.values.asList().len == 0) break :blk y.ref();
 
                 const value = try divide(vm, x, dict_y.values);
-                const dictionary = ValueDictionary.init(.{ .key = dict_y.keys.ref(), .value = value }, vm.allocator);
+                const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             else => runtimeError(DivideError.incompatible_types),
@@ -429,7 +429,7 @@ pub fn divide(vm: *VM, x: *Value, y: *Value) DivideError!*Value {
         .dictionary => |dict_x| switch (y.as) {
             .boolean, .int, .float, .char, .symbol, .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => blk: {
                 const value = try divide(vm, dict_x.values, y);
-                const dictionary = ValueDictionary.init(.{ .key = dict_x.keys.ref(), .value = value }, vm.allocator);
+                const dictionary = ValueDictionary.init(.{ .keys = dict_x.keys.ref(), .values = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             .dictionary => |dict_y| blk: {
@@ -463,7 +463,7 @@ pub fn divide(vm: *VM, x: *Value, y: *Value) DivideError!*Value {
                 const value_slice = value_list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
                 const key = vm.initList(key_slice, key_list_type);
                 const value = vm.initListIter(value_slice);
-                const dictionary = ValueDictionary.init(.{ .key = key, .value = value }, vm.allocator);
+                const dictionary = ValueDictionary.init(.{ .keys = key, .values = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             else => runtimeError(DivideError.incompatible_types),

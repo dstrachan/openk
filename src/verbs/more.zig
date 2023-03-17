@@ -55,7 +55,7 @@ pub fn more(vm: *VM, x: *Value, y: *Value) MoreError!*Value {
             },
             .dictionary => |dict_y| blk: {
                 const value = try more(vm, x, dict_y.values);
-                const dictionary = ValueDictionary.init(.{ .key = dict_y.keys.ref(), .value = value }, vm.allocator);
+                const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             .table => |table_y| blk: {
@@ -84,7 +84,7 @@ pub fn more(vm: *VM, x: *Value, y: *Value) MoreError!*Value {
             },
             .dictionary => |dict_y| blk: {
                 const value = try more(vm, x, dict_y.values);
-                const dictionary = ValueDictionary.init(.{ .key = dict_y.keys.ref(), .value = value }, vm.allocator);
+                const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             .table => |table_y| blk: {
@@ -113,7 +113,7 @@ pub fn more(vm: *VM, x: *Value, y: *Value) MoreError!*Value {
             },
             .dictionary => |dict_y| blk: {
                 const value = try more(vm, x, dict_y.values);
-                const dictionary = ValueDictionary.init(.{ .key = dict_y.keys.ref(), .value = value }, vm.allocator);
+                const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             .table => |table_y| blk: {
@@ -153,7 +153,7 @@ pub fn more(vm: *VM, x: *Value, y: *Value) MoreError!*Value {
             },
             .dictionary => |dict_y| blk: {
                 const value = try more(vm, x, dict_y.values);
-                const dictionary = ValueDictionary.init(.{ .key = dict_y.keys.ref(), .value = value }, vm.allocator);
+                const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             else => runtimeError(MoreError.incompatible_types),
@@ -161,7 +161,7 @@ pub fn more(vm: *VM, x: *Value, y: *Value) MoreError!*Value {
         .dictionary => |dict_x| switch (y.as) {
             .boolean, .int, .float, .list, .boolean_list, .int_list, .float_list => blk: {
                 const value = try more(vm, dict_x.values, y);
-                const dictionary = ValueDictionary.init(.{ .key = dict_x.keys.ref(), .value = value }, vm.allocator);
+                const dictionary = ValueDictionary.init(.{ .keys = dict_x.keys.ref(), .values = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             .dictionary => |dict_y| blk: {
@@ -171,7 +171,7 @@ pub fn more(vm: *VM, x: *Value, y: *Value) MoreError!*Value {
                         v.* = vm.initValue(.{ .list = &[_]*Value{} });
                     }
                     const value = vm.initValue(.{ .list = list });
-                    const dictionary = ValueDictionary.init(.{ .key = dict_y.keys.ref(), .value = value }, vm.allocator);
+                    const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm.allocator);
                     break :blk vm.initValue(.{ .dictionary = dictionary });
                 }
                 if (dict_y.keys.asList().len == 0) {
@@ -180,7 +180,7 @@ pub fn more(vm: *VM, x: *Value, y: *Value) MoreError!*Value {
                         v.* = vm.initValue(.{ .list = &[_]*Value{} });
                     }
                     const value = vm.initValue(.{ .list = list });
-                    const dictionary = ValueDictionary.init(.{ .key = dict_x.keys.ref(), .value = value }, vm.allocator);
+                    const dictionary = ValueDictionary.init(.{ .keys = dict_x.keys.ref(), .values = value }, vm.allocator);
                     break :blk vm.initValue(.{ .dictionary = dictionary });
                 }
 
@@ -220,7 +220,7 @@ pub fn more(vm: *VM, x: *Value, y: *Value) MoreError!*Value {
                 const value_slice = value_list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
                 const key = vm.initList(key_slice, key_list_type);
                 const value = vm.initListIter(value_slice);
-                const dictionary = ValueDictionary.init(.{ .key = key, .value = value }, vm.allocator);
+                const dictionary = ValueDictionary.init(.{ .keys = key, .values = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             else => runtimeError(MoreError.incompatible_types),

@@ -537,8 +537,8 @@ pub const ValueDictionary = struct {
     const Self = @This();
 
     pub const Config = struct {
-        key: *Value,
-        value: *Value,
+        keys: *Value,
+        values: *Value,
     };
 
     keys: *Value,
@@ -547,8 +547,8 @@ pub const ValueDictionary = struct {
     pub fn init(config: Config, allocator: std.mem.Allocator) *Self {
         const self = allocator.create(Self) catch std.debug.panic("Failed to create dictionary", .{});
         self.* = Self{
-            .keys = config.key,
-            .values = config.value,
+            .keys = config.keys,
+            .values = config.values,
         };
         return self;
     }
