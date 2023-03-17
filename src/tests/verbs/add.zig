@@ -178,6 +178,13 @@ test "add boolean" {
             .{ .list = &.{} },
         },
     });
+    try runTest("(()!())+`boolean$()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTestError("(()!())+01b", AddError.length_mismatch);
     try runTest("(`a`b!1 2)+0b", .{
         .dictionary = &[_]TestValue{
             .{ .symbol_list = &[_]TestValue{
@@ -205,6 +212,20 @@ test "add boolean" {
     });
     try runTestError("(`a`b!1 2)+010b", AddError.length_mismatch);
 
+    try runTest("(+`a`b!(();()))+0b", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .list = &[_]TestValue{} },
+                .{ .list = &[_]TestValue{} },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(();()))+`boolean$()", AddError.incompatible_types);
+    try runTestError("(+`a`b!(();()))+01b", AddError.incompatible_types);
     try runTest("(+`a`b!(,1;,2))+0b", .{
         .table = &[_]TestValue{
             .{ .symbol_list = &[_]TestValue{
@@ -402,6 +423,13 @@ test "add int" {
             .{ .list = &.{} },
         },
     });
+    try runTest("(()!())+`int$()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTestError("(()!())+0 1", AddError.length_mismatch);
     try runTest("(`a`b!1 2)+0", .{
         .dictionary = &[_]TestValue{
             .{ .symbol_list = &[_]TestValue{
@@ -429,6 +457,20 @@ test "add int" {
     });
     try runTestError("(`a`b!1 2)+0 1 2", AddError.length_mismatch);
 
+    try runTest("(+`a`b!(();()))+0", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .list = &[_]TestValue{} },
+                .{ .list = &[_]TestValue{} },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(();()))+`int$()", AddError.incompatible_types);
+    try runTestError("(+`a`b!(();()))+0 1", AddError.incompatible_types);
     try runTest("(+`a`b!(,1;,2))+0", .{
         .table = &[_]TestValue{
             .{ .symbol_list = &[_]TestValue{
@@ -611,6 +653,13 @@ test "add float" {
             .{ .list = &.{} },
         },
     });
+    try runTest("(()!())+`float$()", .{
+        .dictionary = &[_]TestValue{
+            .{ .list = &[_]TestValue{} },
+            .{ .list = &[_]TestValue{} },
+        },
+    });
+    try runTestError("(()!())+0 1f", AddError.length_mismatch);
     try runTest("(`a`b!1 2)+0f", .{
         .dictionary = &[_]TestValue{
             .{ .symbol_list = &[_]TestValue{
@@ -638,6 +687,20 @@ test "add float" {
     });
     try runTestError("(`a`b!1 2)+0 1 2f", AddError.length_mismatch);
 
+    try runTest("(+`a`b!(();()))+0f", .{
+        .table = &[_]TestValue{
+            .{ .symbol_list = &[_]TestValue{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &[_]TestValue{
+                .{ .list = &[_]TestValue{} },
+                .{ .list = &[_]TestValue{} },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(();()))+`float$()", AddError.incompatible_types);
+    try runTestError("(+`a`b!(();()))+0 1f", AddError.incompatible_types);
     try runTest("(+`a`b!(,1;,2))+0f", .{
         .table = &[_]TestValue{
             .{ .symbol_list = &[_]TestValue{
