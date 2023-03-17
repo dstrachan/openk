@@ -87,8 +87,8 @@ fn compareValues(expected: TestValue, actual: ValueUnion) !void {
         },
         .dictionary => {
             try std.testing.expectEqual(@as(usize, 2), expected.dictionary.len);
-            try compareValues(expected.dictionary[0], actual.dictionary.key.as);
-            try compareValues(expected.dictionary[1], actual.dictionary.value.as);
+            try compareValues(expected.dictionary[0], actual.dictionary.keys.as);
+            try compareValues(expected.dictionary[1], actual.dictionary.values.as);
         },
         .table => {
             try std.testing.expectEqual(@as(usize, 2), expected.table.len);

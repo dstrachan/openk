@@ -291,22 +291,22 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
         .dictionary => |dict_x| switch (y.as) {
             .list => |list_y| if (list_y.len == 0) x.ref() else runtimeError(MergeError.incompatible_types),
             .dictionary => |dict_y| blk: {
-                var key = dict_x.key.asArrayList(vm.allocator);
-                var key_list_type: ValueType = dict_x.key.as;
-                var value = dict_x.value.asArrayList(vm.allocator);
-                var value_list_type: ValueType = dict_x.value.as;
-                for (dict_y.key.asList(), 0..) |k_y, i_y| loop: {
+                var key = dict_x.keys.asArrayList(vm.allocator);
+                var key_list_type: ValueType = dict_x.keys.as;
+                var value = dict_x.values.asArrayList(vm.allocator);
+                var value_list_type: ValueType = dict_x.values.as;
+                for (dict_y.keys.asList(), 0..) |k_y, i_y| loop: {
                     for (key.items, 0..) |k_x, i_x| {
                         if (k_x.eql(k_y)) {
                             value.items[i_x].deref(vm.allocator);
-                            value.items[i_x] = dict_y.value.asList()[i_y].ref();
+                            value.items[i_x] = dict_y.values.asList()[i_y].ref();
                             if (value_list_type != .list and @as(ValueType, value.items[0].as) != value.items[i_x].as) value_list_type = .list;
                             break :loop;
                         }
                     }
                     key.append(k_y.ref()) catch std.debug.panic("Failed to append item.", .{});
                     if (key_list_type != .list and @as(ValueType, key.items[0].as) != key.items[key.items.len - 1].as) key_list_type = .list;
-                    value.append(dict_y.value.asList()[i_y].ref()) catch std.debug.panic("Failed to append item.", .{});
+                    value.append(dict_y.values.asList()[i_y].ref()) catch std.debug.panic("Failed to append item.", .{});
                     if (value_list_type != .list and @as(ValueType, value.items[0].as) != value.items[value.items.len - 1].as) value_list_type = .list;
                 }
                 const key_list = key.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
@@ -317,22 +317,22 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             .table => |table_y| blk: {
-                if (!dict_x.key.unorderedEql(table_y.columns)) return runtimeError(MergeError.incompatible_types);
+                if (!dict_x.keys.unorderedEql(table_y.columns)) return runtimeError(MergeError.incompatible_types);
 
-                const list = vm.allocator.alloc(*Value, dict_x.key.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
+                const list = vm.allocator.alloc(*Value, dict_x.keys.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
                 for (0..list.len) |x_i| {
-                    const y_i = table_y.columns.indexOf(dict_x.key.as.symbol_list[x_i]) orelse unreachable;
+                    const y_i = table_y.columns.indexOf(dict_x.keys.as.symbol_list[x_i]) orelse unreachable;
                     const y_list = table_y.values.as.list[y_i].asList();
                     const value_list = vm.allocator.alloc(*Value, y_list.len + 1) catch std.debug.panic("Failed to create list.", .{});
-                    value_list[0] = dict_x.value.asList()[x_i].ref();
+                    value_list[0] = dict_x.values.asList()[x_i].ref();
                     for (y_list, 0..) |v, j| {
                         value_list[j + 1] = v.ref();
                     }
-                    const value_list_type: ValueType = if (@as(ValueType, dict_x.value.as) == table_y.values.as.list[y_i].as) dict_x.value.as else .list;
+                    const value_list_type: ValueType = if (@as(ValueType, dict_x.values.as) == table_y.values.as.list[y_i].as) dict_x.values.as else .list;
                     list[x_i] = vm.initList(value_list, value_list_type);
                 }
                 const values = vm.initValue(.{ .list = list });
-                const table = ValueTable.init(.{ .columns = dict_x.key.ref(), .values = values }, vm.allocator);
+                const table = ValueTable.init(.{ .columns = dict_x.keys.ref(), .values = values }, vm.allocator);
                 break :blk vm.initValue(.{ .table = table });
             },
             else => runtimeError(MergeError.incompatible_types),
@@ -354,18 +354,18 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
                 break :blk vm.initValue(.{ .list = list });
             },
             .dictionary => |dict_y| blk: {
-                if (!table_x.columns.unorderedEql(dict_y.key)) return runtimeError(MergeError.incompatible_types);
+                if (!table_x.columns.unorderedEql(dict_y.keys)) return runtimeError(MergeError.incompatible_types);
 
                 const list = vm.allocator.alloc(*Value, table_x.columns.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
                 for (0..list.len) |x_i| {
-                    const y_i = dict_y.key.indexOf(table_x.columns.as.symbol_list[x_i]) orelse unreachable;
+                    const y_i = dict_y.keys.indexOf(table_x.columns.as.symbol_list[x_i]) orelse unreachable;
                     const x_list = table_x.values.as.list[x_i].asList();
                     const value_list = vm.allocator.alloc(*Value, x_list.len + 1) catch std.debug.panic("Failed to create list.", .{});
                     for (x_list, 0..) |v, j| {
                         value_list[j] = v.ref();
                     }
-                    value_list[x_list.len] = dict_y.value.asList()[y_i].ref();
-                    const value_type: ValueType = if (@as(ValueType, table_x.values.as.list[x_i].as) == dict_y.value.as) dict_y.value.as else .list;
+                    value_list[x_list.len] = dict_y.values.asList()[y_i].ref();
+                    const value_type: ValueType = if (@as(ValueType, table_x.values.as.list[x_i].as) == dict_y.values.as) dict_y.values.as else .list;
                     list[x_i] = vm.initList(value_list, value_type);
                 }
                 const values = vm.initValue(.{ .list = list });

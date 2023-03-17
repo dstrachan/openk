@@ -429,10 +429,10 @@ pub const VM = struct {
             },
             .dictionary => |dict_x| switch (y.as) {
                 .dictionary => |dict_y| blk: {
-                    if (dict_x.key.as != .symbol_list or dict_x.key.as != .symbol_list or !dict_x.key.eql(dict_y.key)) break :blk self.initValue(.{ .list = self.concat(x, y) });
+                    if (dict_x.keys.as != .symbol_list or dict_x.keys.as != .symbol_list or !dict_x.keys.eql(dict_y.keys)) break :blk self.initValue(.{ .list = self.concat(x, y) });
 
-                    const columns = dict_x.key.ref();
-                    const values = self.initValue(.{ .list = self.concat(dict_x.value, dict_y.value) });
+                    const columns = dict_x.keys.ref();
+                    const values = self.initValue(.{ .list = self.concat(dict_x.values, dict_y.values) });
                     const table = ValueTable.init(.{ .columns = columns, .values = values }, self.allocator);
                     break :blk self.initValue(.{ .table = table });
                 },
@@ -531,7 +531,7 @@ pub const VM = struct {
 
         const value = switch (x.as) {
             .int => try verbs.til(self, x),
-            .dictionary => |dict| dict.key.ref(),
+            .dictionary => |dict| dict.keys.ref(),
             else => unreachable,
         };
         try self.push(value);
@@ -747,7 +747,7 @@ pub const VM = struct {
         defer x.deref(self.allocator);
 
         const value = switch (x.as) {
-            .dictionary => |dict| dict.value.ref(),
+            .dictionary => |dict| dict.values.ref(),
             else => unreachable,
         };
         try self.push(value);

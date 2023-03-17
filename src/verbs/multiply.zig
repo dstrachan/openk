@@ -73,10 +73,10 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .dictionary => |dict_y| blk: {
-                if (dict_y.value.asList().len == 0) break :blk y.ref();
+                if (dict_y.values.asList().len == 0) break :blk y.ref();
 
-                const value = try multiply(vm, x, dict_y.value);
-                const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
+                const value = try multiply(vm, x, dict_y.values);
+                const dictionary = ValueDictionary.init(.{ .key = dict_y.keys.ref(), .value = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             .table => |table_y| blk: {
@@ -123,10 +123,10 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .dictionary => |dict_y| blk: {
-                if (dict_y.value.asList().len == 0) break :blk y.ref();
+                if (dict_y.values.asList().len == 0) break :blk y.ref();
 
-                const value = try multiply(vm, x, dict_y.value);
-                const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
+                const value = try multiply(vm, x, dict_y.values);
+                const dictionary = ValueDictionary.init(.{ .key = dict_y.keys.ref(), .value = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             .table => |table_y| blk: {
@@ -173,10 +173,10 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .dictionary => |dict_y| blk: {
-                if (dict_y.value.asList().len == 0) break :blk y.ref();
+                if (dict_y.values.asList().len == 0) break :blk y.ref();
 
-                const value = try multiply(vm, x, dict_y.value);
-                const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
+                const value = try multiply(vm, x, dict_y.values);
+                const dictionary = ValueDictionary.init(.{ .key = dict_y.keys.ref(), .value = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             .table => |table_y| blk: {
@@ -212,10 +212,10 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 break :blk vm.initListAtoms(list, list_type);
             },
             .dictionary => |dict_y| blk: {
-                if (dict_y.value.asList().len == 0) break :blk y.ref();
+                if (dict_y.values.asList().len == 0) break :blk y.ref();
 
-                const value = try multiply(vm, x, dict_y.value);
-                const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
+                const value = try multiply(vm, x, dict_y.values);
+                const dictionary = ValueDictionary.init(.{ .key = dict_y.keys.ref(), .value = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             else => runtimeError(MultiplyError.incompatible_types),
@@ -283,10 +283,10 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .dictionary => |dict_y| blk: {
-                if (dict_y.value.asList().len == 0) break :blk y.ref();
+                if (dict_y.values.asList().len == 0) break :blk y.ref();
 
-                const value = try multiply(vm, x, dict_y.value);
-                const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
+                const value = try multiply(vm, x, dict_y.values);
+                const dictionary = ValueDictionary.init(.{ .key = dict_y.keys.ref(), .value = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             else => runtimeError(MultiplyError.incompatible_types),
@@ -354,10 +354,10 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .dictionary => |dict_y| blk: {
-                if (dict_y.value.asList().len == 0) break :blk y.ref();
+                if (dict_y.values.asList().len == 0) break :blk y.ref();
 
-                const value = try multiply(vm, x, dict_y.value);
-                const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
+                const value = try multiply(vm, x, dict_y.values);
+                const dictionary = ValueDictionary.init(.{ .key = dict_y.keys.ref(), .value = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             else => runtimeError(MultiplyError.incompatible_types),
@@ -423,34 +423,34 @@ pub fn multiply(vm: *VM, x: *Value, y: *Value) MultiplyError!*Value {
                 break :blk vm.initValue(.{ .float_list = list });
             },
             .dictionary => |dict_y| blk: {
-                if (dict_y.value.asList().len == 0) break :blk y.ref();
+                if (dict_y.values.asList().len == 0) break :blk y.ref();
 
-                const value = try multiply(vm, x, dict_y.value);
-                const dictionary = ValueDictionary.init(.{ .key = dict_y.key.ref(), .value = value }, vm.allocator);
+                const value = try multiply(vm, x, dict_y.values);
+                const dictionary = ValueDictionary.init(.{ .key = dict_y.keys.ref(), .value = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             else => runtimeError(MultiplyError.incompatible_types),
         },
         .dictionary => |dict_x| switch (y.as) {
             .boolean, .int, .float, .char, .symbol, .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => blk: {
-                const value = try multiply(vm, dict_x.value, y);
-                const dictionary = ValueDictionary.init(.{ .key = dict_x.key.ref(), .value = value }, vm.allocator);
+                const value = try multiply(vm, dict_x.values, y);
+                const dictionary = ValueDictionary.init(.{ .key = dict_x.keys.ref(), .value = value }, vm.allocator);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             .dictionary => |dict_y| blk: {
-                if (dict_x.key.asList().len == 0) break :blk y.ref();
-                if (dict_y.key.asList().len == 0) break :blk x.ref();
+                if (dict_x.keys.asList().len == 0) break :blk y.ref();
+                if (dict_y.keys.asList().len == 0) break :blk x.ref();
 
-                var key_list = dict_x.key.asArrayList(vm.allocator);
+                var key_list = dict_x.keys.asArrayList(vm.allocator);
                 errdefer key_list.deinit();
                 errdefer for (key_list.items) |v| v.deref(vm.allocator);
-                var key_list_type: ValueType = dict_x.key.as;
+                var key_list_type: ValueType = dict_x.keys.as;
 
-                var value_list = dict_x.value.asArrayList(vm.allocator);
+                var value_list = dict_x.values.asArrayList(vm.allocator);
                 errdefer value_list.deinit();
                 errdefer for (value_list.items) |v| v.deref(vm.allocator);
 
-                for (dict_y.key.asList(), dict_y.value.asList()) |k_y, v_y| loop: {
+                for (dict_y.keys.asList(), dict_y.values.asList()) |k_y, v_y| loop: {
                     for (key_list.items, value_list.items) |k_x, *v_x| {
                         if (k_x.eql(k_y)) {
                             v_x.*.deref(vm.allocator);

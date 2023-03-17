@@ -57,9 +57,9 @@ pub fn where(vm: *VM, x: *Value) WhereError!*Value {
             break :blk vm.initValue(.{ .int_list = list });
         },
         .dictionary => |dict_x| blk: {
-            const indices = try where(vm, dict_x.value);
+            const indices = try where(vm, dict_x.values);
             defer indices.deref(vm.allocator);
-            break :blk index(vm, dict_x.key, indices) catch runtimeError(WhereError.invalid_type);
+            break :blk index(vm, dict_x.keys, indices) catch runtimeError(WhereError.invalid_type);
         },
         else => runtimeError(WhereError.invalid_type),
     };

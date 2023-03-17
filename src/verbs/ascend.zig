@@ -96,14 +96,14 @@ pub fn ascend(vm: *VM, x: *Value) AscendError!*Value {
             break :blk vm.initValue(.{ .int_list = list });
         },
         .dictionary => |dict_x| blk: {
-            if (dict_x.key.asList().len == 0) break :blk dict_x.key.ref();
+            if (dict_x.keys.asList().len == 0) break :blk dict_x.keys.ref();
 
-            const pairs = vm.allocator.alloc(Pair, dict_x.key.asList().len) catch std.debug.panic("Failed to create list.", .{});
+            const pairs = vm.allocator.alloc(Pair, dict_x.keys.asList().len) catch std.debug.panic("Failed to create list.", .{});
             defer vm.allocator.free(pairs);
-            for (dict_x.value.asList(), 0..) |v, i| {
+            for (dict_x.values.asList(), 0..) |v, i| {
                 pairs[i] = .{
                     .value = v,
-                    .index = dict_x.key.asList()[i].ref(),
+                    .index = dict_x.keys.asList()[i].ref(),
                 };
             }
             std.sort.sort(Pair, pairs, {}, asc);
@@ -111,7 +111,7 @@ pub fn ascend(vm: *VM, x: *Value) AscendError!*Value {
             for (pairs, 0..) |p, i| {
                 list[i] = p.index;
             }
-            break :blk vm.initList(list, dict_x.key.as);
+            break :blk vm.initList(list, dict_x.keys.as);
         },
         .table => |table_x| blk: {
             const len = table_x.values.as.list[0].asList().len;

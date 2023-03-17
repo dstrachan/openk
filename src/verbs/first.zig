@@ -12,7 +12,7 @@ pub fn first(vm: *VM, x: *Value) *Value {
     return switch (x.as) {
         .nil, .boolean, .int, .float, .char, .symbol, .function, .projection => x.ref(),
         .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_x| if (list_x.len == 0) vm.initNull(x.as) else list_x[0].ref(),
-        .dictionary => |dict_x| first(vm, dict_x.value),
+        .dictionary => |dict_x| first(vm, dict_x.values),
         .table => |table_x| blk: {
             const list = vm.allocator.alloc(*Value, table_x.columns.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
             var list_type: ?ValueType = null;

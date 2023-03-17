@@ -125,7 +125,7 @@ pub const ValueUnion = union(ValueType) {
                 if (list.len == 1) try writer.writeAll(",");
                 for (list) |value| try writer.print("`{s}", .{value.as.symbol});
             },
-            .dictionary => |dict| try writer.print("{}!{}", .{ dict.key.as, dict.value.as }),
+            .dictionary => |dict| try writer.print("{}!{}", .{ dict.keys.as, dict.values.as }),
             .table => |table| try writer.print("+{}!{}", .{ table.columns.as, table.values.as }),
             .function => |function| if (function.name) |name| try writer.print("{s}", .{name}) else try writer.writeAll("script"),
             .projection => |projection| {
@@ -232,7 +232,7 @@ pub const Value = struct {
             .float_list => vm.initValue(.{ .float_list = &[_]*Value{} }),
             .char_list => vm.initValue(.{ .char_list = &[_]*Value{} }),
             .symbol_list => vm.initValue(.{ .symbol_list = &[_]*Value{} }),
-            .dictionary => |dict| dict.value.copyNull(vm),
+            .dictionary => |dict| dict.values.copyNull(vm),
             .table => unreachable,
             .function => unreachable,
             .projection => unreachable,
@@ -262,8 +262,8 @@ pub const Value = struct {
                 for (list) |value| _ = value.ref();
             },
             .dictionary => |dict| {
-                _ = dict.key.ref();
-                _ = dict.value.ref();
+                _ = dict.keys.ref();
+                _ = dict.values.ref();
             },
             .table => |table| {
                 _ = table.columns.ref();
@@ -294,8 +294,8 @@ pub const Value = struct {
             .symbol_list,
             => |list| for (list) |value| value.deref(allocator),
             .dictionary => |dict| {
-                dict.key.deref(allocator);
-                dict.value.deref(allocator);
+                dict.keys.deref(allocator);
+                dict.values.deref(allocator);
             },
             .table => |table| {
                 table.columns.deref(allocator);
@@ -541,14 +541,14 @@ pub const ValueDictionary = struct {
         value: *Value,
     };
 
-    key: *Value,
-    value: *Value,
+    keys: *Value,
+    values: *Value,
 
     pub fn init(config: Config, allocator: std.mem.Allocator) *Self {
         const self = allocator.create(Self) catch std.debug.panic("Failed to create dictionary", .{});
         self.* = Self{
-            .key = config.key,
-            .value = config.value,
+            .keys = config.key,
+            .values = config.value,
         };
         return self;
     }

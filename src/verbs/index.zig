@@ -213,20 +213,20 @@ pub fn index(vm: *VM, x: *Value, y: *Value) ApplyError!*Value {
             else => runtimeError(ApplyError.incompatible_types),
         },
         .dictionary => |dict_x| switch (y.as) {
-            .boolean, .int, .float, .char, .symbol => switch (dict_x.key.as) {
-                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |keys| switch (dict_x.value.as) {
+            .boolean, .int, .float, .char, .symbol => switch (dict_x.keys.as) {
+                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |keys| switch (dict_x.values.as) {
                     .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |values| blk: {
                         for (keys, 0..) |value, i| {
                             if (value.eql(y)) break :blk values[i].ref();
                         }
-                        break :blk vm.initNull(dict_x.value.as);
+                        break :blk vm.initNull(dict_x.values.as);
                     },
                     else => unreachable,
                 },
                 else => unreachable,
             },
-            .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_y| switch (dict_x.key.as) {
-                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |keys| switch (dict_x.value.as) {
+            .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_y| switch (dict_x.keys.as) {
+                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |keys| switch (dict_x.values.as) {
                     .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |values| blk: {
                         const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                         if (values.len > 0) {
@@ -237,15 +237,15 @@ pub fn index(vm: *VM, x: *Value, y: *Value) ApplyError!*Value {
                                         break :outer_loop;
                                     }
                                 }
-                                list[i] = vm.initNull(dict_x.value.as);
+                                list[i] = vm.initNull(dict_x.values.as);
                             }
                         } else {
                             for (list) |*value| {
-                                value.* = vm.initNull(dict_x.value.as);
+                                value.* = vm.initNull(dict_x.values.as);
                             }
                         }
 
-                        break :blk vm.initValue(switch (dict_x.value.as) {
+                        break :blk vm.initValue(switch (dict_x.values.as) {
                             .list => .{ .list = list },
                             .boolean_list => .{ .boolean_list = list },
                             .int_list => .{ .int_list = list },
