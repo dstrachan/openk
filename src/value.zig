@@ -486,7 +486,7 @@ pub const ValueFunction = struct {
     name: ?[]const u8,
 
     pub fn init(allocator: std.mem.Allocator) *Self {
-        const self = allocator.create(Self) catch std.debug.panic("Failed to create function", .{});
+        const self = allocator.create(Self) catch std.debug.panic("Failed to create function.", .{});
         self.* = Self{
             .arity = 0,
             .local_count = 0,
@@ -516,7 +516,7 @@ pub const ValueProjection = struct {
     value: *Value,
 
     pub fn init(config: Config, allocator: std.mem.Allocator) *Self {
-        const self = allocator.create(Self) catch std.debug.panic("Failed to create projection", .{});
+        const self = allocator.create(Self) catch std.debug.panic("Failed to create projection.", .{});
         self.* = Self{
             .arg_indices = config.arg_indices,
             .arguments = undefined,
@@ -541,26 +541,37 @@ pub const ValueDictionary = struct {
         values: *Value,
     };
 
+    const HashMap = std.ArrayHashMap(*Value, *Value, ValueHashMapContext, false);
+
     keys: *Value,
     values: *Value,
+    hash_map: ?HashMap,
 
     pub fn init(config: Config, allocator: std.mem.Allocator) *Self {
-        const self = allocator.create(Self) catch std.debug.panic("Failed to create dictionary", .{});
+        const self = allocator.create(Self) catch std.debug.panic("Failed to create dictionary.", .{});
         self.* = Self{
             .keys = config.keys,
             .values = config.values,
+            .hash_map = switch (config.keys.as) {
+                .table => null,
+                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => blk: {
+                    var hash_map = HashMap.init(allocator);
+                    hash_map.ensureTotalCapacity(config.keys.asList().len) catch std.debug.panic("Failed to create dictionary.", .{});
+                    for (config.keys.asList(), config.values.asList()) |k, v| {
+                        var result = hash_map.getOrPutAssumeCapacity(k);
+                        if (!result.found_existing) result.value_ptr.* = v;
+                    }
+                    break :blk hash_map;
+                },
+                else => unreachable,
+            },
         };
         return self;
     }
 
     pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+        if (self.hash_map) |*hash_map| hash_map.deinit();
         allocator.destroy(self);
-    }
-
-    pub fn tryGetValue(self: *Self, key: *Value) ?*Value {
-        for (self.key.asList(), 0..) |v, i| {
-            if (v.eql(key)) return self.value.asList()[i];
-        }
     }
 };
 
@@ -576,7 +587,7 @@ pub const ValueTable = struct {
     values: *Value,
 
     pub fn init(config: Config, allocator: std.mem.Allocator) *Self {
-        const self = allocator.create(Self) catch std.debug.panic("Failed to create table", .{});
+        const self = allocator.create(Self) catch std.debug.panic("Failed to create table.", .{});
         self.* = Self{
             .columns = config.columns,
             .values = config.values,
