@@ -50,7 +50,7 @@ pub const VM = struct {
     symbols: std.StringHashMap(*Value),
 
     pub fn init(allocator: std.mem.Allocator) *Self {
-        const self = allocator.create(Self) catch std.debug.panic("Failed to create VM", .{});
+        const self = allocator.create(Self) catch std.debug.panic("Failed to create VM.", .{});
         self.* = Self{
             .allocator = allocator,
             .frame = undefined,
@@ -138,7 +138,7 @@ pub const VM = struct {
             return value.ref();
         }
 
-        const heap_chars = self.allocator.dupe(u8, chars) catch std.debug.panic("Failed to create symbol", .{});
+        const heap_chars = self.allocator.dupe(u8, chars) catch std.debug.panic("Failed to create symbol.", .{});
         return self.internSymbol(heap_chars).ref();
     }
 
@@ -154,7 +154,7 @@ pub const VM = struct {
 
     fn internSymbol(self: *Self, chars: []const u8) *Value {
         const value = self.initValue(.{ .symbol = chars });
-        self.symbols.put(chars, value) catch std.debug.panic("Failed to intern symbol", .{});
+        self.symbols.put(chars, value) catch std.debug.panic("Failed to intern symbol.", .{});
         return value;
     }
 
@@ -212,7 +212,7 @@ pub const VM = struct {
             if (self.stack_top + extra_values_needed >= stack_max) return self.runtimeError("Stack overflow.", .{});
 
             const starting_index = self.stack_top - arg_count;
-            const stack_copy = self.allocator.dupe(*Value, self.stack[starting_index..self.stack_top]) catch return self.runtimeError("Failed to copy stack", .{});
+            const stack_copy = self.allocator.dupe(*Value, self.stack[starting_index..self.stack_top]) catch return self.runtimeError("Failed to copy stack.", .{});
             defer self.allocator.free(stack_copy);
 
             var i: u8 = 0;
@@ -386,7 +386,7 @@ pub const VM = struct {
         const name = self.readSymbol();
         const value = self.peek(0);
 
-        const result = self.globals.getOrPut(name) catch return self.runtimeError("Failed to set global variable '{s}'", .{name});
+        const result = self.globals.getOrPut(name) catch return self.runtimeError("Failed to set global variable '{s}'.", .{name});
         if (result.found_existing) {
             result.value_ptr.*.deref(self.allocator);
         }

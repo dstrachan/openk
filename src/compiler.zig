@@ -330,7 +330,7 @@ pub const Compiler = struct {
 
     fn parseBool(self: *Self, str: []const u8) *Value {
         if (str.len > 2) {
-            const list = self.current.vm.allocator.alloc(*Value, str.len - 1) catch std.debug.panic("Failed to create list", .{});
+            const list = self.current.vm.allocator.alloc(*Value, str.len - 1) catch std.debug.panic("Failed to create list.", .{});
             for (str[0 .. str.len - 1], 0..) |c, i| {
                 list[i] = self.current.vm.initValue(.{ .boolean = c == '1' });
             }
@@ -351,7 +351,7 @@ pub const Compiler = struct {
         } else if (str.len == 3 and str[0] == '-' and str[1] == '0' and str[2] == 'W') {
             return self.current.vm.initValue(.{ .int = -Value.inf_int });
         }
-        const int = std.fmt.parseInt(i64, str, 10) catch std.debug.panic("Failed to parse int", .{});
+        const int = std.fmt.parseInt(i64, str, 10) catch std.debug.panic("Failed to parse int.", .{});
         return self.current.vm.initValue(.{ .int = int });
     }
 
@@ -367,7 +367,7 @@ pub const Compiler = struct {
         } else if (str.len == 3 and str[0] == '-' and str[1] == '0' and (str[2] == 'W' or str[2] == 'w')) {
             return self.current.vm.initValue(.{ .float = -Value.inf_float });
         }
-        const float = std.fmt.parseFloat(f64, str) catch std.debug.panic("Failed to parse float", .{});
+        const float = std.fmt.parseFloat(f64, str) catch std.debug.panic("Failed to parse float.", .{});
         return self.current.vm.initValue(.{ .float = float });
     }
 
@@ -409,10 +409,10 @@ pub const Compiler = struct {
                 continue;
             }
             is_escaped = false;
-            list.append(self.current.vm.initValue(.{ .char = c })) catch std.debug.panic("Failed to append item", .{});
+            list.append(self.current.vm.initValue(.{ .char = c })) catch std.debug.panic("Failed to append item.", .{});
         }
 
-        const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create string", .{});
+        const slice = list.toOwnedSlice() catch std.debug.panic("Failed to create string.", .{});
         const value = self.current.vm.initValue(.{ .char_list = slice });
         return Node.init(.{ .op_code = .op_constant, .byte = self.makeConstant(value) }, self.current.vm.allocator);
     }
@@ -709,7 +709,7 @@ pub const Compiler = struct {
         const node = try self.block();
 
         const end_index = std.math.min(@ptrToInt(self.scanner.start) - @ptrToInt(self.scanner.source.ptr), self.scanner.source.len);
-        self.current.func.name = self.current.vm.allocator.dupe(u8, self.scanner.source[start_index..end_index]) catch std.debug.panic("Failed to create function", .{});
+        self.current.func.name = self.current.vm.allocator.dupe(u8, self.scanner.source[start_index..end_index]) catch std.debug.panic("Failed to create function.", .{});
 
         const func = self.endCompiler(node);
         const value = self.current.vm.initValue(.{ .function = func });
