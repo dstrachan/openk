@@ -313,11 +313,11 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
                 const new_key = vm.initList(key_list, key_list_type);
                 const value_list = value.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
                 const new_value = vm.initList(value_list, value_list_type);
-                const dictionary = ValueDictionary.init(.{ .keys = new_key, .values = new_value }, vm.allocator);
+                const dictionary = ValueDictionary.init(.{ .keys = new_key, .values = new_value }, vm);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             .table => |table_y| blk: {
-                if (!dict_x.keys.unorderedEql(table_y.columns)) return runtimeError(MergeError.incompatible_types);
+                if (!utils_mod.hasSameKeys(dict_x, table_y)) return runtimeError(MergeError.incompatible_types);
 
                 const list = vm.allocator.alloc(*Value, dict_x.keys.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
                 for (0..list.len) |x_i| {
@@ -354,7 +354,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
                 break :blk vm.initValue(.{ .list = list });
             },
             .dictionary => |dict_y| blk: {
-                if (!table_x.columns.unorderedEql(dict_y.keys)) return runtimeError(MergeError.incompatible_types);
+                if (!utils_mod.hasSameKeys(table_x, dict_y)) return runtimeError(MergeError.incompatible_types);
 
                 const list = vm.allocator.alloc(*Value, table_x.columns.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
                 for (0..list.len) |x_i| {
@@ -373,7 +373,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
                 break :blk vm.initValue(.{ .table = table });
             },
             .table => |table_y| blk: {
-                if (!table_x.columns.unorderedEql(table_y.columns)) return runtimeError(MergeError.incompatible_types);
+                if (!utils_mod.hasSameKeys(table_x, table_y)) return runtimeError(MergeError.incompatible_types);
 
                 const list = vm.allocator.alloc(*Value, table_x.columns.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
                 for (0..list.len) |x_i| {

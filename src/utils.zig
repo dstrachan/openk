@@ -15,3 +15,11 @@ pub fn intToFloat(int: i64) f64 {
     if (int == Value.null_int) return Value.null_float;
     return @intToFloat(f64, int);
 }
+
+pub fn hasSameKeys(a: anytype, b: anytype) bool {
+    if (a.hash_map.keys().len != b.hash_map.keys().len) return false;
+    for (a.hash_map.keys()) |k| {
+        if (!b.hash_map.contains(k)) return false;
+    }
+    return true;
+}

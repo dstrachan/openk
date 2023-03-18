@@ -66,7 +66,7 @@ pub fn negate(vm: *VM, x: *Value) NegateError!*Value {
         },
         .dictionary => |dict_x| blk: {
             const value = try negate(vm, dict_x.values);
-            const dictionary = ValueDictionary.init(.{ .keys = dict_x.keys.ref(), .values = value }, vm.allocator);
+            const dictionary = ValueDictionary.init(.{ .keys = dict_x.keys.ref(), .values = value }, vm);
             break :blk vm.initValue(.{ .dictionary = dictionary });
         },
         .table => |table_x| blk: {

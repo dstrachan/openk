@@ -404,20 +404,6 @@ pub const Value = struct {
         };
     }
 
-    pub fn unorderedEql(x: *Self, y: *Self) bool {
-        if (x == y) return true;
-        if (@as(ValueType, x.as) != y.as) return false;
-
-        const list_x = x.asList();
-        const list_y = y.asList();
-        if (list_x.len != list_y.len) return false;
-
-        for (list_x) |value_x| {
-            if (!value_x.in(list_y)) return false;
-        }
-        return true;
-    }
-
     pub fn asList(self: *Self) []*Self {
         return switch (self.as) {
             .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list| list,
@@ -543,21 +529,42 @@ pub const ValueDictionary = struct {
 
     keys: *Value,
     values: *Value,
-    hash_map: ?ValueHashMap,
+    hash_map: ValueHashMap,
 
-    pub fn init(config: Config, allocator: std.mem.Allocator) *Self {
-        const self = allocator.create(Self) catch std.debug.panic("Failed to create dictionary.", .{});
+    pub fn init(config: Config, vm: *VM) *Self {
+        const self = vm.allocator.create(Self) catch std.debug.panic("Failed to create dictionary.", .{});
         self.* = Self{
             .keys = config.keys,
             .values = config.values,
             .hash_map = switch (config.keys.as) {
-                .table => null,
-                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => blk: {
-                    var hash_map = ValueHashMap.init(allocator);
-                    hash_map.ensureTotalCapacity(config.keys.asList().len) catch std.debug.panic("Failed to create dictionary.", .{});
-                    for (config.keys.asList(), config.values.asList()) |k, v| {
+                .table => |table| blk: {
+                    var hash_map = ValueHashMap.init(vm.allocator);
+                    const table_count = table.values.as.list[0].asList().len;
+                    hash_map.ensureTotalCapacity(table_count) catch std.debug.panic("Failed to create dictionary.", .{});
+                    for (config.values.asList(), 0..) |v, i| {
+                        const list = vm.allocator.alloc(*Value, table.columns.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
+                        var list_type: ?ValueType = null;
+                        for (list, table.values.as.list) |*value, column| {
+                            value.* = column.asList()[i].ref();
+                            if (list_type == null and @as(ValueType, list[0].as) != value.*.as) list_type = .list;
+                        }
+                        const k = vm.initList(list, list_type);
+                        defer k.deref(vm.allocator); // This is most likely wrong, need some more tests to figure out correct cleanup approach
                         const result = hash_map.getOrPutAssumeCapacity(k);
-                        if (!result.found_existing) result.value_ptr.* = v;
+                        if (!result.found_existing) {
+                            result.value_ptr.* = v;
+                        }
+                    }
+                    break :blk hash_map;
+                },
+                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list| blk: {
+                    var hash_map = ValueHashMap.init(vm.allocator);
+                    hash_map.ensureTotalCapacity(list.len) catch std.debug.panic("Failed to create dictionary.", .{});
+                    for (list, config.values.asList()) |k, v| {
+                        const result = hash_map.getOrPutAssumeCapacity(k);
+                        if (!result.found_existing) {
+                            result.value_ptr.* = v;
+                        }
                     }
                     break :blk hash_map;
                 },
@@ -568,7 +575,7 @@ pub const ValueDictionary = struct {
     }
 
     pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
-        if (self.hash_map) |*hash_map| hash_map.deinit();
+        self.hash_map.deinit();
         allocator.destroy(self);
     }
 };

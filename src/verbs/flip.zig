@@ -81,7 +81,7 @@ pub fn flip(vm: *VM, x: *Value) FlipError!*Value {
             break :blk vm.initValue(.{ .table = table });
         },
         .table => |table_x| blk: {
-            const dictionary = ValueDictionary.init(.{ .keys = table_x.columns.ref(), .values = table_x.values.ref() }, vm.allocator);
+            const dictionary = ValueDictionary.init(.{ .keys = table_x.columns.ref(), .values = table_x.values.ref() }, vm);
 
             break :blk vm.initValue(.{ .dictionary = dictionary });
         },

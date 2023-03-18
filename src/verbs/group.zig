@@ -30,7 +30,7 @@ pub fn group(vm: *VM, x: *Value) GroupError!*Value {
         .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_x| blk: {
             if (list_x.len == 0) {
                 const value = vm.initValue(.{ .list = &.{} });
-                const dictionary = ValueDictionary.init(.{ .keys = x.ref(), .values = value }, vm.allocator);
+                const dictionary = ValueDictionary.init(.{ .keys = x.ref(), .values = value }, vm);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             }
 
@@ -56,13 +56,13 @@ pub fn group(vm: *VM, x: *Value) GroupError!*Value {
                 vm.allocator.destroy(array_list);
             }
             const value = vm.initValue(.{ .list = list });
-            const dictionary = ValueDictionary.init(.{ .keys = key, .values = value }, vm.allocator);
+            const dictionary = ValueDictionary.init(.{ .keys = key, .values = value }, vm);
             break :blk vm.initValue(.{ .dictionary = dictionary });
         },
         .dictionary => |dict_x| blk: {
             if (dict_x.keys.asList().len == 0) {
                 const value = vm.initValue(.{ .list = &.{} });
-                const dictionary = ValueDictionary.init(.{ .keys = dict_x.values.ref(), .values = value }, vm.allocator);
+                const dictionary = ValueDictionary.init(.{ .keys = dict_x.values.ref(), .values = value }, vm);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             }
 
@@ -88,7 +88,7 @@ pub fn group(vm: *VM, x: *Value) GroupError!*Value {
                 vm.allocator.destroy(array_list);
             }
             const value = vm.initValue(.{ .list = list });
-            const dictionary = ValueDictionary.init(.{ .keys = key, .values = value }, vm.allocator);
+            const dictionary = ValueDictionary.init(.{ .keys = key, .values = value }, vm);
             break :blk vm.initValue(.{ .dictionary = dictionary });
         },
         .table => |table_x| blk: {
@@ -96,7 +96,7 @@ pub fn group(vm: *VM, x: *Value) GroupError!*Value {
             if (table_len == 0) {
                 const key = x.ref();
                 const value = vm.initValue(.{ .list = &.{} });
-                const dictionary = ValueDictionary.init(.{ .keys = key, .values = value }, vm.allocator);
+                const dictionary = ValueDictionary.init(.{ .keys = key, .values = value }, vm);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             }
 
@@ -145,7 +145,7 @@ pub fn group(vm: *VM, x: *Value) GroupError!*Value {
                 vm.allocator.destroy(array_list);
             }
             const value = vm.initValue(.{ .list = value_list });
-            const dictionary = ValueDictionary.init(.{ .keys = key, .values = value }, vm.allocator);
+            const dictionary = ValueDictionary.init(.{ .keys = key, .values = value }, vm);
             break :blk vm.initValue(.{ .dictionary = dictionary });
         },
         else => runtimeError(GroupError.invalid_type),
