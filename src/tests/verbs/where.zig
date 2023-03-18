@@ -7,7 +7,7 @@ const WhereError = @import("../../verbs/where.zig").WhereError;
 
 test "where boolean" {
     try runTestError("&0b", WhereError.invalid_type);
-    try runTest("&`boolean$()", .{ .int_list = &[_]TestValue{} });
+    try runTest("&`boolean$()", .{ .int_list = &.{} });
     try runTest("&01b", .{
         .int_list = &[_]TestValue{
             .{ .int = 1 },
@@ -17,7 +17,7 @@ test "where boolean" {
 
 test "where int" {
     try runTestError("&0", WhereError.invalid_type);
-    try runTest("&`int$()", .{ .int_list = &[_]TestValue{} });
+    try runTest("&`int$()", .{ .int_list = &.{} });
     try runTestError("&,0W", WhereError.list_limit);
     try runTestError("&,-1", WhereError.negative_number);
     try runTest("&0 1 2 3 4", .{
@@ -55,7 +55,7 @@ test "where symbol" {
 }
 
 test "where list" {
-    try runTest("&()", .{ .int_list = &[_]TestValue{} });
+    try runTest("&()", .{ .int_list = &.{} });
     try runTestError("&(0b;1;2f)", WhereError.invalid_type);
     try runTestError("&(0 1;2 3)", WhereError.invalid_type);
     try runTestError("&(1 2;3;4 5)", WhereError.invalid_type);
@@ -63,7 +63,7 @@ test "where list" {
 }
 
 test "where dictionary" {
-    try runTest("&()!()", .{ .list = &[_]TestValue{} });
+    try runTest("&()!()", .{ .list = &.{} });
     try runTestError("&`a`b!(();())", WhereError.invalid_type);
     try runTest("&`a`b!01b", .{
         .symbol_list = &[_]TestValue{

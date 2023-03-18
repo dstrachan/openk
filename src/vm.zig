@@ -50,7 +50,7 @@ pub const VM = struct {
     symbols: std.StringHashMap(*Value),
 
     pub fn init(allocator: std.mem.Allocator) *Self {
-        const self = allocator.create(Self) catch std.debug.panic("Failed to create VM", .{});
+        const self = allocator.create(Self) catch std.debug.panic("Failed to create VM.", .{});
         self.* = Self{
             .allocator = allocator,
             .frame = undefined,
@@ -88,7 +88,7 @@ pub const VM = struct {
             .float, .float_list => self.initValue(.{ .float = Value.null_float }),
             .char, .char_list => self.initValue(.{ .char = ' ' }),
             .symbol, .symbol_list => self.copySymbol(""),
-            .list => self.initValue(.{ .list = &[_]*Value{} }),
+            .list => self.initValue(.{ .list = &.{} }),
             else => unreachable,
         };
     }
@@ -108,6 +108,31 @@ pub const VM = struct {
             .float, .float_list => .{ .float_list = list },
             .char, .char_list => .{ .char_list = list },
             .symbol, .symbol_list => .{ .symbol_list = list },
+            .dictionary => blk: {
+                var i: usize = 1;
+                while (i < list.len) : (i += 1) {
+                    if (!utils_mod.hasSameKeys(list[0].as.dictionary, list[i].as.dictionary)) break :blk .{ .list = list };
+                }
+
+                const columns = list[0].as.dictionary.keys.ref();
+
+                const new_list = self.allocator.alloc(*Value, columns.asList().len) catch std.debug.panic("Failed to create list.", .{});
+                for (new_list, columns.asList()) |*value, column| {
+                    const inner_list = self.allocator.alloc(*Value, list.len) catch std.debug.panic("Failed to create list.", .{});
+                    var inner_list_type: ?ValueType = null;
+                    for (inner_list, list) |*row, row_value| {
+                        row.* = if (row_value.as.dictionary.hash_map.get(column)) |v| v.ref() else unreachable;
+                        if (inner_list_type == null and @as(ValueType, inner_list[0].as) != row.*.as) inner_list_type = .list;
+                    }
+                    value.* = self.initList(inner_list, inner_list_type);
+                }
+                defer self.allocator.free(list);
+                defer for (list) |v| v.deref(self.allocator);
+
+                const values = self.initValue(.{ .list = new_list });
+                const table = ValueTable.init(.{ .columns = columns, .values = values }, self.allocator);
+                break :blk .{ .table = table };
+            },
             else => .{ .list = list },
         });
     }
@@ -138,7 +163,7 @@ pub const VM = struct {
             return value.ref();
         }
 
-        const heap_chars = self.allocator.dupe(u8, chars) catch std.debug.panic("Failed to create symbol", .{});
+        const heap_chars = self.allocator.dupe(u8, chars) catch std.debug.panic("Failed to create symbol.", .{});
         return self.internSymbol(heap_chars).ref();
     }
 
@@ -154,7 +179,7 @@ pub const VM = struct {
 
     fn internSymbol(self: *Self, chars: []const u8) *Value {
         const value = self.initValue(.{ .symbol = chars });
-        self.symbols.put(chars, value) catch std.debug.panic("Failed to intern symbol", .{});
+        self.symbols.put(chars, value) catch std.debug.panic("Failed to intern symbol.", .{});
         return value;
     }
 
@@ -212,7 +237,7 @@ pub const VM = struct {
             if (self.stack_top + extra_values_needed >= stack_max) return self.runtimeError("Stack overflow.", .{});
 
             const starting_index = self.stack_top - arg_count;
-            const stack_copy = self.allocator.dupe(*Value, self.stack[starting_index..self.stack_top]) catch return self.runtimeError("Failed to copy stack", .{});
+            const stack_copy = self.allocator.dupe(*Value, self.stack[starting_index..self.stack_top]) catch return self.runtimeError("Failed to copy stack.", .{});
             defer self.allocator.free(stack_copy);
 
             var i: u8 = 0;
@@ -386,7 +411,7 @@ pub const VM = struct {
         const name = self.readSymbol();
         const value = self.peek(0);
 
-        const result = self.globals.getOrPut(name) catch return self.runtimeError("Failed to set global variable '{s}'", .{name});
+        const result = self.globals.getOrPut(name) catch return self.runtimeError("Failed to set global variable '{s}'.", .{name});
         if (result.found_existing) {
             result.value_ptr.*.deref(self.allocator);
         }
@@ -429,10 +454,10 @@ pub const VM = struct {
             },
             .dictionary => |dict_x| switch (y.as) {
                 .dictionary => |dict_y| blk: {
-                    if (dict_x.key.as != .symbol_list or dict_x.key.as != .symbol_list or !dict_x.key.eql(dict_y.key)) break :blk self.initValue(.{ .list = self.concat(x, y) });
+                    if (dict_x.keys.as != .symbol_list or dict_x.keys.as != .symbol_list or !dict_x.keys.eql(dict_y.keys)) break :blk self.initValue(.{ .list = self.concat(x, y) });
 
-                    const columns = dict_x.key.ref();
-                    const values = self.initValue(.{ .list = self.concat(dict_x.value, dict_y.value) });
+                    const columns = dict_x.keys.ref();
+                    const values = self.initValue(.{ .list = self.concat(dict_x.values, dict_y.values) });
                     const table = ValueTable.init(.{ .columns = columns, .values = values }, self.allocator);
                     break :blk self.initValue(.{ .table = table });
                 },
@@ -531,7 +556,7 @@ pub const VM = struct {
 
         const value = switch (x.as) {
             .int => try verbs.til(self, x),
-            .dictionary => |dict| dict.key.ref(),
+            .dictionary => |dict| dict.keys.ref(),
             else => unreachable,
         };
         try self.push(value);
@@ -747,7 +772,7 @@ pub const VM = struct {
         defer x.deref(self.allocator);
 
         const value = switch (x.as) {
-            .dictionary => |dict| dict.value.ref(),
+            .dictionary => |dict| dict.values.ref(),
             else => unreachable,
         };
         try self.push(value);

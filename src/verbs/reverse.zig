@@ -27,9 +27,9 @@ pub fn reverse(vm: *VM, x: *Value) *Value {
             break :blk vm.initList(list, x.as);
         },
         .dictionary => |dict_x| blk: {
-            const key = reverse(vm, dict_x.key);
-            const value = reverse(vm, dict_x.value);
-            const dictionary = ValueDictionary.init(.{ .key = key, .value = value }, vm.allocator);
+            const key = reverse(vm, dict_x.keys);
+            const value = reverse(vm, dict_x.values);
+            const dictionary = ValueDictionary.init(.{ .keys = key, .values = value }, vm);
             break :blk vm.initValue(.{ .dictionary = dictionary });
         },
         .table => |table_x| blk: {

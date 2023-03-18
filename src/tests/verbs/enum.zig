@@ -26,5 +26,5 @@ test "enum" {
         },
     });
 
-    try runTest("!0", .{ .int_list = &[_]TestValue{} });
+    try runTest("!0", .{ .int_list = &.{} });
 }

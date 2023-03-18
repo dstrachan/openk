@@ -87,8 +87,8 @@ fn compareValues(expected: TestValue, actual: ValueUnion) !void {
         },
         .dictionary => {
             try std.testing.expectEqual(@as(usize, 2), expected.dictionary.len);
-            try compareValues(expected.dictionary[0], actual.dictionary.key.as);
-            try compareValues(expected.dictionary[1], actual.dictionary.value.as);
+            try compareValues(expected.dictionary[0], actual.dictionary.keys.as);
+            try compareValues(expected.dictionary[1], actual.dictionary.values.as);
         },
         .table => {
             try std.testing.expectEqual(@as(usize, 2), expected.table.len);
@@ -263,7 +263,7 @@ test "list" {
     });
     try runTest("(();`a`b!1 2)", .{
         .list = &[_]TestValue{
-            .{ .list = &[_]TestValue{} },
+            .{ .list = &.{} },
             dict,
         },
     });
@@ -377,8 +377,8 @@ test "projections don't leak memory" {
 test "dictionaries" {
     try runTest("()!()", .{
         .dictionary = &[_]TestValue{
-            .{ .list = &[_]TestValue{} },
-            .{ .list = &[_]TestValue{} },
+            .{ .list = &.{} },
+            .{ .list = &.{} },
         },
     });
     try runTest("`a`b`c!1 2 3", .{

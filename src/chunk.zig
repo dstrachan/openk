@@ -66,7 +66,7 @@ pub const Chunk = struct {
     tokens: std.ArrayList(Token),
 
     pub fn init(allocator: std.mem.Allocator) *Self {
-        var self = allocator.create(Self) catch std.debug.panic("Failed to create chunk", .{});
+        var self = allocator.create(Self) catch std.debug.panic("Failed to create chunk.", .{});
         self.* = Self{
             .allocator = allocator,
             .code = std.ArrayList(u8).init(allocator),

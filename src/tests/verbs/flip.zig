@@ -36,7 +36,7 @@ test "flip symbol" {
 }
 
 test "flip list" {
-    try runTest("+()", .{ .list = &[_]TestValue{} });
+    try runTest("+()", .{ .list = &.{} });
     try runTestError("+(0b;1;2f)", FlipError.length_mismatch);
 
     try runTest("+(0 1;2 3)", .{
@@ -92,7 +92,7 @@ test "flip list" {
         },
     });
 
-    try runTest("+(2f;1;`int$())", .{ .list = &[_]TestValue{} });
+    try runTest("+(2f;1;`int$())", .{ .list = &.{} });
 
     try runTest("+(1 2;3;4 5)", .{
         .list = &[_]TestValue{
@@ -139,8 +139,8 @@ test "flip dictionary" {
                 .{ .symbol = "b" },
             } },
             .{ .list = &[_]TestValue{
-                .{ .list = &[_]TestValue{} },
-                .{ .list = &[_]TestValue{} },
+                .{ .list = &.{} },
+                .{ .list = &.{} },
             } },
         },
     });
@@ -151,8 +151,8 @@ test "flip dictionary" {
                 .{ .symbol = "b" },
             } },
             .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{} },
-                .{ .float_list = &[_]TestValue{} },
+                .{ .int_list = &.{} },
+                .{ .float_list = &.{} },
             } },
         },
     });
@@ -220,8 +220,8 @@ test "flip table" {
                 .{ .symbol = "b" },
             } },
             .{ .list = &[_]TestValue{
-                .{ .list = &[_]TestValue{} },
-                .{ .list = &[_]TestValue{} },
+                .{ .list = &.{} },
+                .{ .list = &.{} },
             } },
         },
     });
@@ -232,8 +232,8 @@ test "flip table" {
                 .{ .symbol = "b" },
             } },
             .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{} },
-                .{ .float_list = &[_]TestValue{} },
+                .{ .int_list = &.{} },
+                .{ .float_list = &.{} },
             } },
         },
     });

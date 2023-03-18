@@ -36,7 +36,7 @@ test "first symbol" {
 }
 
 test "first list" {
-    try runTest("*()", .{ .list = &[_]TestValue{} });
+    try runTest("*()", .{ .list = &.{} });
     try runTest("*(0b;1;2f)", .{ .boolean = false });
     try runTest("*(0 1;2 3)", .{
         .int_list = &[_]TestValue{
@@ -59,12 +59,12 @@ test "first list" {
 }
 
 test "first dictionary" {
-    try runTest("*()!()", .{ .list = &[_]TestValue{} });
-    try runTest("*`a`b!(();())", .{ .list = &[_]TestValue{} });
+    try runTest("*()!()", .{ .list = &.{} });
+    try runTest("*`a`b!(();())", .{ .list = &.{} });
     try runTest("*`a`b!1 2", .{ .int = 1 });
     try runTest("*10 20!1 2", .{ .int = 1 });
     try runTest("*`a`b!(1;2 2)", .{ .int = 1 });
-    try runTest("*`a`b!(`int$();`float$())", .{ .int_list = &[_]TestValue{} });
+    try runTest("*`a`b!(`int$();`float$())", .{ .int_list = &.{} });
     try runTest("*`a`b!(,1;,2)", .{
         .int_list = &[_]TestValue{
             .{ .int = 1 },
@@ -86,8 +86,8 @@ test "first table" {
                 .{ .symbol = "b" },
             } },
             .{ .list = &[_]TestValue{
-                .{ .list = &[_]TestValue{} },
-                .{ .list = &[_]TestValue{} },
+                .{ .list = &.{} },
+                .{ .list = &.{} },
             } },
         },
     });

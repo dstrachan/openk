@@ -9,8 +9,8 @@ test "group boolean" {
     try runTestError("=0b", GroupError.invalid_type);
     try runTest("=`boolean$()", .{
         .dictionary = &[_]TestValue{
-            .{ .boolean_list = &[_]TestValue{} },
-            .{ .list = &[_]TestValue{} },
+            .{ .boolean_list = &.{} },
+            .{ .list = &.{} },
         },
     });
     try runTest("=01b", .{
@@ -55,8 +55,8 @@ test "group int" {
     try runTestError("=0", GroupError.invalid_type);
     try runTest("=`int$()", .{
         .dictionary = &[_]TestValue{
-            .{ .int_list = &[_]TestValue{} },
-            .{ .list = &[_]TestValue{} },
+            .{ .int_list = &.{} },
+            .{ .list = &.{} },
         },
     });
     try runTest("=0 1", .{
@@ -107,8 +107,8 @@ test "group float" {
     try runTestError("=0f", GroupError.invalid_type);
     try runTest("=`float$()", .{
         .dictionary = &[_]TestValue{
-            .{ .float_list = &[_]TestValue{} },
-            .{ .list = &[_]TestValue{} },
+            .{ .float_list = &.{} },
+            .{ .list = &.{} },
         },
     });
     try runTest("=0 1f", .{
@@ -159,8 +159,8 @@ test "group char" {
     try runTestError("=\"a\"", GroupError.invalid_type);
     try runTest("=\"\"", .{
         .dictionary = &[_]TestValue{
-            .{ .char_list = &[_]TestValue{} },
-            .{ .list = &[_]TestValue{} },
+            .{ .char_list = &.{} },
+            .{ .list = &.{} },
         },
     });
     try runTest("=\"test\"", .{
@@ -190,8 +190,8 @@ test "group symbol" {
     try runTestError("=`symbol", GroupError.invalid_type);
     try runTest("=`$()", .{
         .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{} },
-            .{ .list = &[_]TestValue{} },
+            .{ .symbol_list = &.{} },
+            .{ .list = &.{} },
         },
     });
     try runTest("=`t`e`s`t", .{
@@ -245,8 +245,8 @@ test "group symbol" {
 test "group list" {
     try runTest("=()", .{
         .dictionary = &[_]TestValue{
-            .{ .list = &[_]TestValue{} },
-            .{ .list = &[_]TestValue{} },
+            .{ .list = &.{} },
+            .{ .list = &.{} },
         },
     });
 
@@ -395,20 +395,20 @@ test "group list" {
 test "group dictionary" {
     try runTest("=()!()", .{
         .dictionary = &[_]TestValue{
-            .{ .list = &[_]TestValue{} },
-            .{ .list = &[_]TestValue{} },
+            .{ .list = &.{} },
+            .{ .list = &.{} },
         },
     });
     try runTest("=(`$())!()", .{
         .dictionary = &[_]TestValue{
-            .{ .list = &[_]TestValue{} },
-            .{ .list = &[_]TestValue{} },
+            .{ .list = &.{} },
+            .{ .list = &.{} },
         },
     });
     try runTest("=()!`$()", .{
         .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{} },
-            .{ .list = &[_]TestValue{} },
+            .{ .symbol_list = &.{} },
+            .{ .list = &.{} },
         },
     });
 
@@ -495,11 +495,11 @@ test "group table" {
                     .{ .symbol = "b" },
                 } },
                 .{ .list = &[_]TestValue{
-                    .{ .list = &[_]TestValue{} },
-                    .{ .list = &[_]TestValue{} },
+                    .{ .list = &.{} },
+                    .{ .list = &.{} },
                 } },
             } },
-            .{ .list = &[_]TestValue{} },
+            .{ .list = &.{} },
         },
     });
     try runTest("=+`a`b!(`int$();`float$())", .{
@@ -510,11 +510,11 @@ test "group table" {
                     .{ .symbol = "b" },
                 } },
                 .{ .list = &[_]TestValue{
-                    .{ .int_list = &[_]TestValue{} },
-                    .{ .float_list = &[_]TestValue{} },
+                    .{ .int_list = &.{} },
+                    .{ .float_list = &.{} },
                 } },
             } },
-            .{ .list = &[_]TestValue{} },
+            .{ .list = &.{} },
         },
     });
 

@@ -30,7 +30,7 @@ pub fn dict(vm: *VM, x: *Value, y: *Value) DictError!*Value {
             .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_y| blk: {
                 if (list_y.len > 0 and list_x.len != list_y.len) return runtimeError(DictError.length_mismatch);
 
-                const dictionary = ValueDictionary.init(.{ .key = x.ref(), .value = y.ref() }, vm.allocator);
+                const dictionary = ValueDictionary.init(.{ .keys = x.ref(), .values = y.ref() }, vm);
                 break :blk vm.initValue(.{ .dictionary = dictionary });
             },
             else => runtimeError(DictError.length_mismatch),

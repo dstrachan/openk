@@ -125,7 +125,7 @@ pub const ValueUnion = union(ValueType) {
                 if (list.len == 1) try writer.writeAll(",");
                 for (list) |value| try writer.print("`{s}", .{value.as.symbol});
             },
-            .dictionary => |dict| try writer.print("{}!{}", .{ dict.key.as, dict.value.as }),
+            .dictionary => |dict| try writer.print("{}!{}", .{ dict.keys.as, dict.values.as }),
             .table => |table| try writer.print("+{}!{}", .{ table.columns.as, table.values.as }),
             .function => |function| if (function.name) |name| try writer.print("{s}", .{name}) else try writer.writeAll("script"),
             .projection => |projection| {
@@ -227,12 +227,12 @@ pub const Value = struct {
                 list[0] = list_self[0].copyNull(vm);
                 break :blk vm.initValue(.{ .list = list });
             },
-            .boolean_list => vm.initValue(.{ .boolean_list = &[_]*Value{} }),
-            .int_list => vm.initValue(.{ .int_list = &[_]*Value{} }),
-            .float_list => vm.initValue(.{ .float_list = &[_]*Value{} }),
-            .char_list => vm.initValue(.{ .char_list = &[_]*Value{} }),
-            .symbol_list => vm.initValue(.{ .symbol_list = &[_]*Value{} }),
-            .dictionary => |dict| dict.value.copyNull(vm),
+            .boolean_list => vm.initValue(.{ .boolean_list = &.{} }),
+            .int_list => vm.initValue(.{ .int_list = &.{} }),
+            .float_list => vm.initValue(.{ .float_list = &.{} }),
+            .char_list => vm.initValue(.{ .char_list = &.{} }),
+            .symbol_list => vm.initValue(.{ .symbol_list = &.{} }),
+            .dictionary => |dict| dict.values.copyNull(vm),
             .table => unreachable,
             .function => unreachable,
             .projection => unreachable,
@@ -262,8 +262,8 @@ pub const Value = struct {
                 for (list) |value| _ = value.ref();
             },
             .dictionary => |dict| {
-                _ = dict.key.ref();
-                _ = dict.value.ref();
+                _ = dict.keys.ref();
+                _ = dict.values.ref();
             },
             .table => |table| {
                 _ = table.columns.ref();
@@ -294,8 +294,8 @@ pub const Value = struct {
             .symbol_list,
             => |list| for (list) |value| value.deref(allocator),
             .dictionary => |dict| {
-                dict.key.deref(allocator);
-                dict.value.deref(allocator);
+                dict.keys.deref(allocator);
+                dict.values.deref(allocator);
             },
             .table => |table| {
                 table.columns.deref(allocator);
@@ -404,20 +404,6 @@ pub const Value = struct {
         };
     }
 
-    pub fn unorderedEql(x: *Self, y: *Self) bool {
-        if (x == y) return true;
-        if (@as(ValueType, x.as) != y.as) return false;
-
-        const list_x = x.asList();
-        const list_y = y.asList();
-        if (list_x.len != list_y.len) return false;
-
-        for (list_x) |value_x| {
-            if (!value_x.in(list_y)) return false;
-        }
-        return true;
-    }
-
     pub fn asList(self: *Self) []*Self {
         return switch (self.as) {
             .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list| list,
@@ -486,7 +472,7 @@ pub const ValueFunction = struct {
     name: ?[]const u8,
 
     pub fn init(allocator: std.mem.Allocator) *Self {
-        const self = allocator.create(Self) catch std.debug.panic("Failed to create function", .{});
+        const self = allocator.create(Self) catch std.debug.panic("Failed to create function.", .{});
         self.* = Self{
             .arity = 0,
             .local_count = 0,
@@ -516,7 +502,7 @@ pub const ValueProjection = struct {
     value: *Value,
 
     pub fn init(config: Config, allocator: std.mem.Allocator) *Self {
-        const self = allocator.create(Self) catch std.debug.panic("Failed to create projection", .{});
+        const self = allocator.create(Self) catch std.debug.panic("Failed to create projection.", .{});
         self.* = Self{
             .arg_indices = config.arg_indices,
             .arguments = undefined,
@@ -537,30 +523,60 @@ pub const ValueDictionary = struct {
     const Self = @This();
 
     pub const Config = struct {
-        key: *Value,
-        value: *Value,
+        keys: *Value,
+        values: *Value,
     };
 
-    key: *Value,
-    value: *Value,
+    keys: *Value,
+    values: *Value,
+    hash_map: ValueHashMap,
 
-    pub fn init(config: Config, allocator: std.mem.Allocator) *Self {
-        const self = allocator.create(Self) catch std.debug.panic("Failed to create dictionary", .{});
+    pub fn init(config: Config, vm: *VM) *Self {
+        const self = vm.allocator.create(Self) catch std.debug.panic("Failed to create dictionary.", .{});
         self.* = Self{
-            .key = config.key,
-            .value = config.value,
+            .keys = config.keys,
+            .values = config.values,
+            .hash_map = switch (config.keys.as) {
+                .table => |table| blk: {
+                    var hash_map = ValueHashMap.init(vm.allocator);
+                    const table_count = table.values.as.list[0].asList().len;
+                    hash_map.ensureTotalCapacity(table_count) catch std.debug.panic("Failed to create dictionary.", .{});
+                    for (config.values.asList(), 0..) |v, i| {
+                        const list = vm.allocator.alloc(*Value, table.columns.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
+                        var list_type: ?ValueType = null;
+                        for (list, table.values.as.list) |*value, column| {
+                            value.* = column.asList()[i].ref();
+                            if (list_type == null and @as(ValueType, list[0].as) != value.*.as) list_type = .list;
+                        }
+                        const k = vm.initList(list, list_type);
+                        defer k.deref(vm.allocator); // This is most likely wrong, need some more tests to figure out correct cleanup approach
+                        const result = hash_map.getOrPutAssumeCapacity(k);
+                        if (!result.found_existing) {
+                            result.value_ptr.* = v;
+                        }
+                    }
+                    break :blk hash_map;
+                },
+                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list| blk: {
+                    var hash_map = ValueHashMap.init(vm.allocator);
+                    hash_map.ensureTotalCapacity(list.len) catch std.debug.panic("Failed to create dictionary.", .{});
+                    for (list, config.values.asList()) |k, v| {
+                        const result = hash_map.getOrPutAssumeCapacity(k);
+                        if (!result.found_existing) {
+                            result.value_ptr.* = v;
+                        }
+                    }
+                    break :blk hash_map;
+                },
+                else => unreachable,
+            },
         };
         return self;
     }
 
     pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+        self.hash_map.deinit();
         allocator.destroy(self);
-    }
-
-    pub fn tryGetValue(self: *Self, key: *Value) ?*Value {
-        for (self.key.asList(), 0..) |v, i| {
-            if (v.eql(key)) return self.value.asList()[i];
-        }
     }
 };
 
@@ -574,20 +590,31 @@ pub const ValueTable = struct {
 
     columns: *Value,
     values: *Value,
+    hash_map: ValueHashMap,
 
     pub fn init(config: Config, allocator: std.mem.Allocator) *Self {
-        const self = allocator.create(Self) catch std.debug.panic("Failed to create table", .{});
+        const self = allocator.create(Self) catch std.debug.panic("Failed to create table.", .{});
+        var hash_map = ValueHashMap.init(allocator);
+        hash_map.ensureTotalCapacity(config.columns.as.symbol_list.len) catch std.debug.panic("Failed to create table.", .{});
+        for (config.columns.as.symbol_list, config.values.as.list) |c, v| {
+            const result = hash_map.getOrPutAssumeCapacity(c);
+            if (!result.found_existing) result.value_ptr.* = v;
+        }
         self.* = Self{
             .columns = config.columns,
             .values = config.values,
+            .hash_map = hash_map,
         };
         return self;
     }
 
     pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+        self.hash_map.deinit();
         allocator.destroy(self);
     }
 };
+
+pub const ValueHashMap = std.ArrayHashMap(*Value, *Value, ValueHashMapContext, false);
 
 pub const ValueHashMapContext = struct {
     const Self = @This();

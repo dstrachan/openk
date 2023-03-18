@@ -28,7 +28,7 @@ pub const Node = struct {
     rhs: ?*Node = null,
 
     pub fn init(config: Config, allocator: std.mem.Allocator) *Self {
-        var self = allocator.create(Self) catch std.debug.panic("Failed to create Node", .{});
+        var self = allocator.create(Self) catch std.debug.panic("Failed to create node.", .{});
         self.* = Self{
             .op_code = config.op_code,
             .byte = config.byte,

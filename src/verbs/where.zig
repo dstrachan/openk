@@ -29,7 +29,7 @@ fn runtimeError(comptime err: WhereError) WhereError!*Value {
 
 pub fn where(vm: *VM, x: *Value) WhereError!*Value {
     return switch (x.as) {
-        .list => |list_x| if (list_x.len == 0) vm.initValue(.{ .int_list = &[_]*Value{} }) else runtimeError(WhereError.invalid_type),
+        .list => |list_x| if (list_x.len == 0) vm.initValue(.{ .int_list = &.{} }) else runtimeError(WhereError.invalid_type),
         .boolean_list => |bool_list_x| blk: {
             var list = std.ArrayList(*Value).init(vm.allocator);
             for (bool_list_x, 0..) |value, i| {
@@ -57,9 +57,9 @@ pub fn where(vm: *VM, x: *Value) WhereError!*Value {
             break :blk vm.initValue(.{ .int_list = list });
         },
         .dictionary => |dict_x| blk: {
-            const indices = try where(vm, dict_x.value);
+            const indices = try where(vm, dict_x.values);
             defer indices.deref(vm.allocator);
-            break :blk index(vm, dict_x.key, indices) catch runtimeError(WhereError.invalid_type);
+            break :blk index(vm, dict_x.keys, indices) catch runtimeError(WhereError.invalid_type);
         },
         else => runtimeError(WhereError.invalid_type),
     };
