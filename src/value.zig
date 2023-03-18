@@ -541,11 +541,9 @@ pub const ValueDictionary = struct {
         values: *Value,
     };
 
-    const HashMap = std.ArrayHashMap(*Value, *Value, ValueHashMapContext, false);
-
     keys: *Value,
     values: *Value,
-    hash_map: ?HashMap,
+    hash_map: ?ValueHashMap,
 
     pub fn init(config: Config, allocator: std.mem.Allocator) *Self {
         const self = allocator.create(Self) catch std.debug.panic("Failed to create dictionary.", .{});
@@ -555,10 +553,10 @@ pub const ValueDictionary = struct {
             .hash_map = switch (config.keys.as) {
                 .table => null,
                 .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => blk: {
-                    var hash_map = HashMap.init(allocator);
+                    var hash_map = ValueHashMap.init(allocator);
                     hash_map.ensureTotalCapacity(config.keys.asList().len) catch std.debug.panic("Failed to create dictionary.", .{});
                     for (config.keys.asList(), config.values.asList()) |k, v| {
-                        var result = hash_map.getOrPutAssumeCapacity(k);
+                        const result = hash_map.getOrPutAssumeCapacity(k);
                         if (!result.found_existing) result.value_ptr.* = v;
                     }
                     break :blk hash_map;
@@ -585,20 +583,31 @@ pub const ValueTable = struct {
 
     columns: *Value,
     values: *Value,
+    hash_map: ValueHashMap,
 
     pub fn init(config: Config, allocator: std.mem.Allocator) *Self {
         const self = allocator.create(Self) catch std.debug.panic("Failed to create table.", .{});
+        var hash_map = ValueHashMap.init(allocator);
+        hash_map.ensureTotalCapacity(config.columns.as.symbol_list.len) catch std.debug.panic("Failed to create table.", .{});
+        for (config.columns.as.symbol_list, config.values.as.list) |c, v| {
+            const result = hash_map.getOrPutAssumeCapacity(c);
+            if (!result.found_existing) result.value_ptr.* = v;
+        }
         self.* = Self{
             .columns = config.columns,
             .values = config.values,
+            .hash_map = hash_map,
         };
         return self;
     }
 
     pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+        self.hash_map.deinit();
         allocator.destroy(self);
     }
 };
+
+pub const ValueHashMap = std.ArrayHashMap(*Value, *Value, ValueHashMapContext, false);
 
 pub const ValueHashMapContext = struct {
     const Self = @This();
