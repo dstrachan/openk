@@ -29,7 +29,7 @@ fn runtimeError(comptime err: WhereError) WhereError!*Value {
 
 pub fn where(vm: *VM, x: *Value) WhereError!*Value {
     return switch (x.as) {
-        .list => |list_x| if (list_x.len == 0) vm.initValue(.{ .int_list = &[_]*Value{} }) else runtimeError(WhereError.invalid_type),
+        .list => |list_x| if (list_x.len == 0) vm.initValue(.{ .int_list = &.{} }) else runtimeError(WhereError.invalid_type),
         .boolean_list => |bool_list_x| blk: {
             var list = std.ArrayList(*Value).init(vm.allocator);
             for (bool_list_x, 0..) |value, i| {

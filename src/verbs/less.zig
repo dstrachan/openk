@@ -41,7 +41,7 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
             .int => |int_y| vm.initValue(.{ .boolean = lessInt(@boolToInt(bool_x), int_y) }),
             .float => |float_y| vm.initValue(.{ .boolean = lessFloat(if (bool_x) 1 else 0, float_y) }),
             .list, .boolean_list, .int_list, .float_list => |list_y| blk: {
-                if (list_y.len == 0) break :blk vm.initList(&[_]*Value{}, @intToEnum(ValueType, std.math.min(@enumToInt(ValueType.boolean_list), @enumToInt(y.as))));
+                if (list_y.len == 0) break :blk vm.initList(&.{}, @intToEnum(ValueType, std.math.min(@enumToInt(ValueType.boolean_list), @enumToInt(y.as))));
 
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
@@ -70,7 +70,7 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
             .int => |int_y| vm.initValue(.{ .boolean = lessInt(int_x, int_y) }),
             .float => |float_y| vm.initValue(.{ .boolean = lessFloat(utils_mod.intToFloat(int_x), float_y) }),
             .list, .boolean_list, .int_list, .float_list => |list_y| blk: {
-                if (list_y.len == 0) break :blk vm.initList(&[_]*Value{}, @intToEnum(ValueType, std.math.min(@enumToInt(ValueType.boolean_list), @enumToInt(y.as))));
+                if (list_y.len == 0) break :blk vm.initList(&.{}, @intToEnum(ValueType, std.math.min(@enumToInt(ValueType.boolean_list), @enumToInt(y.as))));
 
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
@@ -99,7 +99,7 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
             .int => |int_y| vm.initValue(.{ .boolean = lessFloat(float_x, utils_mod.intToFloat(int_y)) }),
             .float => |float_y| vm.initValue(.{ .boolean = lessFloat(float_x, float_y) }),
             .list, .boolean_list, .int_list, .float_list => |list_y| blk: {
-                if (list_y.len == 0) break :blk vm.initList(&[_]*Value{}, @intToEnum(ValueType, std.math.min(@enumToInt(ValueType.boolean_list), @enumToInt(y.as))));
+                if (list_y.len == 0) break :blk vm.initList(&.{}, @intToEnum(ValueType, std.math.min(@enumToInt(ValueType.boolean_list), @enumToInt(y.as))));
 
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
@@ -125,7 +125,7 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
         },
         .list, .boolean_list, .int_list, .float_list => |list_x| switch (y.as) {
             .boolean, .int, .float => blk: {
-                if (list_x.len == 0) break :blk vm.initList(&[_]*Value{}, @intToEnum(ValueType, std.math.min(@enumToInt(ValueType.boolean_list), @enumToInt(x.as))));
+                if (list_x.len == 0) break :blk vm.initList(&.{}, @intToEnum(ValueType, std.math.min(@enumToInt(ValueType.boolean_list), @enumToInt(x.as))));
 
                 const list = vm.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
@@ -139,7 +139,7 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
             },
             .list, .boolean_list, .int_list, .float_list => |list_y| blk: {
                 if (list_x.len != list_y.len) break :blk runtimeError(LessError.length_mismatch);
-                if (list_x.len == 0) break :blk vm.initList(&[_]*Value{}, @intToEnum(ValueType, std.math.min(@enumToInt(x.as), @enumToInt(y.as))));
+                if (list_x.len == 0) break :blk vm.initList(&.{}, @intToEnum(ValueType, std.math.min(@enumToInt(x.as), @enumToInt(y.as))));
 
                 const list = vm.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
@@ -168,7 +168,7 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
                 if (dict_x.keys.asList().len == 0) {
                     const list = vm.allocator.alloc(*Value, dict_y.keys.asList().len) catch std.debug.panic("Failed to create list.", .{});
                     for (list) |*v| {
-                        v.* = vm.initValue(.{ .list = &[_]*Value{} });
+                        v.* = vm.initValue(.{ .list = &.{} });
                     }
                     const value = vm.initValue(.{ .list = list });
                     const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm.allocator);
@@ -177,7 +177,7 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
                 if (dict_y.keys.asList().len == 0) {
                     const list = vm.allocator.alloc(*Value, dict_x.keys.asList().len) catch std.debug.panic("Failed to create list.", .{});
                     for (list) |*v| {
-                        v.* = vm.initValue(.{ .list = &[_]*Value{} });
+                        v.* = vm.initValue(.{ .list = &.{} });
                     }
                     const value = vm.initValue(.{ .list = list });
                     const dictionary = ValueDictionary.init(.{ .keys = dict_x.keys.ref(), .values = value }, vm.allocator);

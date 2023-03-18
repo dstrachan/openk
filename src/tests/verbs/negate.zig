@@ -10,7 +10,7 @@ const NegateError = @import("../../verbs/negate.zig").NegateError;
 
 test "negate boolean" {
     try runTest("- 0b", .{ .int = 0 });
-    try runTest("-`boolean$()", .{ .int_list = &[_]TestValue{} });
+    try runTest("-`boolean$()", .{ .int_list = &.{} });
     try runTest("- 01b", .{
         .int_list = &[_]TestValue{
             .{ .int = 0 },
@@ -21,7 +21,7 @@ test "negate boolean" {
 
 test "negate int" {
     try runTest("- 0", .{ .int = 0 });
-    try runTest("-`int$()", .{ .int_list = &[_]TestValue{} });
+    try runTest("-`int$()", .{ .int_list = &.{} });
     try runTest("- 0 1 0N 0W -0W", .{
         .int_list = &[_]TestValue{
             .{ .int = 0 },
@@ -35,7 +35,7 @@ test "negate int" {
 
 test "negate float" {
     try runTest("- 0f", .{ .float = 0 });
-    try runTest("-`float$()", .{ .float_list = &[_]TestValue{} });
+    try runTest("-`float$()", .{ .float_list = &.{} });
     try runTest("- 0 1 0n 0w -0w", .{
         .float_list = &[_]TestValue{
             .{ .float = 0 },
@@ -60,7 +60,7 @@ test "negate symbol" {
 }
 
 test "negate list" {
-    try runTest("-()", .{ .list = &[_]TestValue{} });
+    try runTest("-()", .{ .list = &.{} });
     try runTest("-(0b;1;0N;0W;-0W)", .{
         .int_list = &[_]TestValue{
             .{ .int = 0 },
@@ -90,8 +90,8 @@ test "negate list" {
 test "negate dictionary" {
     try runTest("-()!()", .{
         .dictionary = &[_]TestValue{
-            .{ .list = &[_]TestValue{} },
-            .{ .list = &[_]TestValue{} },
+            .{ .list = &.{} },
+            .{ .list = &.{} },
         },
     });
     try runTest("-`a`b!1 2", .{

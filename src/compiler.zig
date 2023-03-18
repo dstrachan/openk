@@ -540,15 +540,14 @@ pub const Compiler = struct {
                     return CompilerError.compile_error;
                 }
 
-                const list = &[_]*Value{};
                 const value_union: ?ValueUnion = switch (lhs.as.symbol.len) {
-                    0 => .{ .symbol_list = list },
+                    0 => .{ .symbol_list = &.{} },
                     else => switch (lhs.as.symbol[0]) {
-                        'b' => if (std.mem.eql(u8, lhs.as.symbol, "boolean")) .{ .boolean_list = list } else null,
-                        'i' => if (std.mem.eql(u8, lhs.as.symbol, "int")) .{ .int_list = list } else null,
-                        'f' => if (std.mem.eql(u8, lhs.as.symbol, "float")) .{ .float_list = list } else null,
-                        'c' => if (std.mem.eql(u8, lhs.as.symbol, "char")) .{ .char_list = list } else null,
-                        's' => if (std.mem.eql(u8, lhs.as.symbol, "symbol")) .{ .symbol_list = list } else null,
+                        'b' => if (std.mem.eql(u8, lhs.as.symbol, "boolean")) .{ .boolean_list = &.{} } else null,
+                        'i' => if (std.mem.eql(u8, lhs.as.symbol, "int")) .{ .int_list = &.{} } else null,
+                        'f' => if (std.mem.eql(u8, lhs.as.symbol, "float")) .{ .float_list = &.{} } else null,
+                        'c' => if (std.mem.eql(u8, lhs.as.symbol, "char")) .{ .char_list = &.{} } else null,
+                        's' => if (std.mem.eql(u8, lhs.as.symbol, "symbol")) .{ .symbol_list = &.{} } else null,
                         else => null,
                     },
                 };
@@ -571,7 +570,7 @@ pub const Compiler = struct {
 
     fn grouping(self: *Self) CompilerError!*Node {
         if (self.match(.token_right_paren)) {
-            const value = self.current.vm.initValue(.{ .list = &[_]*Value{} });
+            const value = self.current.vm.initValue(.{ .list = &.{} });
             return Node.init(.{ .op_code = .op_constant, .byte = self.makeConstant(value) }, self.current.vm.allocator);
         }
 

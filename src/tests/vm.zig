@@ -263,7 +263,7 @@ test "list" {
     });
     try runTest("(();`a`b!1 2)", .{
         .list = &[_]TestValue{
-            .{ .list = &[_]TestValue{} },
+            .{ .list = &.{} },
             dict,
         },
     });
@@ -377,8 +377,8 @@ test "projections don't leak memory" {
 test "dictionaries" {
     try runTest("()!()", .{
         .dictionary = &[_]TestValue{
-            .{ .list = &[_]TestValue{} },
-            .{ .list = &[_]TestValue{} },
+            .{ .list = &.{} },
+            .{ .list = &.{} },
         },
     });
     try runTest("`a`b`c!1 2 3", .{

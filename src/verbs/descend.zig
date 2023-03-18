@@ -78,7 +78,7 @@ const Pair = struct {
 pub fn descend(vm: *VM, x: *Value) DescendError!*Value {
     return switch (x.as) {
         .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_x| blk: {
-            if (list_x.len == 0) break :blk vm.initValue(.{ .int_list = &[_]*Value{} });
+            if (list_x.len == 0) break :blk vm.initValue(.{ .int_list = &.{} });
 
             const pairs = vm.allocator.alloc(Pair, list_x.len) catch std.debug.panic("Failed to create list.", .{});
             defer vm.allocator.free(pairs);
@@ -115,7 +115,7 @@ pub fn descend(vm: *VM, x: *Value) DescendError!*Value {
         },
         .table => |table_x| blk: {
             const len = table_x.values.as.list[0].asList().len;
-            if (len == 0) break :blk vm.initValue(.{ .int_list = &[_]*Value{} });
+            if (len == 0) break :blk vm.initValue(.{ .int_list = &.{} });
 
             const pairs = vm.allocator.alloc(Pair, len) catch std.debug.panic("Failed to create list.", .{});
             defer vm.allocator.free(pairs);

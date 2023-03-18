@@ -7,7 +7,7 @@ const AscendError = @import("../../verbs/ascend.zig").AscendError;
 
 test "ascend boolean" {
     try runTestError("<0b", AscendError.invalid_type);
-    try runTest("<`boolean$()", .{ .int_list = &[_]TestValue{} });
+    try runTest("<`boolean$()", .{ .int_list = &.{} });
     try runTest("<01b", .{
         .int_list = &[_]TestValue{
             .{ .int = 0 },
@@ -28,7 +28,7 @@ test "ascend boolean" {
 
 test "ascend int" {
     try runTestError("<0", AscendError.invalid_type);
-    try runTest("<`int$()", .{ .int_list = &[_]TestValue{} });
+    try runTest("<`int$()", .{ .int_list = &.{} });
     try runTest("<0 1", .{
         .int_list = &[_]TestValue{
             .{ .int = 0 },
@@ -49,7 +49,7 @@ test "ascend int" {
 
 test "ascend float" {
     try runTestError("<0f", AscendError.invalid_type);
-    try runTest("<`float$()", .{ .int_list = &[_]TestValue{} });
+    try runTest("<`float$()", .{ .int_list = &.{} });
     try runTest("<0 1f", .{
         .int_list = &[_]TestValue{
             .{ .int = 0 },
@@ -70,7 +70,7 @@ test "ascend float" {
 
 test "ascend char" {
     try runTestError("<\"a\"", AscendError.invalid_type);
-    try runTest("<\"\"", .{ .int_list = &[_]TestValue{} });
+    try runTest("<\"\"", .{ .int_list = &.{} });
     try runTest("<\"test\"", .{
         .int_list = &[_]TestValue{
             .{ .int = 1 },
@@ -83,7 +83,7 @@ test "ascend char" {
 
 test "ascend symbol" {
     try runTestError("<`symbol", AscendError.invalid_type);
-    try runTest("<`$()", .{ .int_list = &[_]TestValue{} });
+    try runTest("<`$()", .{ .int_list = &.{} });
     try runTest("<`t`e`s`t", .{
         .int_list = &[_]TestValue{
             .{ .int = 1 },
@@ -104,7 +104,7 @@ test "ascend symbol" {
 }
 
 test "ascend list" {
-    try runTest("<()", .{ .int_list = &[_]TestValue{} });
+    try runTest("<()", .{ .int_list = &.{} });
 
     try runTest("<(1b;2;3f)", .{
         .int_list = &[_]TestValue{
@@ -185,8 +185,8 @@ test "ascend list" {
 }
 
 test "ascend dictionary" {
-    try runTest("<()!()", .{ .list = &[_]TestValue{} });
-    try runTest("<(`$())!()", .{ .symbol_list = &[_]TestValue{} });
+    try runTest("<()!()", .{ .list = &.{} });
+    try runTest("<(`$())!()", .{ .symbol_list = &.{} });
 
     try runTest("<`a`b!2 1", .{
         .symbol_list = &[_]TestValue{
@@ -219,8 +219,8 @@ test "ascend dictionary" {
 }
 
 test "ascend table" {
-    try runTest("<+`a`b!(();())", .{ .int_list = &[_]TestValue{} });
-    try runTest("<+`a`b!(`int$();`float$())", .{ .int_list = &[_]TestValue{} });
+    try runTest("<+`a`b!(();())", .{ .int_list = &.{} });
+    try runTest("<+`a`b!(`int$();`float$())", .{ .int_list = &.{} });
 
     try runTest("<+`a`b!(,1;,2)", .{
         .int_list = &[_]TestValue{

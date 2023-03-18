@@ -7,7 +7,7 @@ const DescendError = @import("../../verbs/descend.zig").DescendError;
 
 test "descend boolean" {
     try runTestError(">0b", DescendError.invalid_type);
-    try runTest(">`boolean$()", .{ .int_list = &[_]TestValue{} });
+    try runTest(">`boolean$()", .{ .int_list = &.{} });
     try runTest(">01b", .{
         .int_list = &[_]TestValue{
             .{ .int = 1 },
@@ -28,7 +28,7 @@ test "descend boolean" {
 
 test "descend int" {
     try runTestError(">0", DescendError.invalid_type);
-    try runTest(">`int$()", .{ .int_list = &[_]TestValue{} });
+    try runTest(">`int$()", .{ .int_list = &.{} });
     try runTest(">0 1", .{
         .int_list = &[_]TestValue{
             .{ .int = 1 },
@@ -49,7 +49,7 @@ test "descend int" {
 
 test "descend float" {
     try runTestError(">0f", DescendError.invalid_type);
-    try runTest(">`float$()", .{ .int_list = &[_]TestValue{} });
+    try runTest(">`float$()", .{ .int_list = &.{} });
     try runTest(">0 1f", .{
         .int_list = &[_]TestValue{
             .{ .int = 1 },
@@ -70,7 +70,7 @@ test "descend float" {
 
 test "descend char" {
     try runTestError(">\"a\"", DescendError.invalid_type);
-    try runTest(">\"\"", .{ .int_list = &[_]TestValue{} });
+    try runTest(">\"\"", .{ .int_list = &.{} });
     try runTest(">\"test\"", .{
         .int_list = &[_]TestValue{
             .{ .int = 0 },
@@ -83,7 +83,7 @@ test "descend char" {
 
 test "descend symbol" {
     try runTestError(">`symbol", DescendError.invalid_type);
-    try runTest(">`$()", .{ .int_list = &[_]TestValue{} });
+    try runTest(">`$()", .{ .int_list = &.{} });
     try runTest(">`t`e`s`t", .{
         .int_list = &[_]TestValue{
             .{ .int = 0 },
@@ -104,7 +104,7 @@ test "descend symbol" {
 }
 
 test "descend list" {
-    try runTest(">()", .{ .int_list = &[_]TestValue{} });
+    try runTest(">()", .{ .int_list = &.{} });
 
     try runTest(">(1b;2;3f)", .{
         .int_list = &[_]TestValue{
@@ -185,8 +185,8 @@ test "descend list" {
 }
 
 test "descend dictionary" {
-    try runTest(">()!()", .{ .list = &[_]TestValue{} });
-    try runTest(">(`$())!()", .{ .symbol_list = &[_]TestValue{} });
+    try runTest(">()!()", .{ .list = &.{} });
+    try runTest(">(`$())!()", .{ .symbol_list = &.{} });
 
     try runTest(">`a`b!2 1", .{
         .symbol_list = &[_]TestValue{
@@ -219,8 +219,8 @@ test "descend dictionary" {
 }
 
 test "descend table" {
-    try runTest(">+`a`b!(();())", .{ .int_list = &[_]TestValue{} });
-    try runTest(">+`a`b!(`int$();`float$())", .{ .int_list = &[_]TestValue{} });
+    try runTest(">+`a`b!(();())", .{ .int_list = &.{} });
+    try runTest(">+`a`b!(`int$();`float$())", .{ .int_list = &.{} });
 
     try runTest(">+`a`b!(,1;,2)", .{
         .int_list = &[_]TestValue{

@@ -88,7 +88,7 @@ pub const VM = struct {
             .float, .float_list => self.initValue(.{ .float = Value.null_float }),
             .char, .char_list => self.initValue(.{ .char = ' ' }),
             .symbol, .symbol_list => self.copySymbol(""),
-            .list => self.initValue(.{ .list = &[_]*Value{} }),
+            .list => self.initValue(.{ .list = &.{} }),
             else => unreachable,
         };
     }
