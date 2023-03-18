@@ -108,6 +108,31 @@ pub const VM = struct {
             .float, .float_list => .{ .float_list = list },
             .char, .char_list => .{ .char_list = list },
             .symbol, .symbol_list => .{ .symbol_list = list },
+            .dictionary => blk: {
+                var i: usize = 1;
+                while (i < list.len) : (i += 1) {
+                    if (!utils_mod.hasSameKeys(list[0].as.dictionary, list[i].as.dictionary)) break :blk .{ .list = list };
+                }
+
+                const columns = list[0].as.dictionary.keys.ref();
+
+                const new_list = self.allocator.alloc(*Value, columns.asList().len) catch std.debug.panic("Failed to create list.", .{});
+                for (new_list, columns.asList()) |*value, column| {
+                    const inner_list = self.allocator.alloc(*Value, list.len) catch std.debug.panic("Failed to create list.", .{});
+                    var inner_list_type: ?ValueType = null;
+                    for (inner_list, list) |*row, row_value| {
+                        row.* = if (row_value.as.dictionary.hash_map.get(column)) |v| v.ref() else unreachable;
+                        if (inner_list_type == null and @as(ValueType, inner_list[0].as) != row.*.as) inner_list_type = .list;
+                    }
+                    value.* = self.initList(inner_list, inner_list_type);
+                }
+                defer self.allocator.free(list);
+                defer for (list) |v| v.deref(self.allocator);
+
+                const values = self.initValue(.{ .list = new_list });
+                const table = ValueTable.init(.{ .columns = columns, .values = values }, self.allocator);
+                break :blk .{ .table = table };
+            },
             else => .{ .list = list },
         });
     }
