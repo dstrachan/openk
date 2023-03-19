@@ -313,8 +313,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
                 const new_key = vm.initList(key_list, key_list_type);
                 const value_list = value.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
                 const new_value = vm.initList(value_list, value_list_type);
-                const dictionary = ValueDictionary.init(.{ .keys = new_key, .values = new_value }, vm);
-                break :blk vm.initValue(.{ .dictionary = dictionary });
+                break :blk vm.initDictionary(.{ .keys = new_key, .values = new_value });
             },
             .table => |table_y| blk: {
                 if (!utils_mod.hasSameKeys(dict_x, table_y)) return runtimeError(MergeError.incompatible_types);
@@ -332,8 +331,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
                     list[x_i] = vm.initList(value_list, value_list_type);
                 }
                 const values = vm.initValue(.{ .list = list });
-                const table = ValueTable.init(.{ .columns = dict_x.keys.ref(), .values = values }, vm.allocator);
-                break :blk vm.initValue(.{ .table = table });
+                break :blk vm.initTable(.{ .columns = dict_x.keys.ref(), .values = values });
             },
             else => runtimeError(MergeError.incompatible_types),
         },
@@ -369,8 +367,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
                     list[x_i] = vm.initList(value_list, value_type);
                 }
                 const values = vm.initValue(.{ .list = list });
-                const table = ValueTable.init(.{ .columns = table_x.columns.ref(), .values = values }, vm.allocator);
-                break :blk vm.initValue(.{ .table = table });
+                break :blk vm.initTable(.{ .columns = table_x.columns.ref(), .values = values });
             },
             .table => |table_y| blk: {
                 if (!utils_mod.hasSameKeys(table_x, table_y)) return runtimeError(MergeError.incompatible_types);
@@ -391,8 +388,7 @@ pub fn merge(vm: *VM, x: *Value, y: *Value) MergeError!*Value {
                     list[x_i] = vm.initList(value_list, value_list_type);
                 }
                 const values = vm.initValue(.{ .list = list });
-                const table = ValueTable.init(.{ .columns = table_x.columns.ref(), .values = values }, vm.allocator);
-                break :blk vm.initValue(.{ .table = table });
+                break :blk vm.initTable(.{ .columns = table_x.columns.ref(), .values = values });
             },
             else => runtimeError(MergeError.incompatible_types),
         },

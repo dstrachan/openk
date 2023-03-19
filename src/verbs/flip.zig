@@ -76,14 +76,10 @@ pub fn flip(vm: *VM, x: *Value) FlipError!*Value {
             }
 
             const values = vm.initValue(.{ .list = value_list });
-            const table = ValueTable.init(.{ .columns = dict_x.keys.ref(), .values = values }, vm.allocator);
-
-            break :blk vm.initValue(.{ .table = table });
+            break :blk vm.initTable(.{ .columns = dict_x.keys.ref(), .values = values });
         },
         .table => |table_x| blk: {
-            const dictionary = ValueDictionary.init(.{ .keys = table_x.columns.ref(), .values = table_x.values.ref() }, vm);
-
-            break :blk vm.initValue(.{ .dictionary = dictionary });
+            break :blk vm.initDictionary(.{ .keys = table_x.columns.ref(), .values = table_x.values.ref() });
         },
         else => return runtimeError(*Value, FlipError.invalid_type),
     };

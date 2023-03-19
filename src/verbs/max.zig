@@ -81,13 +81,11 @@ pub fn max(vm: *VM, x: *Value, y: *Value) MaxError!*Value {
                 if (dict_y.values.asList().len == 0) break :blk y.ref();
 
                 const value = try max(vm, x, dict_y.values);
-                const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm);
-                break :blk vm.initValue(.{ .dictionary = dictionary });
+                break :blk vm.initDictionary(.{ .keys = dict_y.keys.ref(), .values = value });
             },
             .table => |table_y| blk: {
                 const values = try max(vm, x, table_y.values);
-                const table = ValueTable.init(.{ .columns = table_y.columns.ref(), .values = values }, vm.allocator);
-                break :blk vm.initValue(.{ .table = table });
+                break :blk vm.initTable(.{ .columns = table_y.columns.ref(), .values = values });
             },
             else => runtimeError(MaxError.incompatible_types),
         },
@@ -131,13 +129,11 @@ pub fn max(vm: *VM, x: *Value, y: *Value) MaxError!*Value {
                 if (dict_y.values.asList().len == 0) break :blk y.ref();
 
                 const value = try max(vm, x, dict_y.values);
-                const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm);
-                break :blk vm.initValue(.{ .dictionary = dictionary });
+                break :blk vm.initDictionary(.{ .keys = dict_y.keys.ref(), .values = value });
             },
             .table => |table_y| blk: {
                 const values = try max(vm, x, table_y.values);
-                const table = ValueTable.init(.{ .columns = table_y.columns.ref(), .values = values }, vm.allocator);
-                break :blk vm.initValue(.{ .table = table });
+                break :blk vm.initTable(.{ .columns = table_y.columns.ref(), .values = values });
             },
             else => runtimeError(MaxError.incompatible_types),
         },
@@ -181,13 +177,11 @@ pub fn max(vm: *VM, x: *Value, y: *Value) MaxError!*Value {
                 if (dict_y.values.asList().len == 0) break :blk y.ref();
 
                 const value = try max(vm, x, dict_y.values);
-                const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm);
-                break :blk vm.initValue(.{ .dictionary = dictionary });
+                break :blk vm.initDictionary(.{ .keys = dict_y.keys.ref(), .values = value });
             },
             .table => |table_y| blk: {
                 const values = try max(vm, x, table_y.values);
-                const table = ValueTable.init(.{ .columns = table_y.columns.ref(), .values = values }, vm.allocator);
-                break :blk vm.initValue(.{ .table = table });
+                break :blk vm.initTable(.{ .columns = table_y.columns.ref(), .values = values });
             },
             else => runtimeError(MaxError.incompatible_types),
         },
@@ -220,8 +214,7 @@ pub fn max(vm: *VM, x: *Value, y: *Value) MaxError!*Value {
                 if (dict_y.values.asList().len == 0) break :blk y.ref();
 
                 const value = try max(vm, x, dict_y.values);
-                const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm);
-                break :blk vm.initValue(.{ .dictionary = dictionary });
+                break :blk vm.initDictionary(.{ .keys = dict_y.keys.ref(), .values = value });
             },
             else => runtimeError(MaxError.incompatible_types),
         },
@@ -291,8 +284,7 @@ pub fn max(vm: *VM, x: *Value, y: *Value) MaxError!*Value {
                 if (dict_y.values.asList().len == 0) break :blk y.ref();
 
                 const value = try max(vm, x, dict_y.values);
-                const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm);
-                break :blk vm.initValue(.{ .dictionary = dictionary });
+                break :blk vm.initDictionary(.{ .keys = dict_y.keys.ref(), .values = value });
             },
             else => runtimeError(MaxError.incompatible_types),
         },
@@ -362,8 +354,7 @@ pub fn max(vm: *VM, x: *Value, y: *Value) MaxError!*Value {
                 if (dict_y.values.asList().len == 0) break :blk y.ref();
 
                 const value = try max(vm, x, dict_y.values);
-                const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm);
-                break :blk vm.initValue(.{ .dictionary = dictionary });
+                break :blk vm.initDictionary(.{ .keys = dict_y.keys.ref(), .values = value });
             },
             else => runtimeError(MaxError.incompatible_types),
         },
@@ -433,16 +424,14 @@ pub fn max(vm: *VM, x: *Value, y: *Value) MaxError!*Value {
                 if (dict_y.values.asList().len == 0) break :blk y.ref();
 
                 const value = try max(vm, x, dict_y.values);
-                const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm);
-                break :blk vm.initValue(.{ .dictionary = dictionary });
+                break :blk vm.initDictionary(.{ .keys = dict_y.keys.ref(), .values = value });
             },
             else => runtimeError(MaxError.incompatible_types),
         },
         .dictionary => |dict_x| switch (y.as) {
             .boolean, .int, .float, .char, .symbol, .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => blk: {
                 const value = try max(vm, dict_x.values, y);
-                const dictionary = ValueDictionary.init(.{ .keys = dict_x.keys.ref(), .values = value }, vm);
-                break :blk vm.initValue(.{ .dictionary = dictionary });
+                break :blk vm.initDictionary(.{ .keys = dict_x.keys.ref(), .values = value });
             },
             .dictionary => |dict_y| blk: {
                 if (dict_x.keys.asList().len == 0) break :blk y.ref();
@@ -475,16 +464,14 @@ pub fn max(vm: *VM, x: *Value, y: *Value) MaxError!*Value {
                 const value_slice = value_list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
                 const key = vm.initList(key_slice, key_list_type);
                 const value = vm.initListIter(value_slice);
-                const dictionary = ValueDictionary.init(.{ .keys = key, .values = value }, vm);
-                break :blk vm.initValue(.{ .dictionary = dictionary });
+                break :blk vm.initDictionary(.{ .keys = key, .values = value });
             },
             else => runtimeError(MaxError.incompatible_types),
         },
         .table => |table_x| switch (y.as) {
             .boolean, .int, .float => blk: {
                 const values = try max(vm, table_x.values, y);
-                const table = ValueTable.init(.{ .columns = table_x.columns.ref(), .values = values }, vm.allocator);
-                break :blk vm.initValue(.{ .table = table });
+                break :blk vm.initTable(.{ .columns = table_x.columns.ref(), .values = values });
             },
             .table => |table_y| blk: {
                 var columns = table_x.columns.asArrayList(vm.allocator);
@@ -508,8 +495,7 @@ pub fn max(vm: *VM, x: *Value, y: *Value) MaxError!*Value {
                 const new_columns = vm.initValue(.{ .symbol_list = columns_list });
                 const values_list = values.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
                 const new_values = vm.initValue(.{ .list = values_list });
-                const table = ValueTable.init(.{ .columns = new_columns, .values = new_values }, vm.allocator);
-                break :blk vm.initValue(.{ .table = table });
+                break :blk vm.initTable(.{ .columns = new_columns, .values = new_values });
             },
             else => runtimeError(MaxError.incompatible_types),
         },

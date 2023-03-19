@@ -55,13 +55,11 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
             },
             .dictionary => |dict_y| blk: {
                 const value = try less(vm, x, dict_y.values);
-                const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm);
-                break :blk vm.initValue(.{ .dictionary = dictionary });
+                break :blk vm.initDictionary(.{ .keys = dict_y.keys.ref(), .values = value });
             },
             .table => |table_y| blk: {
                 const values = try less(vm, x, table_y.values);
-                const table = ValueTable.init(.{ .columns = table_y.columns.ref(), .values = values }, vm.allocator);
-                break :blk vm.initValue(.{ .table = table });
+                break :blk vm.initTable(.{ .columns = table_y.columns.ref(), .values = values });
             },
             else => runtimeError(LessError.incompatible_types),
         },
@@ -84,13 +82,11 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
             },
             .dictionary => |dict_y| blk: {
                 const value = try less(vm, x, dict_y.values);
-                const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm);
-                break :blk vm.initValue(.{ .dictionary = dictionary });
+                break :blk vm.initDictionary(.{ .keys = dict_y.keys.ref(), .values = value });
             },
             .table => |table_y| blk: {
                 const values = try less(vm, x, table_y.values);
-                const table = ValueTable.init(.{ .columns = table_y.columns.ref(), .values = values }, vm.allocator);
-                break :blk vm.initValue(.{ .table = table });
+                break :blk vm.initTable(.{ .columns = table_y.columns.ref(), .values = values });
             },
             else => runtimeError(LessError.incompatible_types),
         },
@@ -113,13 +109,11 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
             },
             .dictionary => |dict_y| blk: {
                 const value = try less(vm, x, dict_y.values);
-                const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm);
-                break :blk vm.initValue(.{ .dictionary = dictionary });
+                break :blk vm.initDictionary(.{ .keys = dict_y.keys.ref(), .values = value });
             },
             .table => |table_y| blk: {
                 const values = try less(vm, x, table_y.values);
-                const table = ValueTable.init(.{ .columns = table_y.columns.ref(), .values = values }, vm.allocator);
-                break :blk vm.initValue(.{ .table = table });
+                break :blk vm.initTable(.{ .columns = table_y.columns.ref(), .values = values });
             },
             else => runtimeError(LessError.incompatible_types),
         },
@@ -153,16 +147,14 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
             },
             .dictionary => |dict_y| blk: {
                 const value = try less(vm, x, dict_y.values);
-                const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm);
-                break :blk vm.initValue(.{ .dictionary = dictionary });
+                break :blk vm.initDictionary(.{ .keys = dict_y.keys.ref(), .values = value });
             },
             else => runtimeError(LessError.incompatible_types),
         },
         .dictionary => |dict_x| switch (y.as) {
             .boolean, .int, .float, .list, .boolean_list, .int_list, .float_list => blk: {
                 const value = try less(vm, dict_x.values, y);
-                const dictionary = ValueDictionary.init(.{ .keys = dict_x.keys.ref(), .values = value }, vm);
-                break :blk vm.initValue(.{ .dictionary = dictionary });
+                break :blk vm.initDictionary(.{ .keys = dict_x.keys.ref(), .values = value });
             },
             .dictionary => |dict_y| blk: {
                 if (dict_x.keys.asList().len == 0) {
@@ -171,8 +163,7 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
                         v.* = vm.initValue(.{ .list = &.{} });
                     }
                     const value = vm.initValue(.{ .list = list });
-                    const dictionary = ValueDictionary.init(.{ .keys = dict_y.keys.ref(), .values = value }, vm);
-                    break :blk vm.initValue(.{ .dictionary = dictionary });
+                    break :blk vm.initDictionary(.{ .keys = dict_y.keys.ref(), .values = value });
                 }
                 if (dict_y.keys.asList().len == 0) {
                     const list = vm.allocator.alloc(*Value, dict_x.keys.asList().len) catch std.debug.panic("Failed to create list.", .{});
@@ -180,8 +171,7 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
                         v.* = vm.initValue(.{ .list = &.{} });
                     }
                     const value = vm.initValue(.{ .list = list });
-                    const dictionary = ValueDictionary.init(.{ .keys = dict_x.keys.ref(), .values = value }, vm);
-                    break :blk vm.initValue(.{ .dictionary = dictionary });
+                    break :blk vm.initDictionary(.{ .keys = dict_x.keys.ref(), .values = value });
                 }
 
                 var key_list = dict_x.keys.asArrayList(vm.allocator);
@@ -219,8 +209,7 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
                 const value_slice = value_list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
                 const key = vm.initList(key_slice, key_list_type);
                 const value = vm.initListIter(value_slice);
-                const dictionary = ValueDictionary.init(.{ .keys = key, .values = value }, vm);
-                break :blk vm.initValue(.{ .dictionary = dictionary });
+                break :blk vm.initDictionary(.{ .keys = key, .values = value });
             },
             else => runtimeError(LessError.incompatible_types),
         },
@@ -233,8 +222,7 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
                     list[i] = try less(vm, value, y);
                 }
                 const values = vm.initValue(.{ .list = list });
-                const table = ValueTable.init(.{ .columns = table_x.columns.ref(), .values = values }, vm.allocator);
-                break :blk vm.initValue(.{ .table = table });
+                break :blk vm.initTable(.{ .columns = table_x.columns.ref(), .values = values });
             },
             .table => |table_y| blk: {
                 if (!utils_mod.hasSameKeys(table_x, table_y)) break :blk runtimeError(LessError.length_mismatch);
@@ -258,8 +246,7 @@ pub fn less(vm: *VM, x: *Value, y: *Value) LessError!*Value {
                 const new_columns = vm.initValue(.{ .symbol_list = columns_list });
                 const values_list = values.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
                 const new_values = vm.initValue(.{ .list = values_list });
-                const table = ValueTable.init(.{ .columns = new_columns, .values = new_values }, vm.allocator);
-                break :blk vm.initValue(.{ .table = table });
+                break :blk vm.initTable(.{ .columns = new_columns, .values = new_values });
             },
             else => runtimeError(LessError.incompatible_types),
         },

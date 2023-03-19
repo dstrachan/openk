@@ -66,13 +66,11 @@ pub fn negate(vm: *VM, x: *Value) NegateError!*Value {
         },
         .dictionary => |dict_x| blk: {
             const value = try negate(vm, dict_x.values);
-            const dictionary = ValueDictionary.init(.{ .keys = dict_x.keys.ref(), .values = value }, vm);
-            break :blk vm.initValue(.{ .dictionary = dictionary });
+            break :blk vm.initDictionary(.{ .keys = dict_x.keys.ref(), .values = value });
         },
         .table => |table_x| blk: {
             const values = try negate(vm, table_x.values);
-            const table = ValueTable.init(.{ .columns = table_x.columns.ref(), .values = values }, vm.allocator);
-            break :blk vm.initValue(.{ .table = table });
+            break :blk vm.initTable(.{ .columns = table_x.columns.ref(), .values = values });
         },
         else => return runtimeError(NegateError.invalid_type),
     };

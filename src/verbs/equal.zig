@@ -117,7 +117,10 @@ pub fn equal(vm: *VM, x: *Value, y: *Value) EqualError!*Value {
             },
             .list, .boolean_list, .int_list, .float_list => |list_y| blk: {
                 if (list_x.len != list_y.len) break :blk runtimeError(EqualError.length_mismatch);
-                if (list_x.len == 0) break :blk x.ref();
+                if (list_x.len == 0) {
+                    const list_type = @intToEnum(ValueType, std.math.min(@enumToInt(ValueType.boolean_list), @enumToInt(x.as)));
+                    break :blk vm.initList(&.{}, list_type);
+                }
 
                 const list = vm.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
                 var list_type: ValueType = .boolean;
@@ -133,27 +136,22 @@ pub fn equal(vm: *VM, x: *Value, y: *Value) EqualError!*Value {
         },
         .dictionary => |dict_x| switch (y.as) {
             .boolean, .int, .float => blk: {
-                if (dict_x.keys.asList().len == 0) {
-                    const value = vm.initList(&.{}, if (dict_x.values.as == .list) .list else .boolean_list);
-                    const dictionary = ValueDictionary.init(.{ .keys = dict_x.keys.ref(), .values = value }, vm);
-                    break :blk vm.initValue(.{ .dictionary = dictionary });
-                }
-
-                const value = try equal(vm, dict_x.values, y);
-                const dictionary = ValueDictionary.init(.{ .keys = dict_x.keys.ref(), .values = value }, vm);
-                break :blk vm.initValue(.{ .dictionary = dictionary });
+                const values = switch (dict_x.keys.asList().len == 0) {
+                    true => vm.initList(&.{}, @intToEnum(ValueType, std.math.min(@enumToInt(ValueType.boolean_list), @enumToInt(dict_x.keys.as)))),
+                    false => try equal(vm, dict_x.values, y),
+                };
+                break :blk vm.initDictionary(.{ .keys = dict_x.keys.ref(), .values = values });
             },
             .list, .boolean_list, .int_list, .float_list => |list_y| blk: {
                 if (dict_x.keys.asList().len != list_y.len) break :blk runtimeError(EqualError.length_mismatch);
                 if (dict_x.keys.asList().len == 0) {
-                    const value = vm.initList(&.{}, if (dict_x.values.as == .list) .list else .boolean_list);
-                    const dictionary = ValueDictionary.init(.{ .keys = dict_x.keys.ref(), .values = value }, vm);
-                    break :blk vm.initValue(.{ .dictionary = dictionary });
+                    const list_type = @intToEnum(ValueType, std.math.min(@enumToInt(ValueType.boolean_list), @enumToInt(dict_x.values.as)));
+                    const value = vm.initList(&.{}, list_type);
+                    break :blk vm.initDictionary(.{ .keys = dict_x.keys.ref(), .values = value });
                 }
 
                 const value = try equal(vm, dict_x.values, y);
-                const dictionary = ValueDictionary.init(.{ .keys = dict_x.keys.ref(), .values = value }, vm);
-                break :blk vm.initValue(.{ .dictionary = dictionary });
+                break :blk vm.initDictionary(.{ .keys = dict_x.keys.ref(), .values = value });
             },
             else => runtimeError(EqualError.incompatible_types),
         },
@@ -166,8 +164,7 @@ pub fn equal(vm: *VM, x: *Value, y: *Value) EqualError!*Value {
                         value.* = vm.initList(&.{}, list_type);
                     }
                     const values = vm.initValue(.{ .list = list });
-                    const table = ValueTable.init(.{ .columns = table_x.columns.ref(), .values = values }, vm.allocator);
-                    break :blk vm.initValue(.{ .table = table });
+                    break :blk vm.initTable(.{ .columns = table_x.columns.ref(), .values = values });
                 }
 
                 const list = vm.allocator.alloc(*Value, table_x.columns.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
@@ -177,8 +174,7 @@ pub fn equal(vm: *VM, x: *Value, y: *Value) EqualError!*Value {
                     value.* = try equal(vm, column, y);
                 }
                 const values = vm.initValue(.{ .list = list });
-                const table = ValueTable.init(.{ .columns = table_x.columns.ref(), .values = values }, vm.allocator);
-                break :blk vm.initValue(.{ .table = table });
+                break :blk vm.initTable(.{ .columns = table_x.columns.ref(), .values = values });
             },
             else => runtimeError(EqualError.incompatible_types),
         },
