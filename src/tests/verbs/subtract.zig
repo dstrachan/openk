@@ -12,7 +12,7 @@ test "subtract boolean" {
     try runTest("1b-0b", .{ .int = 1 });
     try runTest("1b-`boolean$()", .{ .int_list = &.{} });
     try runTest("1b-00000b", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 1 },
             .{ .int = 1 },
             .{ .int = 1 },
@@ -24,7 +24,7 @@ test "subtract boolean" {
     try runTest("1-0b", .{ .int = 1 });
     try runTest("1-`boolean$()", .{ .int_list = &.{} });
     try runTest("1-00000b", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 1 },
             .{ .int = 1 },
             .{ .int = 1 },
@@ -36,7 +36,7 @@ test "subtract boolean" {
     try runTest("1f-0b", .{ .float = 1 });
     try runTest("1f-`boolean$()", .{ .float_list = &.{} });
     try runTest("1f-00000b", .{
-        .float_list = &[_]TestValue{
+        .float_list = &.{
             .{ .float = 1 },
             .{ .float = 1 },
             .{ .float = 1 },
@@ -55,24 +55,24 @@ test "subtract boolean" {
 
     try runTest("()-0b", .{ .list = &.{} });
     try runTest("(1b;2)-0b", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 1 },
             .{ .int = 2 },
         },
     });
     try runTest("(1b;2;3f)-0b", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .int = 1 },
             .{ .int = 2 },
             .{ .float = 3 },
         },
     });
     try runTest("(1b;2;3f;(0b;1))-0b", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .int = 1 },
             .{ .int = 2 },
             .{ .float = 3 },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 0 },
                 .{ .int = 1 },
             } },
@@ -83,13 +83,13 @@ test "subtract boolean" {
     try runTestError("()-010b", SubtractError.length_mismatch);
     try runTestError("(1b;2)-`boolean$()", SubtractError.length_mismatch);
     try runTest("(1b;2)-01b", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 1 },
             .{ .int = 1 },
         },
     });
     try runTest("(1b;2;3f)-010b", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .int = 1 },
             .{ .int = 1 },
             .{ .float = 3 },
@@ -100,7 +100,7 @@ test "subtract boolean" {
     try runTestError("(1b;2;3f;`symbol)-0101b", SubtractError.incompatible_types);
 
     try runTest("11111b-0b", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 1 },
             .{ .int = 1 },
             .{ .int = 1 },
@@ -110,7 +110,7 @@ test "subtract boolean" {
     });
     try runTestError("11111b-`boolean$()", SubtractError.length_mismatch);
     try runTest("11111b-00000b", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 1 },
             .{ .int = 1 },
             .{ .int = 1 },
@@ -121,7 +121,7 @@ test "subtract boolean" {
     try runTestError("11111b-000000b", SubtractError.length_mismatch);
 
     try runTest("5 4 3 2 1-0b", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 5 },
             .{ .int = 4 },
             .{ .int = 3 },
@@ -131,7 +131,7 @@ test "subtract boolean" {
     });
     try runTestError("5 4 3 2 1-`boolean$()", SubtractError.length_mismatch);
     try runTest("5 4 3 2 1-00000b", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 5 },
             .{ .int = 4 },
             .{ .int = 3 },
@@ -142,7 +142,7 @@ test "subtract boolean" {
     try runTestError("5 4 3 2 1-000000b", SubtractError.length_mismatch);
 
     try runTest("5 4 3 2 1f-0b", .{
-        .float_list = &[_]TestValue{
+        .float_list = &.{
             .{ .float = 5 },
             .{ .float = 4 },
             .{ .float = 3 },
@@ -152,7 +152,7 @@ test "subtract boolean" {
     });
     try runTestError("5 4 3 2 1f-`boolean$()", SubtractError.length_mismatch);
     try runTest("5 4 3 2 1f-00000b", .{
-        .float_list = &[_]TestValue{
+        .float_list = &.{
             .{ .float = 5 },
             .{ .float = 4 },
             .{ .float = 3 },
@@ -173,18 +173,18 @@ test "subtract boolean" {
     try runTestError("`a`b`c`d`e-000000b", SubtractError.incompatible_types);
 
     try runTest("(()!())-0b", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTest("(`a`b!1 2)-0b", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 1 },
                 .{ .int = 2 },
             } },
@@ -192,12 +192,12 @@ test "subtract boolean" {
     });
     try runTestError("(`a`b!1 2)-`boolean$()", SubtractError.length_mismatch);
     try runTest("(`a`b!1 2)-01b", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 1 },
                 .{ .int = 1 },
             } },
@@ -206,16 +206,16 @@ test "subtract boolean" {
     try runTestError("(`a`b!1 2)-010b", SubtractError.length_mismatch);
 
     try runTest("(+`a`b!(,1;,2))-0b", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 2 },
                 } },
             } },
@@ -231,7 +231,7 @@ test "subtract int" {
     try runTest("1b-0", .{ .int = 1 });
     try runTest("1b-`int$()", .{ .int_list = &.{} });
     try runTest("1b-0 1 0N 0W -0W", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 1 },
             .{ .int = 0 },
             .{ .int = Value.null_int },
@@ -243,7 +243,7 @@ test "subtract int" {
     try runTest("1-0", .{ .int = 1 });
     try runTest("1-`int$()", .{ .int_list = &.{} });
     try runTest("1-0 1 0N 0W -0W", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 1 },
             .{ .int = 0 },
             .{ .int = Value.null_int },
@@ -255,7 +255,7 @@ test "subtract int" {
     try runTest("1f-0", .{ .float = 1 });
     try runTest("1f-`int$()", .{ .float_list = &.{} });
     try runTest("1f-0 1 0N 0W -0W", .{
-        .float_list = &[_]TestValue{
+        .float_list = &.{
             .{ .float = 1 },
             .{ .float = 0 },
             .{ .float = Value.null_float },
@@ -274,24 +274,24 @@ test "subtract int" {
 
     try runTest("()-0", .{ .list = &.{} });
     try runTest("(1b;2)-0", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 1 },
             .{ .int = 2 },
         },
     });
     try runTest("(1b;2;3f)-0", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .int = 1 },
             .{ .int = 2 },
             .{ .float = 3 },
         },
     });
     try runTest("(1b;2;3f;(0b;1))-0", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .int = 1 },
             .{ .int = 2 },
             .{ .float = 3 },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 0 },
                 .{ .int = 1 },
             } },
@@ -302,7 +302,7 @@ test "subtract int" {
     try runTestError("()-0 1 0N 0W -0W", SubtractError.length_mismatch);
     try runTestError("(1b;2;3;4;5)-`int$()", SubtractError.length_mismatch);
     try runTest("(1b;2;3;4;5)-0 1 0N 0W -0W", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 1 },
             .{ .int = 1 },
             .{ .int = Value.null_int },
@@ -311,7 +311,7 @@ test "subtract int" {
         },
     });
     try runTest("(1b;2;3f;4;5)-0 1 0N 0W -0W", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .int = 1 },
             .{ .int = 1 },
             .{ .float = Value.null_float },
@@ -324,7 +324,7 @@ test "subtract int" {
     try runTestError("(1b;2;3f;4;`symbol)-0 1 0N 0W -0W", SubtractError.incompatible_types);
 
     try runTest("11111b-0", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 1 },
             .{ .int = 1 },
             .{ .int = 1 },
@@ -334,7 +334,7 @@ test "subtract int" {
     });
     try runTestError("11111b-`int$()", SubtractError.length_mismatch);
     try runTest("11111b-0 1 0N 0W -0W", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 1 },
             .{ .int = 0 },
             .{ .int = Value.null_int },
@@ -345,7 +345,7 @@ test "subtract int" {
     try runTestError("11111b-0 1 0N 0W -0W 2", SubtractError.length_mismatch);
 
     try runTest("5 4 3 2 1-0", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 5 },
             .{ .int = 4 },
             .{ .int = 3 },
@@ -355,7 +355,7 @@ test "subtract int" {
     });
     try runTestError("5 4 3 2 1-`int$()", SubtractError.length_mismatch);
     try runTest("5 4 3 2 1-0 1 0N 0W -0W", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 5 },
             .{ .int = 3 },
             .{ .int = Value.null_int },
@@ -366,7 +366,7 @@ test "subtract int" {
     try runTestError("5 4 3 2 1-0 1 0N 0W -0W 2", SubtractError.length_mismatch);
 
     try runTest("5 4 3 2 1f-0", .{
-        .float_list = &[_]TestValue{
+        .float_list = &.{
             .{ .float = 5 },
             .{ .float = 4 },
             .{ .float = 3 },
@@ -376,7 +376,7 @@ test "subtract int" {
     });
     try runTestError("5 4 3 2 1f-`int$()", SubtractError.length_mismatch);
     try runTest("5 4 3 2 1f-0 1 0N 0W -0W", .{
-        .float_list = &[_]TestValue{
+        .float_list = &.{
             .{ .float = 5 },
             .{ .float = 3 },
             .{ .float = Value.null_float },
@@ -397,18 +397,18 @@ test "subtract int" {
     try runTestError("`a`b`c`d`e-0 1 0N 0W -0W 2", SubtractError.incompatible_types);
 
     try runTest("(()!())-0", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTest("(`a`b!1 2)-0", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 1 },
                 .{ .int = 2 },
             } },
@@ -416,12 +416,12 @@ test "subtract int" {
     });
     try runTestError("(`a`b!1 2)-`int$()", SubtractError.length_mismatch);
     try runTest("(`a`b!1 2)-0 1", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 1 },
                 .{ .int = 1 },
             } },
@@ -430,16 +430,16 @@ test "subtract int" {
     try runTestError("(`a`b!1 2)-0 1 2", SubtractError.length_mismatch);
 
     try runTest("(+`a`b!(,1;,2))-0", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 2 },
                 } },
             } },
@@ -455,7 +455,7 @@ test "subtract float" {
     try runTest("1b-0f", .{ .float = 1 });
     try runTest("1b-`float$()", .{ .float_list = &.{} });
     try runTest("1b-0 1 0n 0w -0w", .{
-        .float_list = &[_]TestValue{
+        .float_list = &.{
             .{ .float = 1 },
             .{ .float = 0 },
             .{ .float = Value.null_float },
@@ -467,7 +467,7 @@ test "subtract float" {
     try runTest("1-0f", .{ .float = 1 });
     try runTest("1-`float$()", .{ .float_list = &.{} });
     try runTest("1-0 1 0n 0w -0w", .{
-        .float_list = &[_]TestValue{
+        .float_list = &.{
             .{ .float = 1 },
             .{ .float = 0 },
             .{ .float = Value.null_float },
@@ -479,7 +479,7 @@ test "subtract float" {
     try runTest("1f-0f", .{ .float = 1 });
     try runTest("1f-`float$()", .{ .float_list = &.{} });
     try runTest("1f-0 1 0n 0w -0w", .{
-        .float_list = &[_]TestValue{
+        .float_list = &.{
             .{ .float = 1 },
             .{ .float = 0 },
             .{ .float = Value.null_float },
@@ -498,18 +498,18 @@ test "subtract float" {
 
     try runTest("()-0f", .{ .list = &.{} });
     try runTest("(1b;2;3f)-0f", .{
-        .float_list = &[_]TestValue{
+        .float_list = &.{
             .{ .float = 1 },
             .{ .float = 2 },
             .{ .float = 3 },
         },
     });
     try runTest("(1b;2;3f;(0b;1))-0f", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .float = 1 },
             .{ .float = 2 },
             .{ .float = 3 },
-            .{ .float_list = &[_]TestValue{
+            .{ .float_list = &.{
                 .{ .float = 0 },
                 .{ .float = 1 },
             } },
@@ -520,7 +520,7 @@ test "subtract float" {
     try runTestError("()-0 1 0n 0w -0w", SubtractError.length_mismatch);
     try runTestError("(1b;2;3f;4;5)-`float$()", SubtractError.length_mismatch);
     try runTest("(1b;2;3f;4;5)-0 1 0n 0w -0w", .{
-        .float_list = &[_]TestValue{
+        .float_list = &.{
             .{ .float = 1 },
             .{ .float = 1 },
             .{ .float = Value.null_float },
@@ -533,7 +533,7 @@ test "subtract float" {
     try runTestError("(1b;2;3f;4;`symbol)-0 1 0n 0w -0w", SubtractError.incompatible_types);
 
     try runTest("11111b-0f", .{
-        .float_list = &[_]TestValue{
+        .float_list = &.{
             .{ .float = 1 },
             .{ .float = 1 },
             .{ .float = 1 },
@@ -543,7 +543,7 @@ test "subtract float" {
     });
     try runTestError("11111b-`float$()", SubtractError.length_mismatch);
     try runTest("11111b-0 1 0n 0w -0w", .{
-        .float_list = &[_]TestValue{
+        .float_list = &.{
             .{ .float = 1 },
             .{ .float = 0 },
             .{ .float = Value.null_float },
@@ -554,7 +554,7 @@ test "subtract float" {
     try runTestError("11111b-0 1 0n 0w -0w 2", SubtractError.length_mismatch);
 
     try runTest("5 4 3 2 1-0f", .{
-        .float_list = &[_]TestValue{
+        .float_list = &.{
             .{ .float = 5 },
             .{ .float = 4 },
             .{ .float = 3 },
@@ -564,7 +564,7 @@ test "subtract float" {
     });
     try runTestError("5 4 3 2 1-`float$()", SubtractError.length_mismatch);
     try runTest("5 4 3 2 1-0 1 0n 0w -0w", .{
-        .float_list = &[_]TestValue{
+        .float_list = &.{
             .{ .float = 5 },
             .{ .float = 3 },
             .{ .float = Value.null_float },
@@ -575,7 +575,7 @@ test "subtract float" {
     try runTestError("5 4 3 2 1-0 1 0n 0w -0w 2", SubtractError.length_mismatch);
 
     try runTest("5 4 3 2 1f-0f", .{
-        .float_list = &[_]TestValue{
+        .float_list = &.{
             .{ .float = 5 },
             .{ .float = 4 },
             .{ .float = 3 },
@@ -585,7 +585,7 @@ test "subtract float" {
     });
     try runTestError("5 4 3 2 1f-`float$()", SubtractError.length_mismatch);
     try runTest("5 4 3 2 1f-0 1 0n 0w -0w", .{
-        .float_list = &[_]TestValue{
+        .float_list = &.{
             .{ .float = 5 },
             .{ .float = 3 },
             .{ .float = Value.null_float },
@@ -606,18 +606,18 @@ test "subtract float" {
     try runTestError("`a`b`c`d`e-0 1 0n 0w -0w 2", SubtractError.incompatible_types);
 
     try runTest("(()!())-0f", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTest("(`a`b!1 2)-0f", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .float_list = &[_]TestValue{
+            .{ .float_list = &.{
                 .{ .float = 1 },
                 .{ .float = 2 },
             } },
@@ -625,12 +625,12 @@ test "subtract float" {
     });
     try runTestError("(`a`b!1 2)-`float$()", SubtractError.length_mismatch);
     try runTest("(`a`b!1 2)-0 1f", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .float_list = &[_]TestValue{
+            .{ .float_list = &.{
                 .{ .float = 1 },
                 .{ .float = 1 },
             } },
@@ -639,16 +639,16 @@ test "subtract float" {
     try runTestError("(`a`b!1 2)-0 1 2f", SubtractError.length_mismatch);
 
     try runTest("(+`a`b!(,1;,2))-0f", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .float_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .float_list = &.{
                     .{ .float = 1 },
                 } },
-                .{ .float_list = &[_]TestValue{
+                .{ .float_list = &.{
                     .{ .float = 2 },
                 } },
             } },
@@ -771,7 +771,7 @@ test "subtract symbol" {
 test "subtract list" {
     try runTest("1b-()", .{ .list = &.{} });
     try runTest("1b-(0b;1;0N;0W;-0W)", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 1 },
             .{ .int = 0 },
             .{ .int = Value.null_int },
@@ -780,7 +780,7 @@ test "subtract list" {
         },
     });
     try runTest("1b-(0b;1;0N;0W;-0W;1f;0n;0w;-0w)", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .int = 1 },
             .{ .int = 0 },
             .{ .int = Value.null_int },
@@ -797,7 +797,7 @@ test "subtract list" {
 
     try runTest("1-()", .{ .list = &.{} });
     try runTest("1-(0b;1;0N;0W;-0W)", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 1 },
             .{ .int = 0 },
             .{ .int = Value.null_int },
@@ -806,7 +806,7 @@ test "subtract list" {
         },
     });
     try runTest("1-(0b;1;0N;0W;-0W;1f;0n;0w;-0w)", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .int = 1 },
             .{ .int = 0 },
             .{ .int = Value.null_int },
@@ -823,7 +823,7 @@ test "subtract list" {
 
     try runTest("1f-()", .{ .list = &.{} });
     try runTest("1f-(0b;1;0N;0W;-0W;1f;0n;0w;-0w)", .{
-        .float_list = &[_]TestValue{
+        .float_list = &.{
             .{ .float = 1 },
             .{ .float = 0 },
             .{ .float = Value.null_float },
@@ -846,27 +846,27 @@ test "subtract list" {
     try runTestError("(0N;0n)-()", SubtractError.length_mismatch);
     try runTestError("()-(0N;0n)", SubtractError.length_mismatch);
     try runTest("(1b;2)-(1b;2)", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 0 },
             .{ .int = 0 },
         },
     });
     try runTest("(1b;2f)-(2f;1b)", .{
-        .float_list = &[_]TestValue{
+        .float_list = &.{
             .{ .float = -1 },
             .{ .float = 1 },
         },
     });
     try runTest("(2;3f)-(2;3f)", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .int = 0 },
             .{ .float = 0 },
         },
     });
     try runTest("(1b;(2;3f))-(0N;(0n;0N))", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .int = Value.null_int },
-            .{ .float_list = &[_]TestValue{
+            .{ .float_list = &.{
                 .{ .float = Value.null_float },
                 .{ .float = Value.null_float },
             } },
@@ -877,13 +877,13 @@ test "subtract list" {
 
     try runTestError("010b-()", SubtractError.length_mismatch);
     try runTest("01b-(0b;0N)", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 0 },
             .{ .int = Value.null_int },
         },
     });
     try runTest("010b-(0b;0N;0n)", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .int = 0 },
             .{ .int = Value.null_int },
             .{ .float = Value.null_float },
@@ -894,13 +894,13 @@ test "subtract list" {
 
     try runTestError("0 1 2-()", SubtractError.length_mismatch);
     try runTest("0 1-(0b;0N)", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 0 },
             .{ .int = Value.null_int },
         },
     });
     try runTest("0 1 2-(0b;0N;0n)", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .int = 0 },
             .{ .int = Value.null_int },
             .{ .float = Value.null_float },
@@ -911,7 +911,7 @@ test "subtract list" {
 
     try runTestError("0 1 2f-()", SubtractError.length_mismatch);
     try runTest("0 1 2f-(0b;0N;0n)", .{
-        .float_list = &[_]TestValue{
+        .float_list = &.{
             .{ .float = 0 },
             .{ .float = Value.null_float },
             .{ .float = Value.null_float },
@@ -926,12 +926,12 @@ test "subtract list" {
 
     try runTestError("(`a`b!1 2)-()", SubtractError.length_mismatch);
     try runTest("(`a`b!1 2)-(1;2f)", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
+            .{ .list = &.{
                 .{ .int = 0 },
                 .{ .float = 0 },
             } },
@@ -946,18 +946,18 @@ test "subtract list" {
 
 test "subtract dictionary" {
     try runTest("1b-()!()", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTest("1b-`a`b!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 0 },
                 .{ .int = -1 },
             } },
@@ -965,18 +965,18 @@ test "subtract dictionary" {
     });
 
     try runTest("1-()!()", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTest("1-`a`b!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 0 },
                 .{ .int = -1 },
             } },
@@ -984,18 +984,18 @@ test "subtract dictionary" {
     });
 
     try runTest("1f-()!()", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTest("1f-`a`b!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .float_list = &[_]TestValue{
+            .{ .float_list = &.{
                 .{ .float = 0 },
                 .{ .float = -1 },
             } },
@@ -1007,19 +1007,19 @@ test "subtract dictionary" {
     try runTestError("`symbol-`a`b!1 2", SubtractError.incompatible_types);
 
     try runTest("()-()!()", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTestError("()-`a`b!1 2", SubtractError.length_mismatch);
     try runTest("(1;2f)-`a`b!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
+            .{ .list = &.{
                 .{ .int = 0 },
                 .{ .float = 0 },
             } },
@@ -1028,19 +1028,19 @@ test "subtract dictionary" {
     try runTestError("(0b;1;2f)-`a`b!1 2", SubtractError.length_mismatch);
 
     try runTest("(`boolean$())-()!()", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTestError("(`boolean$())-`a`b!1 2", SubtractError.length_mismatch);
     try runTest("10b-`a`b!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 0 },
                 .{ .int = -2 },
             } },
@@ -1049,19 +1049,19 @@ test "subtract dictionary" {
     try runTestError("101b-`a`b!1 2", SubtractError.length_mismatch);
 
     try runTest("(`int$())-()!()", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTestError("(`int$())-`a`b!1 2", SubtractError.length_mismatch);
     try runTest("1 2-`a`b!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 0 },
                 .{ .int = 0 },
             } },
@@ -1070,19 +1070,19 @@ test "subtract dictionary" {
     try runTestError("1 2 3-`a`b!1 2", SubtractError.length_mismatch);
 
     try runTest("(`float$())-()!()", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTestError("(`float$())-`a`b!1 2", SubtractError.length_mismatch);
     try runTest("1 2f-`a`b!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .float_list = &[_]TestValue{
+            .{ .float_list = &.{
                 .{ .float = 0 },
                 .{ .float = 0 },
             } },
@@ -1099,54 +1099,54 @@ test "subtract dictionary" {
     try runTestError("`5`4`3-`a`b!1 2", SubtractError.incompatible_types);
 
     try runTest("(()!())-()!()", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTest("(()!())-`a`b!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 1 },
                 .{ .int = 2 },
             } },
         },
     });
     try runTest("(`a`b!1 2)-()!()", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 1 },
                 .{ .int = 2 },
             } },
         },
     });
     try runTest("(`a`b!1 2)-`a`b!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 0 },
                 .{ .int = 0 },
             } },
         },
     });
     try runTest("(`a`b!1 2)-`a`b!1 2f", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .float_list = &[_]TestValue{
+            .{ .float_list = &.{
                 .{ .float = 0 },
                 .{ .float = 0 },
             } },
@@ -1154,38 +1154,38 @@ test "subtract dictionary" {
     });
     try runTestError("(`a`b!1 2)-`a`b!(1;`a)", SubtractError.incompatible_types);
     try runTest("(`b`a!1 2)-`a`b!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "b" },
                 .{ .symbol = "a" },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = -1 },
                 .{ .int = 1 },
             } },
         },
     });
     try runTest("(`a`b!1 2)-`b`a!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = -1 },
                 .{ .int = 1 },
             } },
         },
     });
     try runTest("(`a`b!1 2)-`c`d!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
                 .{ .symbol = "c" },
                 .{ .symbol = "d" },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 1 },
                 .{ .int = 2 },
                 .{ .int = -1 },
@@ -1200,16 +1200,16 @@ test "subtract dictionary" {
 
 test "subtract table" {
     try runTest("1b-+`a`b!(,1;,2)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = 0 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = -1 },
                 } },
             } },
@@ -1217,16 +1217,16 @@ test "subtract table" {
     });
 
     try runTest("1-+`a`b!(,1;,2)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = 0 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = -1 },
                 } },
             } },
@@ -1234,16 +1234,16 @@ test "subtract table" {
     });
 
     try runTest("1f-+`a`b!(,1;,2)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .float_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .float_list = &.{
                     .{ .float = 0 },
                 } },
-                .{ .float_list = &[_]TestValue{
+                .{ .float_list = &.{
                     .{ .float = -1 },
                 } },
             } },
@@ -1281,48 +1281,48 @@ test "subtract table" {
     try runTestError("(`a`b!1 2)-+`a`b!(,1;,2)", SubtractError.incompatible_types);
 
     try runTest("(+`a`b!(,1;,2))-+`a`b!(,1;,2)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = 0 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 0 },
                 } },
             } },
         },
     });
     try runTest("(+`b`a!(,1;,2))-+`a`b!(,1;,2)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "b" },
                 .{ .symbol = "a" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = -1 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                 } },
             } },
         },
     });
     try runTest("(+`a`b!(,1;,2))-+`b`a!(,1;,2)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = -1 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                 } },
             } },
@@ -1331,40 +1331,40 @@ test "subtract table" {
     try runTestError("(+`a`b!(,1;,2))-+`a`b!(,1;,`symbol)", SubtractError.incompatible_types);
     try runTestError("(+`a`b!(,1;,2))-+`a`b!(1 1;2 2)", SubtractError.length_mismatch);
     try runTest("(+`a`b!(,1;,2))-+`a`b`c!(,1;,2;,3)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
                 .{ .symbol = "c" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = 0 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 0 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = -3 },
                 } },
             } },
         },
     });
     try runTest("(+`a`b`c!(,1;,2;,3))-+`a`b!(,1;,2)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
                 .{ .symbol = "c" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = 0 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 0 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 3 },
                 } },
             } },

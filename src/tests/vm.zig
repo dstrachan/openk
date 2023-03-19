@@ -52,7 +52,7 @@ fn compareValues(expected: TestValue, actual: ValueUnion) !void {
                 }
             }
         },
-        .char => try std.testing.expectEqualSlices(u8, &[_]u8{expected.char}, &[_]u8{actual.char}),
+        .char => try std.testing.expectEqualSlices(u8, &.{expected.char}, &.{actual.char}),
         .symbol => try std.testing.expectEqualSlices(u8, expected.symbol, actual.symbol),
         .list => {
             try std.testing.expectEqual(expected.list.len, actual.list.len);
@@ -150,84 +150,84 @@ test "projection call" {
 }
 
 test "list" {
-    try runTest("01b", .{ .boolean_list = &[_]TestValue{ .{ .boolean = false }, .{ .boolean = true } } });
-    try runTest("(0b;1b)", .{ .boolean_list = &[_]TestValue{ .{ .boolean = false }, .{ .boolean = true } } });
-    try runTest("0 1", .{ .int_list = &[_]TestValue{ .{ .int = 0 }, .{ .int = 1 } } });
-    try runTest("(0;1)", .{ .int_list = &[_]TestValue{ .{ .int = 0 }, .{ .int = 1 } } });
-    try runTest("0 1f", .{ .float_list = &[_]TestValue{ .{ .float = 0 }, .{ .float = 1 } } });
-    try runTest("(0f;1f)", .{ .float_list = &[_]TestValue{ .{ .float = 0 }, .{ .float = 1 } } });
-    try runTest("(\" \";\" \")", .{ .char_list = &[_]TestValue{ .{ .char = ' ' }, .{ .char = ' ' } } });
-    try runTest("\"  \"", .{ .char_list = &[_]TestValue{ .{ .char = ' ' }, .{ .char = ' ' } } });
-    try runTest("`symbol`symbol", .{ .symbol_list = &[_]TestValue{ .{ .symbol = "symbol" }, .{ .symbol = "symbol" } } });
-    try runTest("(`symbol;`symbol)", .{ .symbol_list = &[_]TestValue{ .{ .symbol = "symbol" }, .{ .symbol = "symbol" } } });
+    try runTest("01b", .{ .boolean_list = &.{ .{ .boolean = false }, .{ .boolean = true } } });
+    try runTest("(0b;1b)", .{ .boolean_list = &.{ .{ .boolean = false }, .{ .boolean = true } } });
+    try runTest("0 1", .{ .int_list = &.{ .{ .int = 0 }, .{ .int = 1 } } });
+    try runTest("(0;1)", .{ .int_list = &.{ .{ .int = 0 }, .{ .int = 1 } } });
+    try runTest("0 1f", .{ .float_list = &.{ .{ .float = 0 }, .{ .float = 1 } } });
+    try runTest("(0f;1f)", .{ .float_list = &.{ .{ .float = 0 }, .{ .float = 1 } } });
+    try runTest("(\" \";\" \")", .{ .char_list = &.{ .{ .char = ' ' }, .{ .char = ' ' } } });
+    try runTest("\"  \"", .{ .char_list = &.{ .{ .char = ' ' }, .{ .char = ' ' } } });
+    try runTest("`symbol`symbol", .{ .symbol_list = &.{ .{ .symbol = "symbol" }, .{ .symbol = "symbol" } } });
+    try runTest("(`symbol;`symbol)", .{ .symbol_list = &.{ .{ .symbol = "symbol" }, .{ .symbol = "symbol" } } });
 
-    try runTest("(0b;1;2f)", .{ .list = &[_]TestValue{ .{ .boolean = false }, .{ .int = 1 }, .{ .float = 2 } } });
-    try runTest("(0b;(1;2f))", .{ .list = &[_]TestValue{
+    try runTest("(0b;1;2f)", .{ .list = &.{ .{ .boolean = false }, .{ .int = 1 }, .{ .float = 2 } } });
+    try runTest("(0b;(1;2f))", .{ .list = &.{
         .{ .boolean = false },
-        .{ .list = &[_]TestValue{ .{ .int = 1 }, .{ .float = 2 } } },
+        .{ .list = &.{ .{ .int = 1 }, .{ .float = 2 } } },
     } });
 
-    try runTest("(10+10;10-10;10*10)", .{ .int_list = &[_]TestValue{
+    try runTest("(10+10;10-10;10*10)", .{ .int_list = &.{
         .{ .int = 20 },
         .{ .int = 0 },
         .{ .int = 100 },
     } });
-    try runTest("(10+10;(10-10;10*10))", .{ .list = &[_]TestValue{
+    try runTest("(10+10;(10-10;10*10))", .{ .list = &.{
         .{ .int = 20 },
-        .{ .int_list = &[_]TestValue{
+        .{ .int_list = &.{
             .{ .int = 0 },
             .{ .int = 100 },
         } },
     } });
 
     try runTest("(,10;,20;,30)", .{
-        .list = &[_]TestValue{
-            .{ .int_list = &[_]TestValue{
+        .list = &.{
+            .{ .int_list = &.{
                 .{ .int = 10 },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 20 },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 30 },
             } },
         },
     });
     try runTest("(,,10),(,20;,30)", .{
-        .list = &[_]TestValue{
-            .{ .int_list = &[_]TestValue{
+        .list = &.{
+            .{ .int_list = &.{
                 .{ .int = 10 },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 20 },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 30 },
             } },
         },
     });
 
     try runTest("(,10),(,20;,30)", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .int = 10 },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 20 },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 30 },
             } },
         },
     });
 
     try runTest("(0b;`a`b!1 2)", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .boolean = false },
-            .{ .dictionary = &[_]TestValue{
-                .{ .symbol_list = &[_]TestValue{
+            .{ .dictionary = &.{
+                .{ .symbol_list = &.{
                     .{ .symbol = "a" },
                     .{ .symbol = "b" },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                     .{ .int = 2 },
                 } },
@@ -235,14 +235,14 @@ test "list" {
         },
     });
     try runTest("(0;`a`b!1 2)", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .int = 0 },
-            .{ .dictionary = &[_]TestValue{
-                .{ .symbol_list = &[_]TestValue{
+            .{ .dictionary = &.{
+                .{ .symbol_list = &.{
                     .{ .symbol = "a" },
                     .{ .symbol = "b" },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                     .{ .int = 2 },
                 } },
@@ -250,14 +250,14 @@ test "list" {
         },
     });
     try runTest("(0f;`a`b!1 2)", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .float = 0 },
-            .{ .dictionary = &[_]TestValue{
-                .{ .symbol_list = &[_]TestValue{
+            .{ .dictionary = &.{
+                .{ .symbol_list = &.{
                     .{ .symbol = "a" },
                     .{ .symbol = "b" },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                     .{ .int = 2 },
                 } },
@@ -265,14 +265,14 @@ test "list" {
         },
     });
     try runTest("(\"a\";`a`b!1 2)", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .char = 'a' },
-            .{ .dictionary = &[_]TestValue{
-                .{ .symbol_list = &[_]TestValue{
+            .{ .dictionary = &.{
+                .{ .symbol_list = &.{
                     .{ .symbol = "a" },
                     .{ .symbol = "b" },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                     .{ .int = 2 },
                 } },
@@ -280,14 +280,14 @@ test "list" {
         },
     });
     try runTest("(`a;`a`b!1 2)", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .symbol = "a" },
-            .{ .dictionary = &[_]TestValue{
-                .{ .symbol_list = &[_]TestValue{
+            .{ .dictionary = &.{
+                .{ .symbol_list = &.{
                     .{ .symbol = "a" },
                     .{ .symbol = "b" },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                     .{ .int = 2 },
                 } },
@@ -295,14 +295,14 @@ test "list" {
         },
     });
     try runTest("(();`a`b!1 2)", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .list = &.{} },
-            .{ .dictionary = &[_]TestValue{
-                .{ .symbol_list = &[_]TestValue{
+            .{ .dictionary = &.{
+                .{ .symbol_list = &.{
                     .{ .symbol = "a" },
                     .{ .symbol = "b" },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                     .{ .int = 2 },
                 } },
@@ -310,17 +310,17 @@ test "list" {
         },
     });
     try runTest("(01b;`a`b!1 2)", .{
-        .list = &[_]TestValue{
-            .{ .boolean_list = &[_]TestValue{
+        .list = &.{
+            .{ .boolean_list = &.{
                 .{ .boolean = false },
                 .{ .boolean = true },
             } },
-            .{ .dictionary = &[_]TestValue{
-                .{ .symbol_list = &[_]TestValue{
+            .{ .dictionary = &.{
+                .{ .symbol_list = &.{
                     .{ .symbol = "a" },
                     .{ .symbol = "b" },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                     .{ .int = 2 },
                 } },
@@ -328,17 +328,17 @@ test "list" {
         },
     });
     try runTest("(0 1;`a`b!1 2)", .{
-        .list = &[_]TestValue{
-            .{ .int_list = &[_]TestValue{
+        .list = &.{
+            .{ .int_list = &.{
                 .{ .int = 0 },
                 .{ .int = 1 },
             } },
-            .{ .dictionary = &[_]TestValue{
-                .{ .symbol_list = &[_]TestValue{
+            .{ .dictionary = &.{
+                .{ .symbol_list = &.{
                     .{ .symbol = "a" },
                     .{ .symbol = "b" },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                     .{ .int = 2 },
                 } },
@@ -346,17 +346,17 @@ test "list" {
         },
     });
     try runTest("(0 1f;`a`b!1 2)", .{
-        .list = &[_]TestValue{
-            .{ .float_list = &[_]TestValue{
+        .list = &.{
+            .{ .float_list = &.{
                 .{ .float = 0 },
                 .{ .float = 1 },
             } },
-            .{ .dictionary = &[_]TestValue{
-                .{ .symbol_list = &[_]TestValue{
+            .{ .dictionary = &.{
+                .{ .symbol_list = &.{
                     .{ .symbol = "a" },
                     .{ .symbol = "b" },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                     .{ .int = 2 },
                 } },
@@ -364,17 +364,17 @@ test "list" {
         },
     });
     try runTest("(\"ab\";`a`b!1 2)", .{
-        .list = &[_]TestValue{
-            .{ .char_list = &[_]TestValue{
+        .list = &.{
+            .{ .char_list = &.{
                 .{ .char = 'a' },
                 .{ .char = 'b' },
             } },
-            .{ .dictionary = &[_]TestValue{
-                .{ .symbol_list = &[_]TestValue{
+            .{ .dictionary = &.{
+                .{ .symbol_list = &.{
                     .{ .symbol = "a" },
                     .{ .symbol = "b" },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                     .{ .int = 2 },
                 } },
@@ -382,17 +382,17 @@ test "list" {
         },
     });
     try runTest("(`a`b;`a`b!1 2)", .{
-        .list = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .list = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .dictionary = &[_]TestValue{
-                .{ .symbol_list = &[_]TestValue{
+            .{ .dictionary = &.{
+                .{ .symbol_list = &.{
                     .{ .symbol = "a" },
                     .{ .symbol = "b" },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                     .{ .int = 2 },
                 } },
@@ -401,23 +401,23 @@ test "list" {
     });
 
     try runTest("(`a`b!1 2;`c`d!3 4)", .{
-        .list = &[_]TestValue{
-            .{ .dictionary = &[_]TestValue{
-                .{ .symbol_list = &[_]TestValue{
+        .list = &.{
+            .{ .dictionary = &.{
+                .{ .symbol_list = &.{
                     .{ .symbol = "a" },
                     .{ .symbol = "b" },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                     .{ .int = 2 },
                 } },
             } },
-            .{ .dictionary = &[_]TestValue{
-                .{ .symbol_list = &[_]TestValue{
+            .{ .dictionary = &.{
+                .{ .symbol_list = &.{
                     .{ .symbol = "c" },
                     .{ .symbol = "d" },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 3 },
                     .{ .int = 4 },
                 } },
@@ -426,17 +426,17 @@ test "list" {
     });
 
     try runTest("(`a`b!1 2;`a`b!1 2)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                     .{ .int = 1 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 2 },
                     .{ .int = 2 },
                 } },
@@ -445,18 +445,18 @@ test "list" {
     });
 
     try runTest("(`a`b!1 2;`a`b!1 2;`a`b!1 2)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                     .{ .int = 1 },
                     .{ .int = 1 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 2 },
                     .{ .int = 2 },
                     .{ .int = 2 },
@@ -501,19 +501,19 @@ test "projections don't leak memory" {
 
 test "dictionaries" {
     try runTest("()!()", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTest("`a`b`c!1 2 3", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
                 .{ .symbol = "c" },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 1 },
                 .{ .int = 2 },
                 .{ .int = 3 },
@@ -521,28 +521,28 @@ test "dictionaries" {
         },
     });
     // try runTest("`a`b!(`a`b!1 2;`c`d!3 4)", .{
-    //     .dictionary = &[_]TestValue{
-    //         .{ .symbol_list = &[_]TestValue{
+    //     .dictionary = &.{
+    //         .{ .symbol_list = &.{
     //             .{ .symbol = "a" },
     //             .{ .symbol = "b" },
     //         } },
-    //         .{ .list = &[_]TestValue{
-    //             .{ .dictionary = &[_]TestValue{
-    //                 .{ .symbol_list = &[_]TestValue{
+    //         .{ .list = &.{
+    //             .{ .dictionary = &.{
+    //                 .{ .symbol_list = &.{
     //                     .{ .symbol = "a" },
     //                     .{ .symbol = "b" },
     //                 } },
-    //                 .{ .int_list = &[_]TestValue{
+    //                 .{ .int_list = &.{
     //                     .{ .int = 1 },
     //                     .{ .int = 2 },
     //                 } },
     //             } },
-    //             .{ .dictionary = &[_]TestValue{
-    //                 .{ .symbol_list = &[_]TestValue{
+    //             .{ .dictionary = &.{
+    //                 .{ .symbol_list = &.{
     //                     .{ .symbol = "a" },
     //                     .{ .symbol = "b" },
     //                 } },
-    //                 .{ .int_list = &[_]TestValue{
+    //                 .{ .int_list = &.{
     //                     .{ .int = 1 },
     //                     .{ .int = 2 },
     //                 } },
@@ -742,12 +742,12 @@ test "null/inf more" {
 //         var values_index: usize = 0;
 //         for (line, 0..) |c, i| {
 //             if (c == ',') {
-//                 values[values_index] = std.mem.trim(u8, line[prev_index..i], &[_]u8{ ' ', '\t' });
+//                 values[values_index] = std.mem.trim(u8, line[prev_index..i], &.{ ' ', '\t' });
 //                 values_index += 1;
 //                 prev_index = i + 1;
 //             }
 //         }
-//         values[values_index] = std.mem.trim(u8, line[prev_index..], &[_]u8{ ' ', '\t' });
+//         values[values_index] = std.mem.trim(u8, line[prev_index..], &.{ ' ', '\t' });
 
 //         const expression = try std.fmt.bufPrint(&expression_buffer, "(({s}){s}{s})~{s}\n", .{ values[1], values[0], values[2], values[3] });
 //         runTest(expression, .{ .boolean = true }) catch |e| {

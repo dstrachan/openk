@@ -9,7 +9,7 @@ test "reverse boolean" {
     try runTest("|0b", .{ .boolean = false });
     try runTest("|`boolean$()", .{ .boolean_list = &.{} });
     try runTest("|01b", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = true },
             .{ .boolean = false },
         },
@@ -20,7 +20,7 @@ test "reverse int" {
     try runTest("|0", .{ .int = 0 });
     try runTest("|`int$()", .{ .int_list = &.{} });
     try runTest("|0 1", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 1 },
             .{ .int = 0 },
         },
@@ -31,7 +31,7 @@ test "reverse float" {
     try runTest("|0f", .{ .float = 0 });
     try runTest("|`float$()", .{ .float_list = &.{} });
     try runTest("|0 1f", .{
-        .float_list = &[_]TestValue{
+        .float_list = &.{
             .{ .float = 1 },
             .{ .float = 0 },
         },
@@ -42,7 +42,7 @@ test "reverse char" {
     try runTest("|\"a\"", .{ .char = 'a' });
     try runTest("|\"\"", .{ .char_list = &.{} });
     try runTest("|\"abcde\"", .{
-        .char_list = &[_]TestValue{
+        .char_list = &.{
             .{ .char = 'e' },
             .{ .char = 'd' },
             .{ .char = 'c' },
@@ -56,7 +56,7 @@ test "reverse symbol" {
     try runTest("|`symbol", .{ .symbol = "symbol" });
     try runTest("|`$()", .{ .symbol_list = &.{} });
     try runTest("|`a`b`c`d`e", .{
-        .symbol_list = &[_]TestValue{
+        .symbol_list = &.{
             .{ .symbol = "e" },
             .{ .symbol = "d" },
             .{ .symbol = "c" },
@@ -69,7 +69,7 @@ test "reverse symbol" {
 test "reverse list" {
     try runTest("|()", .{ .list = &.{} });
     try runTest("|(0b;1;2f)", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .float = 2 },
             .{ .int = 1 },
             .{ .boolean = false },
@@ -77,48 +77,48 @@ test "reverse list" {
     });
 
     try runTest("|(0 1;2 3)", .{
-        .list = &[_]TestValue{
-            .{ .int_list = &[_]TestValue{
+        .list = &.{
+            .{ .int_list = &.{
                 .{ .int = 2 },
                 .{ .int = 3 },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 0 },
                 .{ .int = 1 },
             } },
         },
     });
     try runTest("|(`a`b;`c`d)", .{
-        .list = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .list = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "c" },
                 .{ .symbol = "d" },
             } },
-            .{ .symbol_list = &[_]TestValue{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
         },
     });
     try runTest("|(\"ab\";\"cd\")", .{
-        .list = &[_]TestValue{
-            .{ .char_list = &[_]TestValue{
+        .list = &.{
+            .{ .char_list = &.{
                 .{ .char = 'c' },
                 .{ .char = 'd' },
             } },
-            .{ .char_list = &[_]TestValue{
+            .{ .char_list = &.{
                 .{ .char = 'a' },
                 .{ .char = 'b' },
             } },
         },
     });
     try runTest("|(`a;1;\"ab\";\"cd\")", .{
-        .list = &[_]TestValue{
-            .{ .char_list = &[_]TestValue{
+        .list = &.{
+            .{ .char_list = &.{
                 .{ .char = 'c' },
                 .{ .char = 'd' },
             } },
-            .{ .char_list = &[_]TestValue{
+            .{ .char_list = &.{
                 .{ .char = 'a' },
                 .{ .char = 'b' },
             } },
@@ -128,15 +128,15 @@ test "reverse list" {
     });
 
     try runTest("|(``;(`a`b;`symbol))", .{
-        .list = &[_]TestValue{
-            .{ .list = &[_]TestValue{
-                .{ .symbol_list = &[_]TestValue{
+        .list = &.{
+            .{ .list = &.{
+                .{ .symbol_list = &.{
                     .{ .symbol = "a" },
                     .{ .symbol = "b" },
                 } },
                 .{ .symbol = "symbol" },
             } },
-            .{ .symbol_list = &[_]TestValue{
+            .{ .symbol_list = &.{
                 .{ .symbol = "" },
                 .{ .symbol = "" },
             } },
@@ -146,75 +146,75 @@ test "reverse list" {
 
 test "reverse dictionary" {
     try runTest("|()!()", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTest("|`a`b!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "b" },
                 .{ .symbol = "a" },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 2 },
                 .{ .int = 1 },
             } },
         },
     });
     try runTest("|`a`b!(();())", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "b" },
                 .{ .symbol = "a" },
             } },
-            .{ .list = &[_]TestValue{
+            .{ .list = &.{
                 .{ .list = &.{} },
                 .{ .list = &.{} },
             } },
         },
     });
     try runTest("|`a`b!(`int$();`float$())", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "b" },
                 .{ .symbol = "a" },
             } },
-            .{ .list = &[_]TestValue{
+            .{ .list = &.{
                 .{ .float_list = &.{} },
                 .{ .int_list = &.{} },
             } },
         },
     });
     try runTest("|`a`b!(,1;,2)", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "b" },
                 .{ .symbol = "a" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = 2 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                 } },
             } },
         },
     });
     try runTest("|`a`b!(1 2;3 4)", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "b" },
                 .{ .symbol = "a" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = 3 },
                     .{ .int = 4 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                     .{ .int = 2 },
                 } },
@@ -222,13 +222,13 @@ test "reverse dictionary" {
         },
     });
     try runTest("|`a`b!(1;2 3)", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "b" },
                 .{ .symbol = "a" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = 2 },
                     .{ .int = 3 },
                 } },
@@ -237,12 +237,12 @@ test "reverse dictionary" {
         },
     });
     try runTest("|1 2!3 4", .{
-        .dictionary = &[_]TestValue{
-            .{ .int_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .int_list = &.{
                 .{ .int = 2 },
                 .{ .int = 1 },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 4 },
                 .{ .int = 3 },
             } },
@@ -252,57 +252,57 @@ test "reverse dictionary" {
 
 test "reverse table" {
     try runTest("|+`a`b!(();())", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
+            .{ .list = &.{
                 .{ .list = &.{} },
                 .{ .list = &.{} },
             } },
         },
     });
     try runTest("|+`a`b!(`int$();`float$())", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
+            .{ .list = &.{
                 .{ .int_list = &.{} },
                 .{ .float_list = &.{} },
             } },
         },
     });
     try runTest("|+`a`b!(,1;,2)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 2 },
                 } },
             } },
         },
     });
     try runTest("|+`a`b!(1 2;3 4)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = 2 },
                     .{ .int = 1 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 4 },
                     .{ .int = 3 },
                 } },
@@ -310,17 +310,17 @@ test "reverse table" {
         },
     });
     try runTest("|+`a`b!(1;2 3)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                     .{ .int = 1 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 3 },
                     .{ .int = 2 },
                 } },

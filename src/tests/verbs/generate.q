@@ -12,16 +12,16 @@ getValueFloat:{[x]
   ".float = ",$[null x;"Value.null_float";0w=x;"Value.inf_float";-0w=x;"-Value.inf_float";ssr[-3!x;"f";""]]}
 
 getValueList:{[x]
-  ".list = &[_]TestValue{ ",(", "sv getValue'[x])," }"}
+  ".list = &.{ ",(", "sv getValue'[x])," }"}
 
 getValueBoolList:{[x]
-  ".boolean_list = &[_]TestValue{ ",(", "sv getValue'[x])," }"}
+  ".boolean_list = &.{ ",(", "sv getValue'[x])," }"}
 
 getValueIntList:{[x]
-  ".int_list = &[_]TestValue{ ",(", "sv getValue'[x])," }"}
+  ".int_list = &.{ ",(", "sv getValue'[x])," }"}
 
 getValueFloatList:{[x]
-  ".float_list = &[_]TestValue{ ",(", "sv getValue'[x])," }"}
+  ".float_list = &.{ ",(", "sv getValue'[x])," }"}
 
 getValue:{[x]
   dict:(!). flip(

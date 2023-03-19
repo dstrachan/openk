@@ -12,7 +12,7 @@ test "less boolean" {
     try runTest("1b<0b", .{ .boolean = false });
     try runTest("1b<`boolean$()", .{ .boolean_list = &.{} });
     try runTest("1b<00000b", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -24,7 +24,7 @@ test "less boolean" {
     try runTest("1<0b", .{ .boolean = false });
     try runTest("1<`boolean$()", .{ .boolean_list = &.{} });
     try runTest("1<00000b", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -36,7 +36,7 @@ test "less boolean" {
     try runTest("1f<0b", .{ .boolean = false });
     try runTest("1f<`boolean$()", .{ .boolean_list = &.{} });
     try runTest("1f<00000b", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -55,24 +55,24 @@ test "less boolean" {
 
     try runTest("()<0b", .{ .list = &.{} });
     try runTest("(1b;2)<0b", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
         },
     });
     try runTest("(1b;2;3f)<0b", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
         },
     });
     try runTest("(1b;2;3f;(0b;1))<0b", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = false },
                 .{ .boolean = false },
             } },
@@ -83,13 +83,13 @@ test "less boolean" {
     try runTestError("()<010b", LessError.length_mismatch);
     try runTestError("(1b;2)<`boolean$()", LessError.length_mismatch);
     try runTest("(1b;2)<01b", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
         },
     });
     try runTest("(1b;2;3f)<010b", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -100,7 +100,7 @@ test "less boolean" {
     try runTestError("(1b;2;3f;`symbol)<0101b", LessError.incompatible_types);
 
     try runTest("11111b<0b", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -110,7 +110,7 @@ test "less boolean" {
     });
     try runTestError("11111b<`boolean$()", LessError.length_mismatch);
     try runTest("11111b<00000b", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -121,7 +121,7 @@ test "less boolean" {
     try runTestError("11111b<000000b", LessError.length_mismatch);
 
     try runTest("5 4 3 2 1<0b", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -131,7 +131,7 @@ test "less boolean" {
     });
     try runTestError("5 4 3 2 1<`boolean$()", LessError.length_mismatch);
     try runTest("5 4 3 2 1<00000b", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -142,7 +142,7 @@ test "less boolean" {
     try runTestError("5 4 3 2 1<000000b", LessError.length_mismatch);
 
     try runTest("5 4 3 2 1f<0b", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -152,7 +152,7 @@ test "less boolean" {
     });
     try runTestError("5 4 3 2 1f<`boolean$()", LessError.length_mismatch);
     try runTest("5 4 3 2 1f<00000b", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -173,18 +173,18 @@ test "less boolean" {
     try runTestError("`a`b`c`d`e<000000b", LessError.incompatible_types);
 
     try runTest("(()!())<0b", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTest("(`a`b!1 2)<0b", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = false },
                 .{ .boolean = false },
             } },
@@ -192,12 +192,12 @@ test "less boolean" {
     });
     try runTestError("(`a`b!1 2)<`boolean$()", LessError.length_mismatch);
     try runTest("(`a`b!1 2)<01b", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = false },
                 .{ .boolean = false },
             } },
@@ -206,16 +206,16 @@ test "less boolean" {
     try runTestError("(`a`b!1 2)<010b", LessError.length_mismatch);
 
     try runTest("(+`a`b!(,1;,2))<0b", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .boolean_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .boolean_list = &.{
                     .{ .boolean = false },
                 } },
-                .{ .boolean_list = &[_]TestValue{
+                .{ .boolean_list = &.{
                     .{ .boolean = false },
                 } },
             } },
@@ -231,7 +231,7 @@ test "less int" {
     try runTest("1b<0", .{ .boolean = false });
     try runTest("1b<`int$()", .{ .boolean_list = &.{} });
     try runTest("1b<0 1 2 3 4", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = true },
@@ -243,7 +243,7 @@ test "less int" {
     try runTest("1<0", .{ .boolean = false });
     try runTest("1<`int$()", .{ .boolean_list = &.{} });
     try runTest("1<0 1 2 3 4", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = true },
@@ -255,7 +255,7 @@ test "less int" {
     try runTest("1f<0", .{ .boolean = false });
     try runTest("1f<`int$()", .{ .boolean_list = &.{} });
     try runTest("1f<0 1 2 3 4", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = true },
@@ -274,24 +274,24 @@ test "less int" {
 
     try runTest("()<0", .{ .list = &.{} });
     try runTest("(1b;2)<0", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
         },
     });
     try runTest("(1b;2;3f)<0", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
         },
     });
     try runTest("(1b;2;3f;(0b;1))<0", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = false },
                 .{ .boolean = false },
             } },
@@ -302,13 +302,13 @@ test "less int" {
     try runTestError("()<0 1 2", LessError.length_mismatch);
     try runTestError("(1b;2)<`int$()", LessError.length_mismatch);
     try runTest("(1b;2)<0 1", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
         },
     });
     try runTest("(1b;2;3f)<0 1 2", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -319,7 +319,7 @@ test "less int" {
     try runTestError("(1b;2;3f;`symbol)<0 1 2 3", LessError.incompatible_types);
 
     try runTest("11111b<0", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -329,7 +329,7 @@ test "less int" {
     });
     try runTestError("11111b<`int$()", LessError.length_mismatch);
     try runTest("11111b<0 1 2 3 4", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = true },
@@ -340,7 +340,7 @@ test "less int" {
     try runTestError("11111b<0 1 2 3 4 5", LessError.length_mismatch);
 
     try runTest("5 4 3 2 1<0", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -350,7 +350,7 @@ test "less int" {
     });
     try runTestError("5 4 3 2 1<`int$()", LessError.length_mismatch);
     try runTest("5 4 3 2 1<0 1 2 3 4", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -361,7 +361,7 @@ test "less int" {
     try runTestError("5 4 3 2 1<0 1 2 3 4 5", LessError.length_mismatch);
 
     try runTest("5 4 3 2 1f<0", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -371,7 +371,7 @@ test "less int" {
     });
     try runTestError("5 4 3 2 1f<`int$()", LessError.length_mismatch);
     try runTest("5 4 3 2 1f<0 1 2 3 4", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -392,18 +392,18 @@ test "less int" {
     try runTestError("`a`b`c`d`e<0 1 2 3 4 5", LessError.incompatible_types);
 
     try runTest("(()!())<0", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTest("(`a`b!1 2)<0", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = false },
                 .{ .boolean = false },
             } },
@@ -411,12 +411,12 @@ test "less int" {
     });
     try runTestError("(`a`b!1 2)<`int$()", LessError.length_mismatch);
     try runTest("(`a`b!1 2)<0 1", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = false },
                 .{ .boolean = false },
             } },
@@ -425,16 +425,16 @@ test "less int" {
     try runTestError("(`a`b!1 2)<0 1 2", LessError.length_mismatch);
 
     try runTest("(+`a`b!(,1;,2))<0", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .boolean_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .boolean_list = &.{
                     .{ .boolean = false },
                 } },
-                .{ .boolean_list = &[_]TestValue{
+                .{ .boolean_list = &.{
                     .{ .boolean = false },
                 } },
             } },
@@ -450,7 +450,7 @@ test "less float" {
     try runTest("1b<0f", .{ .boolean = false });
     try runTest("1b<`float$()", .{ .boolean_list = &.{} });
     try runTest("1b<0 1 2 3 4f", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = true },
@@ -462,7 +462,7 @@ test "less float" {
     try runTest("1<0f", .{ .boolean = false });
     try runTest("1<`float$()", .{ .boolean_list = &.{} });
     try runTest("1<0 1 2 3 4f", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = true },
@@ -474,7 +474,7 @@ test "less float" {
     try runTest("1f<0f", .{ .boolean = false });
     try runTest("1f<`float$()", .{ .boolean_list = &.{} });
     try runTest("1f<0 1 2 3 4f", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = true },
@@ -493,24 +493,24 @@ test "less float" {
 
     try runTest("()<0f", .{ .list = &.{} });
     try runTest("(1b;2)<0f", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
         },
     });
     try runTest("(1b;2;3f)<0f", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
         },
     });
     try runTest("(1b;2;3f;(0b;1))<0f", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = false },
                 .{ .boolean = false },
             } },
@@ -521,13 +521,13 @@ test "less float" {
     try runTestError("()<0 1 2f", LessError.length_mismatch);
     try runTestError("(1b;2)<`float$()", LessError.length_mismatch);
     try runTest("(1b;2)<0 1f", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
         },
     });
     try runTest("(1b;2;3f)<0 1 2f", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -538,7 +538,7 @@ test "less float" {
     try runTestError("(1b;2;3f;`symbol)<0 1 2 3f", LessError.incompatible_types);
 
     try runTest("11111b<0f", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -548,7 +548,7 @@ test "less float" {
     });
     try runTestError("11111b<`float$()", LessError.length_mismatch);
     try runTest("11111b<0 1 2 3 4f", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = true },
@@ -559,7 +559,7 @@ test "less float" {
     try runTestError("11111b<0 1 2 3 4 5f", LessError.length_mismatch);
 
     try runTest("5 4 3 2 1<0f", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -569,7 +569,7 @@ test "less float" {
     });
     try runTestError("5 4 3 2 1<`float$()", LessError.length_mismatch);
     try runTest("5 4 3 2 1<0 1 2 3 4f", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -580,7 +580,7 @@ test "less float" {
     try runTestError("5 4 3 2 1<0 1 2 3 4 5f", LessError.length_mismatch);
 
     try runTest("5 4 3 2 1f<0f", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -590,7 +590,7 @@ test "less float" {
     });
     try runTestError("5 4 3 2 1f<`float$()", LessError.length_mismatch);
     try runTest("5 4 3 2 1f<0 1 2 3 4f", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -611,18 +611,18 @@ test "less float" {
     try runTestError("`a`b`c`d`e<0 1 2 3 4 5f", LessError.incompatible_types);
 
     try runTest("(()!())<0f", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTest("(`a`b!1 2)<0f", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = false },
                 .{ .boolean = false },
             } },
@@ -630,12 +630,12 @@ test "less float" {
     });
     try runTestError("(`a`b!1 2)<`float$()", LessError.length_mismatch);
     try runTest("(`a`b!1 2)<0 1f", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = false },
                 .{ .boolean = false },
             } },
@@ -644,16 +644,16 @@ test "less float" {
     try runTestError("(`a`b!1 2)<0 1 2f", LessError.length_mismatch);
 
     try runTest("(+`a`b!(,1;,2))<0f", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .boolean_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .boolean_list = &.{
                     .{ .boolean = false },
                 } },
-                .{ .boolean_list = &[_]TestValue{
+                .{ .boolean_list = &.{
                     .{ .boolean = false },
                 } },
             } },
@@ -776,7 +776,7 @@ test "less symbol" {
 test "less list" {
     try runTest("1b<()", .{ .list = &.{} });
     try runTest("1b<(0b;1;0N;0W;-0W)", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -785,7 +785,7 @@ test "less list" {
         },
     });
     try runTest("1b<(0b;1;0N;0W;-0W;1f;0n;0w;-0w)", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -802,7 +802,7 @@ test "less list" {
 
     try runTest("1<()", .{ .list = &.{} });
     try runTest("1<(0b;1;0N;0W;-0W)", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -811,7 +811,7 @@ test "less list" {
         },
     });
     try runTest("1<(0b;1;0N;0W;-0W;1f;0n;0w;-0w)", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -828,7 +828,7 @@ test "less list" {
 
     try runTest("1f<()", .{ .list = &.{} });
     try runTest("1f<(0b;1;0N;0W;-0W;1f;0n;0w;-0w)", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -851,27 +851,27 @@ test "less list" {
     try runTestError("(0N;0n)<()", LessError.length_mismatch);
     try runTestError("()<(0N;0n)", LessError.length_mismatch);
     try runTest("(1b;2)<(1b;2)", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
         },
     });
     try runTest("(1b;2f)<(2f;1b)", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = true },
             .{ .boolean = false },
         },
     });
     try runTest("(2;3f)<(2;3f)", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
         },
     });
     try runTest("(1b;(2;3f))<(0N;(0n;0N))", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .boolean = false },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = false },
                 .{ .boolean = false },
             } },
@@ -882,13 +882,13 @@ test "less list" {
 
     try runTestError("010b<()", LessError.length_mismatch);
     try runTest("01b<(0b;0N)", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
         },
     });
     try runTest("010b<(0b;0N;0n)", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -899,13 +899,13 @@ test "less list" {
 
     try runTestError("0 1 2<()", LessError.length_mismatch);
     try runTest("0 1<(0b;0N)", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
         },
     });
     try runTest("0 1 2<(0b;0N;0n)", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -916,7 +916,7 @@ test "less list" {
 
     try runTestError("0 1 2f<()", LessError.length_mismatch);
     try runTest("0 1 2f<(0b;0N;0n)", .{
-        .boolean_list = &[_]TestValue{
+        .boolean_list = &.{
             .{ .boolean = false },
             .{ .boolean = false },
             .{ .boolean = false },
@@ -931,12 +931,12 @@ test "less list" {
 
     try runTestError("(`a`b!1 2)<()", LessError.length_mismatch);
     try runTest("(`a`b!1 2)<(1;2f)", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = false },
                 .{ .boolean = false },
             } },
@@ -951,18 +951,18 @@ test "less list" {
 
 test "less dictionary" {
     try runTest("1b<()!()", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTest("1b<`a`b!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = false },
                 .{ .boolean = true },
             } },
@@ -970,18 +970,18 @@ test "less dictionary" {
     });
 
     try runTest("1<()!()", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTest("1<`a`b!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = false },
                 .{ .boolean = true },
             } },
@@ -989,18 +989,18 @@ test "less dictionary" {
     });
 
     try runTest("1f<()!()", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTest("1f<`a`b!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = false },
                 .{ .boolean = true },
             } },
@@ -1012,19 +1012,19 @@ test "less dictionary" {
     try runTestError("`symbol<`a`b!1 2", LessError.incompatible_types);
 
     try runTest("()<()!()", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTestError("()<`a`b!1 2", LessError.length_mismatch);
     try runTest("(1;2f)<`a`b!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = false },
                 .{ .boolean = false },
             } },
@@ -1033,19 +1033,19 @@ test "less dictionary" {
     try runTestError("(0b;1;2f)<`a`b!1 2", LessError.length_mismatch);
 
     try runTest("(`boolean$())<()!()", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTestError("(`boolean$())<`a`b!1 2", LessError.length_mismatch);
     try runTest("10b<`a`b!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = false },
                 .{ .boolean = true },
             } },
@@ -1054,19 +1054,19 @@ test "less dictionary" {
     try runTestError("101b<`a`b!1 2", LessError.length_mismatch);
 
     try runTest("(`int$())<()!()", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTestError("(`int$())<`a`b!1 2", LessError.length_mismatch);
     try runTest("1 2<`a`b!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = false },
                 .{ .boolean = false },
             } },
@@ -1075,19 +1075,19 @@ test "less dictionary" {
     try runTestError("1 2 3<`a`b!1 2", LessError.length_mismatch);
 
     try runTest("(`float$())<()!()", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTestError("(`float$())<`a`b!1 2", LessError.length_mismatch);
     try runTest("1 2f<`a`b!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = false },
                 .{ .boolean = false },
             } },
@@ -1104,80 +1104,80 @@ test "less dictionary" {
     try runTestError("`5`4`3<`a`b!1 2", LessError.incompatible_types);
 
     try runTest("(()!())<()!()", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTest("(()!())<`a`b!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
+            .{ .list = &.{
                 .{ .list = &.{} },
                 .{ .list = &.{} },
             } },
         },
     });
     try runTest("(`a`b!1 2)<()!()", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
+            .{ .list = &.{
                 .{ .list = &.{} },
                 .{ .list = &.{} },
             } },
         },
     });
     try runTest("(`a`b!1 2)<`a`b!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = false },
                 .{ .boolean = false },
             } },
         },
     });
     try runTest("(`b`a!1 2)<`a`b!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "b" },
                 .{ .symbol = "a" },
             } },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = true },
                 .{ .boolean = false },
             } },
         },
     });
     try runTest("(`a`b!1 2)<`b`a!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = true },
                 .{ .boolean = false },
             } },
         },
     });
     try runTest("(`a`b!1 2)<`c`d!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
                 .{ .symbol = "c" },
                 .{ .symbol = "d" },
             } },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = false },
                 .{ .boolean = false },
                 .{ .boolean = true },
@@ -1186,14 +1186,14 @@ test "less dictionary" {
         },
     });
     try runTest("(`a`b!0N 0W)<`c`d!0N 0W", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
                 .{ .symbol = "c" },
                 .{ .symbol = "d" },
             } },
-            .{ .boolean_list = &[_]TestValue{
+            .{ .boolean_list = &.{
                 .{ .boolean = false },
                 .{ .boolean = false },
                 .{ .boolean = false },
@@ -1208,16 +1208,16 @@ test "less dictionary" {
 
 test "less table" {
     try runTest("1b<+`a`b!(,1;,2)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .boolean_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .boolean_list = &.{
                     .{ .boolean = false },
                 } },
-                .{ .boolean_list = &[_]TestValue{
+                .{ .boolean_list = &.{
                     .{ .boolean = true },
                 } },
             } },
@@ -1225,16 +1225,16 @@ test "less table" {
     });
 
     try runTest("1<+`a`b!(,1;,2)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .boolean_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .boolean_list = &.{
                     .{ .boolean = false },
                 } },
-                .{ .boolean_list = &[_]TestValue{
+                .{ .boolean_list = &.{
                     .{ .boolean = true },
                 } },
             } },
@@ -1242,16 +1242,16 @@ test "less table" {
     });
 
     try runTest("1f<+`a`b!(,1;,2)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .boolean_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .boolean_list = &.{
                     .{ .boolean = false },
                 } },
-                .{ .boolean_list = &[_]TestValue{
+                .{ .boolean_list = &.{
                     .{ .boolean = true },
                 } },
             } },
@@ -1289,48 +1289,48 @@ test "less table" {
     try runTestError("(`a`b!1 2)<+`a`b!(,1;,2)", LessError.incompatible_types);
 
     try runTest("(+`a`b!(,1;,2))<+`a`b!(,1;,2)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .boolean_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .boolean_list = &.{
                     .{ .boolean = false },
                 } },
-                .{ .boolean_list = &[_]TestValue{
+                .{ .boolean_list = &.{
                     .{ .boolean = false },
                 } },
             } },
         },
     });
     try runTest("(+`b`a!(,1;,2))<+`a`b!(,1;,2)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "b" },
                 .{ .symbol = "a" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .boolean_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .boolean_list = &.{
                     .{ .boolean = true },
                 } },
-                .{ .boolean_list = &[_]TestValue{
+                .{ .boolean_list = &.{
                     .{ .boolean = false },
                 } },
             } },
         },
     });
     try runTest("(+`a`b!(,1;,2))<+`b`a!(,1;,2)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .boolean_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .boolean_list = &.{
                     .{ .boolean = true },
                 } },
-                .{ .boolean_list = &[_]TestValue{
+                .{ .boolean_list = &.{
                     .{ .boolean = false },
                 } },
             } },

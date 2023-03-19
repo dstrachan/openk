@@ -11,25 +11,25 @@ test "index" {
     try runTest("(`a`b`c!1 2 3)`a", .{ .int = 1 });
     try runTest("(`a`b`c!1 2 3)`d", .{ .int = Value.null_int });
     try runTest("(`a`b`c!1 2 3)`a`b", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 1 },
             .{ .int = 2 },
         },
     });
     try runTest("(`a`b`c!1 2 3)`a`d", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 1 },
             .{ .int = Value.null_int },
         },
     });
     try runTest("(`a`b`c!1 2 3)`d`a", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = Value.null_int },
             .{ .int = 1 },
         },
     });
     try runTest("(`a`b`c!1 2 3)`d`e", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = Value.null_int },
             .{ .int = Value.null_int },
         },

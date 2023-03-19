@@ -9,7 +9,7 @@ test "where boolean" {
     try runTestError("&0b", WhereError.invalid_type);
     try runTest("&`boolean$()", .{ .int_list = &.{} });
     try runTest("&01b", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 1 },
         },
     });
@@ -21,7 +21,7 @@ test "where int" {
     try runTestError("&,0W", WhereError.list_limit);
     try runTestError("&,-1", WhereError.negative_number);
     try runTest("&0 1 2 3 4", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 1 },
             .{ .int = 2 },
             .{ .int = 2 },
@@ -66,19 +66,19 @@ test "where dictionary" {
     try runTest("&()!()", .{ .list = &.{} });
     try runTestError("&`a`b!(();())", WhereError.invalid_type);
     try runTest("&`a`b!01b", .{
-        .symbol_list = &[_]TestValue{
+        .symbol_list = &.{
             .{ .symbol = "b" },
         },
     });
     try runTest("&`a`b!1 2", .{
-        .symbol_list = &[_]TestValue{
+        .symbol_list = &.{
             .{ .symbol = "a" },
             .{ .symbol = "b" },
             .{ .symbol = "b" },
         },
     });
     try runTest("&10 20!1 2", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 10 },
             .{ .int = 20 },
             .{ .int = 20 },

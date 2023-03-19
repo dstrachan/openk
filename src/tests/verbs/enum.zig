@@ -4,7 +4,7 @@ const TestValue = vm_mod.TestValue;
 
 test "enum" {
     try runTest("!10", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 0 },
             .{ .int = 1 },
             .{ .int = 2 },
@@ -19,7 +19,7 @@ test "enum" {
     });
 
     try runTest("!-3", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = -3 },
             .{ .int = -2 },
             .{ .int = -1 },

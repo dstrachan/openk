@@ -40,50 +40,50 @@ test "flip list" {
     try runTestError("+(0b;1;2f)", FlipError.length_mismatch);
 
     try runTest("+(0 1;2 3)", .{
-        .list = &[_]TestValue{
-            .{ .int_list = &[_]TestValue{
+        .list = &.{
+            .{ .int_list = &.{
                 .{ .int = 0 },
                 .{ .int = 2 },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 1 },
                 .{ .int = 3 },
             } },
         },
     });
     try runTest("+(`a`b;`c`d)", .{
-        .list = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .list = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "c" },
             } },
-            .{ .symbol_list = &[_]TestValue{
+            .{ .symbol_list = &.{
                 .{ .symbol = "b" },
                 .{ .symbol = "d" },
             } },
         },
     });
     try runTest("+(\"ab\";\"cd\")", .{
-        .list = &[_]TestValue{
-            .{ .char_list = &[_]TestValue{
+        .list = &.{
+            .{ .char_list = &.{
                 .{ .char = 'a' },
                 .{ .char = 'c' },
             } },
-            .{ .char_list = &[_]TestValue{
+            .{ .char_list = &.{
                 .{ .char = 'b' },
                 .{ .char = 'd' },
             } },
         },
     });
     try runTest("+(`a;1;\"ab\";\"cd\")", .{
-        .list = &[_]TestValue{
-            .{ .list = &[_]TestValue{
+        .list = &.{
+            .{ .list = &.{
                 .{ .symbol = "a" },
                 .{ .int = 1 },
                 .{ .char = 'a' },
                 .{ .char = 'c' },
             } },
-            .{ .list = &[_]TestValue{
+            .{ .list = &.{
                 .{ .symbol = "a" },
                 .{ .int = 1 },
                 .{ .char = 'b' },
@@ -95,13 +95,13 @@ test "flip list" {
     try runTest("+(2f;1;`int$())", .{ .list = &.{} });
 
     try runTest("+(1 2;3;4 5)", .{
-        .list = &[_]TestValue{
-            .{ .int_list = &[_]TestValue{
+        .list = &.{
+            .{ .int_list = &.{
                 .{ .int = 1 },
                 .{ .int = 3 },
                 .{ .int = 4 },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 2 },
                 .{ .int = 3 },
                 .{ .int = 5 },
@@ -110,15 +110,15 @@ test "flip list" {
     });
 
     try runTest("+(``;(`a`b;`symbol))", .{
-        .list = &[_]TestValue{
-            .{ .list = &[_]TestValue{
+        .list = &.{
+            .{ .list = &.{
                 .{ .symbol = "" },
-                .{ .symbol_list = &[_]TestValue{
+                .{ .symbol_list = &.{
                     .{ .symbol = "a" },
                     .{ .symbol = "b" },
                 } },
             } },
-            .{ .symbol_list = &[_]TestValue{
+            .{ .symbol_list = &.{
                 .{ .symbol = "" },
                 .{ .symbol = "symbol" },
             } },
@@ -133,57 +133,57 @@ test "flip list" {
 test "flip dictionary" {
     try runTestError("+()!()", FlipError.invalid_column_type);
     try runTest("+`a`b!(();())", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
+            .{ .list = &.{
                 .{ .list = &.{} },
                 .{ .list = &.{} },
             } },
         },
     });
     try runTest("+`a`b!(`int$();`float$())", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
+            .{ .list = &.{
                 .{ .int_list = &.{} },
                 .{ .float_list = &.{} },
             } },
         },
     });
     try runTest("+`a`b!(,1;,2)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 2 },
                 } },
             } },
         },
     });
     try runTest("+`a`b!(1 1;2 2)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                     .{ .int = 1 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 2 },
                     .{ .int = 2 },
                 } },
@@ -191,17 +191,17 @@ test "flip dictionary" {
         },
     });
     try runTest("+`a`b!(1;2 2)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                     .{ .int = 1 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 2 },
                     .{ .int = 2 },
                 } },
@@ -214,57 +214,57 @@ test "flip dictionary" {
 
 test "flip table" {
     try runTest("++`a`b!(();())", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
+            .{ .list = &.{
                 .{ .list = &.{} },
                 .{ .list = &.{} },
             } },
         },
     });
     try runTest("++`a`b!(`int$();`float$())", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
+            .{ .list = &.{
                 .{ .int_list = &.{} },
                 .{ .float_list = &.{} },
             } },
         },
     });
     try runTest("++`a`b!(,1;,2)", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 2 },
                 } },
             } },
         },
     });
     try runTest("++`a`b!(1 1;2 2)", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                     .{ .int = 1 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 2 },
                     .{ .int = 2 },
                 } },
@@ -272,17 +272,17 @@ test "flip table" {
         },
     });
     try runTest("++`a`b!(1;2 2)", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = 1 },
                     .{ .int = 1 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 2 },
                     .{ .int = 2 },
                 } },
