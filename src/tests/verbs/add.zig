@@ -180,8 +180,8 @@ test "add boolean" {
     });
     try runTest("(()!())+`boolean$()", .{
         .dictionary = &[_]TestValue{
-            .{ .list = &[_]TestValue{} },
-            .{ .list = &[_]TestValue{} },
+            .{ .list = &.{} },
+            .{ .list = &.{} },
         },
     });
     try runTestError("(()!())+01b", AddError.length_mismatch);
@@ -219,8 +219,8 @@ test "add boolean" {
                 .{ .symbol = "b" },
             } },
             .{ .list = &[_]TestValue{
-                .{ .list = &[_]TestValue{} },
-                .{ .list = &[_]TestValue{} },
+                .{ .list = &.{} },
+                .{ .list = &.{} },
             } },
         },
     });
@@ -425,8 +425,8 @@ test "add int" {
     });
     try runTest("(()!())+`int$()", .{
         .dictionary = &[_]TestValue{
-            .{ .list = &[_]TestValue{} },
-            .{ .list = &[_]TestValue{} },
+            .{ .list = &.{} },
+            .{ .list = &.{} },
         },
     });
     try runTestError("(()!())+0 1", AddError.length_mismatch);
@@ -464,8 +464,8 @@ test "add int" {
                 .{ .symbol = "b" },
             } },
             .{ .list = &[_]TestValue{
-                .{ .list = &[_]TestValue{} },
-                .{ .list = &[_]TestValue{} },
+                .{ .list = &.{} },
+                .{ .list = &.{} },
             } },
         },
     });
@@ -655,8 +655,8 @@ test "add float" {
     });
     try runTest("(()!())+`float$()", .{
         .dictionary = &[_]TestValue{
-            .{ .list = &[_]TestValue{} },
-            .{ .list = &[_]TestValue{} },
+            .{ .list = &.{} },
+            .{ .list = &.{} },
         },
     });
     try runTestError("(()!())+0 1f", AddError.length_mismatch);
@@ -694,8 +694,8 @@ test "add float" {
                 .{ .symbol = "b" },
             } },
             .{ .list = &[_]TestValue{
-                .{ .list = &[_]TestValue{} },
-                .{ .list = &[_]TestValue{} },
+                .{ .list = &.{} },
+                .{ .list = &.{} },
             } },
         },
     });
