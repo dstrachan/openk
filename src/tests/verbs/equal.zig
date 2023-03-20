@@ -1206,7 +1206,7 @@ test "equal dictionary" {
     try runTest("()=(`int$())!`float$()", .{
         .dictionary = &.{
             .{ .int_list = &.{} },
-            .{ .boolean_list = &.{} },
+            .{ .list = &.{} },
         },
     });
     try runTestError("()=`a`b!1 2", EqualError.length_mismatch);
@@ -1461,7 +1461,30 @@ test "equal dictionary" {
 }
 
 test "equal table" {
-    if (true) return error.SkipZigTest;
+    try runTest("1b=+`a`b!(();())", .{
+        .table = &.{
+            .{ .symbol_list = &.{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &.{
+                .{ .list = &.{} },
+                .{ .list = &.{} },
+            } },
+        },
+    });
+    try runTest("1b=+`a`b!(`int$();`float$())", .{
+        .table = &.{
+            .{ .symbol_list = &.{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &.{
+                .{ .boolean_list = &.{} },
+                .{ .boolean_list = &.{} },
+            } },
+        },
+    });
     try runTest("1b=+`a`b!(,1;,2)", .{
         .table = &.{
             .{ .symbol_list = &.{
@@ -1470,15 +1493,39 @@ test "equal table" {
             } },
             .{ .list = &.{
                 .{ .boolean_list = &.{
-                    .{ .boolean = false },
+                    .{ .boolean = true },
                 } },
                 .{ .boolean_list = &.{
-                    .{ .boolean = true },
+                    .{ .boolean = false },
                 } },
             } },
         },
     });
 
+    try runTest("1=+`a`b!(();())", .{
+        .table = &.{
+            .{ .symbol_list = &.{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &.{
+                .{ .list = &.{} },
+                .{ .list = &.{} },
+            } },
+        },
+    });
+    try runTest("1=+`a`b!(`int$();`float$())", .{
+        .table = &.{
+            .{ .symbol_list = &.{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &.{
+                .{ .boolean_list = &.{} },
+                .{ .boolean_list = &.{} },
+            } },
+        },
+    });
     try runTest("1=+`a`b!(,1;,2)", .{
         .table = &.{
             .{ .symbol_list = &.{
@@ -1487,15 +1534,39 @@ test "equal table" {
             } },
             .{ .list = &.{
                 .{ .boolean_list = &.{
-                    .{ .boolean = false },
+                    .{ .boolean = true },
                 } },
                 .{ .boolean_list = &.{
-                    .{ .boolean = true },
+                    .{ .boolean = false },
                 } },
             } },
         },
     });
 
+    try runTest("1f=+`a`b!(();())", .{
+        .table = &.{
+            .{ .symbol_list = &.{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &.{
+                .{ .list = &.{} },
+                .{ .list = &.{} },
+            } },
+        },
+    });
+    try runTest("1f=+`a`b!(`int$();`float$())", .{
+        .table = &.{
+            .{ .symbol_list = &.{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &.{
+                .{ .boolean_list = &.{} },
+                .{ .boolean_list = &.{} },
+            } },
+        },
+    });
     try runTest("1f=+`a`b!(,1;,2)", .{
         .table = &.{
             .{ .symbol_list = &.{
@@ -1504,10 +1575,10 @@ test "equal table" {
             } },
             .{ .list = &.{
                 .{ .boolean_list = &.{
-                    .{ .boolean = false },
+                    .{ .boolean = true },
                 } },
                 .{ .boolean_list = &.{
-                    .{ .boolean = true },
+                    .{ .boolean = false },
                 } },
             } },
         },
@@ -1543,6 +1614,58 @@ test "equal table" {
 
     try runTestError("(`a`b!1 2)=+`a`b!(,1;,2)", EqualError.incompatible_types);
 
+    try runTest("(+`a`b!(();()))=+`a`b!(();())", .{
+        .table = &.{
+            .{ .symbol_list = &.{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &.{
+                .{ .list = &.{} },
+                .{ .list = &.{} },
+            } },
+        },
+    });
+    try runTest("(+`a`b!(();()))=+`a`b!(`int$();`float$())", .{
+        .table = &.{
+            .{ .symbol_list = &.{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &.{
+                .{ .list = &.{} },
+                .{ .list = &.{} },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(();()))=+`a`b!(,1;,2)", EqualError.length_mismatch);
+    try runTest("(+`a`b!(`int$();`float$()))=+`a`b!(();())", .{
+        .table = &.{
+            .{ .symbol_list = &.{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &.{
+                .{ .list = &.{} },
+                .{ .list = &.{} },
+            } },
+        },
+    });
+    try runTest("(+`a`b!(`int$();`float$()))=+`a`b!(`int$();`float$())", .{
+        .table = &.{
+            .{ .symbol_list = &.{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+            } },
+            .{ .list = &.{
+                .{ .boolean_list = &.{} },
+                .{ .boolean_list = &.{} },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(`int$();`float$()))=+`a`b!(,1;,2)", EqualError.length_mismatch);
+    try runTestError("(+`a`b!(,1;,2))=+`a`b!(();())", EqualError.length_mismatch);
+    try runTestError("(+`a`b!(,1;,2))=+`a`b!(`int$();`float$())", EqualError.length_mismatch);
     try runTest("(+`a`b!(,1;,2))=+`a`b!(,1;,2)", .{
         .table = &.{
             .{ .symbol_list = &.{
@@ -1551,10 +1674,10 @@ test "equal table" {
             } },
             .{ .list = &.{
                 .{ .boolean_list = &.{
-                    .{ .boolean = false },
+                    .{ .boolean = true },
                 } },
                 .{ .boolean_list = &.{
-                    .{ .boolean = false },
+                    .{ .boolean = true },
                 } },
             } },
         },
@@ -1567,7 +1690,7 @@ test "equal table" {
             } },
             .{ .list = &.{
                 .{ .boolean_list = &.{
-                    .{ .boolean = true },
+                    .{ .boolean = false },
                 } },
                 .{ .boolean_list = &.{
                     .{ .boolean = false },
@@ -1583,7 +1706,7 @@ test "equal table" {
             } },
             .{ .list = &.{
                 .{ .boolean_list = &.{
-                    .{ .boolean = true },
+                    .{ .boolean = false },
                 } },
                 .{ .boolean_list = &.{
                     .{ .boolean = false },
