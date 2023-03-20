@@ -14,6 +14,7 @@ const print = utils_mod.print;
 
 const value_mod = @import("value.zig");
 const Value = value_mod.Value;
+const ValueDictionary = value_mod.ValueDictionary;
 const ValueFn = value_mod.ValueFunction;
 const ValueProjection = value_mod.ValueProjection;
 const ValueTable = value_mod.ValueTable;
@@ -101,17 +102,27 @@ pub const VM = struct {
         return Value.init(.{ .reference_count = reference_count, .data = data }, self.allocator);
     }
 
+    pub fn initDictionary(self: *Self, config: ValueDictionary.Config) *Value {
+        const dictionary = ValueDictionary.init(config, self);
+        return self.initValue(.{ .dictionary = dictionary });
+    }
+
+    pub fn initTable(self: *Self, config: ValueTable.Config) *Value {
+        const table = ValueTable.init(config, self.allocator);
+        return self.initValue(.{ .table = table });
+    }
+
     pub fn initList(self: *Self, list: []*Value, list_type: ?ValueType) *Value {
-        return self.initValue(switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
-            .boolean, .boolean_list => .{ .boolean_list = list },
-            .int, .int_list => .{ .int_list = list },
-            .float, .float_list => .{ .float_list = list },
-            .char, .char_list => .{ .char_list = list },
-            .symbol, .symbol_list => .{ .symbol_list = list },
+        return switch (if (list_type) |list_value_type| list_value_type else @as(ValueType, list[0].as)) {
+            .boolean, .boolean_list => self.initValue(.{ .boolean_list = list }),
+            .int, .int_list => self.initValue(.{ .int_list = list }),
+            .float, .float_list => self.initValue(.{ .float_list = list }),
+            .char, .char_list => self.initValue(.{ .char_list = list }),
+            .symbol, .symbol_list => self.initValue(.{ .symbol_list = list }),
             .dictionary => blk: {
                 var i: usize = 1;
                 while (i < list.len) : (i += 1) {
-                    if (!utils_mod.hasSameKeys(list[0].as.dictionary, list[i].as.dictionary)) break :blk .{ .list = list };
+                    if (!utils_mod.hasSameKeys(list[0].as.dictionary, list[i].as.dictionary)) break :blk self.initValue(.{ .list = list });
                 }
 
                 const columns = list[0].as.dictionary.keys.ref();
@@ -130,11 +141,10 @@ pub const VM = struct {
                 defer for (list) |v| v.deref(self.allocator);
 
                 const values = self.initValue(.{ .list = new_list });
-                const table = ValueTable.init(.{ .columns = columns, .values = values }, self.allocator);
-                break :blk .{ .table = table };
+                break :blk self.initTable(.{ .columns = columns, .values = values });
             },
-            else => .{ .list = list },
-        });
+            else => self.initValue(.{ .list = list }),
+        };
     }
 
     pub fn initListIter(self: *Self, list: []*Value) *Value {
@@ -457,9 +467,12 @@ pub const VM = struct {
                     if (dict_x.keys.as != .symbol_list or dict_x.keys.as != .symbol_list or !dict_x.keys.eql(dict_y.keys)) break :blk self.initValue(.{ .list = self.concat(x, y) });
 
                     const columns = dict_x.keys.ref();
-                    const values = self.initValue(.{ .list = self.concat(dict_x.values, dict_y.values) });
-                    const table = ValueTable.init(.{ .columns = columns, .values = values }, self.allocator);
-                    break :blk self.initValue(.{ .table = table });
+                    const list = self.allocator.alloc(*Value, columns.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
+                    for (list, dict_x.values.asList(), dict_y.values.asList()) |*value, x_value, y_value| {
+                        value.* = self.initList(self.concat(x_value, y_value), if (@as(ValueType, x_value.as) == y_value.as) x_value.as else .list);
+                    }
+                    const values = self.initValue(.{ .list = list });
+                    break :blk self.initTable(.{ .columns = columns, .values = values });
                 },
                 else => self.initValue(.{ .list = self.concat(x, y) }),
             },

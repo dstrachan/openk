@@ -12,7 +12,7 @@ test "negate boolean" {
     try runTest("- 0b", .{ .int = 0 });
     try runTest("-`boolean$()", .{ .int_list = &.{} });
     try runTest("- 01b", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 0 },
             .{ .int = -1 },
         },
@@ -23,7 +23,7 @@ test "negate int" {
     try runTest("- 0", .{ .int = 0 });
     try runTest("-`int$()", .{ .int_list = &.{} });
     try runTest("- 0 1 0N 0W -0W", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 0 },
             .{ .int = -1 },
             .{ .int = Value.null_int },
@@ -37,7 +37,7 @@ test "negate float" {
     try runTest("- 0f", .{ .float = 0 });
     try runTest("-`float$()", .{ .float_list = &.{} });
     try runTest("- 0 1 0n 0w -0w", .{
-        .float_list = &[_]TestValue{
+        .float_list = &.{
             .{ .float = 0 },
             .{ .float = -1 },
             .{ .float = Value.null_float },
@@ -62,7 +62,7 @@ test "negate symbol" {
 test "negate list" {
     try runTest("-()", .{ .list = &.{} });
     try runTest("-(0b;1;0N;0W;-0W)", .{
-        .int_list = &[_]TestValue{
+        .int_list = &.{
             .{ .int = 0 },
             .{ .int = -1 },
             .{ .int = Value.null_int },
@@ -71,7 +71,7 @@ test "negate list" {
         },
     });
     try runTest("-(0b;1;0N;0W;-0W;1f;0n;0w;-0w)", .{
-        .list = &[_]TestValue{
+        .list = &.{
             .{ .int = 0 },
             .{ .int = -1 },
             .{ .int = Value.null_int },
@@ -89,43 +89,43 @@ test "negate list" {
 
 test "negate dictionary" {
     try runTest("-()!()", .{
-        .dictionary = &[_]TestValue{
+        .dictionary = &.{
             .{ .list = &.{} },
             .{ .list = &.{} },
         },
     });
     try runTest("-`a`b!1 2", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = -1 },
                 .{ .int = -2 },
             } },
         },
     });
     try runTest("-`a`b!(0b;1)", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .int_list = &[_]TestValue{
+            .{ .int_list = &.{
                 .{ .int = 0 },
                 .{ .int = -1 },
             } },
         },
     });
     try runTest("-`a`b`c!(0b;1;2f)", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
                 .{ .symbol = "c" },
             } },
-            .{ .list = &[_]TestValue{
+            .{ .list = &.{
                 .{ .int = 0 },
                 .{ .int = -1 },
                 .{ .float = -2 },
@@ -133,18 +133,18 @@ test "negate dictionary" {
         },
     });
     try runTest("-`a`b!(1 2 3;4 5 6)", .{
-        .dictionary = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = -1 },
                     .{ .int = -2 },
                     .{ .int = -3 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = -4 },
                     .{ .int = -5 },
                     .{ .int = -6 },
@@ -158,33 +158,33 @@ test "negate dictionary" {
 
 test "negate table" {
     try runTest("-+`a`b!(,1;,2)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = -1 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = -2 },
                 } },
             } },
         },
     });
     try runTest("-+`a`b!((0b;1);0 1)", .{
-        .table = &[_]TestValue{
-            .{ .symbol_list = &[_]TestValue{
+        .table = &.{
+            .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
             } },
-            .{ .list = &[_]TestValue{
-                .{ .int_list = &[_]TestValue{
+            .{ .list = &.{
+                .{ .int_list = &.{
                     .{ .int = 0 },
                     .{ .int = -1 },
                 } },
-                .{ .int_list = &[_]TestValue{
+                .{ .int_list = &.{
                     .{ .int = 0 },
                     .{ .int = -1 },
                 } },

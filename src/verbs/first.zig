@@ -21,8 +21,7 @@ pub fn first(vm: *VM, x: *Value) *Value {
                 if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
             }
             const value = vm.initListAtoms(list, list_type);
-            const dictionary = ValueDictionary.init(.{ .keys = table_x.columns.ref(), .values = value }, vm);
-            break :blk vm.initValue(.{ .dictionary = dictionary });
+            break :blk vm.initDictionary(.{ .keys = table_x.columns.ref(), .values = value });
         },
     };
 }

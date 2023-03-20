@@ -29,8 +29,7 @@ pub fn reverse(vm: *VM, x: *Value) *Value {
         .dictionary => |dict_x| blk: {
             const key = reverse(vm, dict_x.keys);
             const value = reverse(vm, dict_x.values);
-            const dictionary = ValueDictionary.init(.{ .keys = key, .values = value }, vm);
-            break :blk vm.initValue(.{ .dictionary = dictionary });
+            break :blk vm.initDictionary(.{ .keys = key, .values = value });
         },
         .table => |table_x| blk: {
             const list = vm.allocator.alloc(*Value, table_x.values.asList().len) catch std.debug.panic("Failed to create list.", .{});
@@ -38,8 +37,7 @@ pub fn reverse(vm: *VM, x: *Value) *Value {
                 v.* = reverse(vm, table_x.values.asList()[i]);
             }
             const values = vm.initValue(.{ .list = list });
-            const table = ValueTable.init(.{ .columns = table_x.columns.ref(), .values = values }, vm.allocator);
-            break :blk vm.initValue(.{ .table = table });
+            break :blk vm.initTable(.{ .columns = table_x.columns.ref(), .values = values });
         },
     };
 }

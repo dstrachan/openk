@@ -63,8 +63,7 @@ pub fn index(vm: *VM, x: *Value, y: *Value) ApplyError!*Value {
                     if (list_type == null and @as(ValueType, list[0].as) != value.*.as) list_type = .list;
                 }
                 const values = vm.initList(list, list_type);
-                const dictionary = ValueDictionary.init(.{ .keys = table_x.columns.ref(), .values = values }, vm);
-                break :blk vm.initValue(.{ .dictionary = dictionary });
+                break :blk vm.initDictionary(.{ .keys = table_x.columns.ref(), .values = values });
             },
             .symbol => if (table_x.hash_map.get(y)) |v| v.ref() else vm.initList(&.{}, table_x.values.as.list[0].as),
             .list => |list_y| blk: {
@@ -86,8 +85,7 @@ pub fn index(vm: *VM, x: *Value, y: *Value) ApplyError!*Value {
                     value.* = try index(vm, column, y);
                 }
                 const values = vm.initValue(.{ .list = list });
-                const table = ValueTable.init(.{ .columns = table_x.columns.ref(), .values = values }, vm.allocator);
-                break :blk vm.initValue(.{ .table = table });
+                break :blk vm.initTable(.{ .columns = table_x.columns.ref(), .values = values });
             },
             .symbol_list => |list_y| blk: {
                 const list = vm.allocator.alloc(*Value, list_y.len) catch std.debug.panic("Failed to create list.", .{});

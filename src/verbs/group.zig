@@ -30,8 +30,7 @@ pub fn group(vm: *VM, x: *Value) GroupError!*Value {
         .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_x| blk: {
             if (list_x.len == 0) {
                 const value = vm.initValue(.{ .list = &.{} });
-                const dictionary = ValueDictionary.init(.{ .keys = x.ref(), .values = value }, vm);
-                break :blk vm.initValue(.{ .dictionary = dictionary });
+                break :blk vm.initDictionary(.{ .keys = x.ref(), .values = value });
             }
 
             var key_hash_map = std.ArrayHashMap(*Value, *std.ArrayList(*Value), ValueHashMapContext, false).init(vm.allocator);
@@ -56,14 +55,12 @@ pub fn group(vm: *VM, x: *Value) GroupError!*Value {
                 vm.allocator.destroy(array_list);
             }
             const value = vm.initValue(.{ .list = list });
-            const dictionary = ValueDictionary.init(.{ .keys = key, .values = value }, vm);
-            break :blk vm.initValue(.{ .dictionary = dictionary });
+            break :blk vm.initDictionary(.{ .keys = key, .values = value });
         },
         .dictionary => |dict_x| blk: {
             if (dict_x.keys.asList().len == 0) {
                 const value = vm.initValue(.{ .list = &.{} });
-                const dictionary = ValueDictionary.init(.{ .keys = dict_x.values.ref(), .values = value }, vm);
-                break :blk vm.initValue(.{ .dictionary = dictionary });
+                break :blk vm.initDictionary(.{ .keys = dict_x.values.ref(), .values = value });
             }
 
             var key_hash_map = std.ArrayHashMap(*Value, *std.ArrayList(*Value), ValueHashMapContext, false).init(vm.allocator);
@@ -88,16 +85,14 @@ pub fn group(vm: *VM, x: *Value) GroupError!*Value {
                 vm.allocator.destroy(array_list);
             }
             const value = vm.initValue(.{ .list = list });
-            const dictionary = ValueDictionary.init(.{ .keys = key, .values = value }, vm);
-            break :blk vm.initValue(.{ .dictionary = dictionary });
+            break :blk vm.initDictionary(.{ .keys = key, .values = value });
         },
         .table => |table_x| blk: {
             const table_len = table_x.values.asList()[0].asList().len;
             if (table_len == 0) {
                 const key = x.ref();
                 const value = vm.initValue(.{ .list = &.{} });
-                const dictionary = ValueDictionary.init(.{ .keys = key, .values = value }, vm);
-                break :blk vm.initValue(.{ .dictionary = dictionary });
+                break :blk vm.initDictionary(.{ .keys = key, .values = value });
             }
 
             var key_hash_map = std.ArrayHashMap([]*Value, *std.ArrayList(*Value), ValueSliceHashMapContext, false).init(vm.allocator);
@@ -135,8 +130,7 @@ pub fn group(vm: *VM, x: *Value) GroupError!*Value {
             }
 
             const values = vm.initValue(.{ .list = key_list });
-            const table = ValueTable.init(.{ .columns = table_x.columns.ref(), .values = values }, vm.allocator);
-            const key = vm.initValue(.{ .table = table });
+            const key = vm.initTable(.{ .columns = table_x.columns.ref(), .values = values });
 
             const value_list = vm.allocator.alloc(*Value, key_slice.len) catch std.debug.panic("Failed to create list.", .{});
             for (key_hash_map.values(), 0..) |array_list, j| {
@@ -145,8 +139,7 @@ pub fn group(vm: *VM, x: *Value) GroupError!*Value {
                 vm.allocator.destroy(array_list);
             }
             const value = vm.initValue(.{ .list = value_list });
-            const dictionary = ValueDictionary.init(.{ .keys = key, .values = value }, vm);
-            break :blk vm.initValue(.{ .dictionary = dictionary });
+            break :blk vm.initDictionary(.{ .keys = key, .values = value });
         },
         else => runtimeError(GroupError.invalid_type),
     };

@@ -107,7 +107,6 @@ test {
     _ = @import("tests/scanner.zig");
     _ = @import("tests/vm.zig");
 
-    // _ = @import("tests/verbs/equal/_imports.zig");
     // _ = @import("tests/verbs/match/_imports.zig");
 
     _ = @import("tests/verbs/add.zig");
@@ -115,7 +114,9 @@ test {
     _ = @import("tests/verbs/ascend.zig");
     _ = @import("tests/verbs/descend.zig");
     _ = @import("tests/verbs/divide.zig");
+    _ = @import("tests/verbs/enlist.zig");
     _ = @import("tests/verbs/enum.zig");
+    _ = @import("tests/verbs/equal.zig");
     _ = @import("tests/verbs/fill.zig");
     _ = @import("tests/verbs/first.zig");
     _ = @import("tests/verbs/flip.zig");
