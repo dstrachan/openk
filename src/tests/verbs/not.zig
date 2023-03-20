@@ -141,7 +141,7 @@ test "not dictionary" {
         },
     });
     try runTest("~`a`b!(`int$();`float$())", .{
-        .table = &.{
+        .dictionary = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
@@ -153,7 +153,7 @@ test "not dictionary" {
         },
     });
     try runTest("~`a`b!(,1;,2)", .{
-        .table = &.{
+        .dictionary = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
@@ -169,7 +169,7 @@ test "not dictionary" {
         },
     });
     try runTest("~`a`b!(1 1;2 2)", .{
-        .table = &.{
+        .dictionary = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
@@ -187,7 +187,7 @@ test "not dictionary" {
         },
     });
     try runTest("~`a`b!(1;2 2)", .{
-        .table = &.{
+        .dictionary = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
@@ -205,7 +205,7 @@ test "not dictionary" {
 
 test "not table" {
     try runTest("~+`a`b!(();())", .{
-        .dictionary = &.{
+        .table = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
@@ -217,7 +217,7 @@ test "not table" {
         },
     });
     try runTest("~+`a`b!(`int$();`float$())", .{
-        .dictionary = &.{
+        .table = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
@@ -229,7 +229,7 @@ test "not table" {
         },
     });
     try runTest("~+`a`b!(,1;,2)", .{
-        .dictionary = &.{
+        .table = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
@@ -245,7 +245,7 @@ test "not table" {
         },
     });
     try runTest("~+`a`b!(1 1;2 2)", .{
-        .dictionary = &.{
+        .table = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
@@ -263,7 +263,7 @@ test "not table" {
         },
     });
     try runTest("~+`a`b!(1;2 2)", .{
-        .dictionary = &.{
+        .table = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
                 .{ .symbol = "b" },
