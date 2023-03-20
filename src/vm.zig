@@ -677,7 +677,11 @@ pub const VM = struct {
     }
 
     fn opNot(self: *Self) !void {
-        return self.monadicVerb();
+        const x = self.pop();
+        defer x.deref(self.allocator);
+
+        const value = try verbs.not(self, x);
+        try self.push(value);
     }
 
     fn opMatch(self: *Self) !void {
