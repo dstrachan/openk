@@ -333,74 +333,47 @@ pub const Value = struct {
 
     pub fn eql(x: *Self, y: *Self) bool {
         if (x == y) return true;
+        if (@as(ValueType, x.as) != y.as) return false;
         return switch (x.as) {
-            .nil => y.as == .nil,
-            .boolean => |bool_x| y.as == .boolean and bool_x == y.as.boolean,
-            .int => |int_x| y.as == .int and int_x == y.as.int,
-            .float => |float_x| y.as == .float and (std.math.isNan(float_x) and std.math.isNan(y.as.float) or float_x == y.as.float),
-            .char => |char_x| y.as == .char and char_x == y.as.char,
-            .symbol => |symbol_x| y.as == .symbol and std.mem.eql(u8, symbol_x, y.as.symbol),
-            .list => |list_x| switch (y.as) {
-                .list => |list_y| {
-                    if (list_x.len != list_y.len) return false;
+            .nil => true,
+            .boolean => |bool_x| bool_x == y.as.boolean,
+            .int => |int_x| int_x == y.as.int,
+            .float => |float_x| std.math.isNan(float_x) and std.math.isNan(y.as.float) or float_x == y.as.float,
+            .char => |char_x| char_x == y.as.char,
+            .symbol => |symbol_x| std.mem.eql(u8, symbol_x, y.as.symbol),
+            .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_x| switch (y.as) {
+                .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_y| blk: {
+                    if (list_x.len != list_y.len) break :blk false;
                     for (list_x, list_y) |value_x, value_y| {
-                        if (!value_x.eql(value_y)) return false;
+                        if (!value_x.eql(value_y)) break :blk false;
                     }
-                    return true;
+                    break :blk true;
                 },
-                else => false,
+                else => unreachable,
             },
-            .boolean_list => |list_x| switch (y.as) {
-                .boolean_list => |list_y| {
-                    if (list_x.len != list_y.len) return false;
-                    for (list_x, list_y) |value_x, value_y| {
-                        if (!value_x.eql(value_y)) return false;
+            .dictionary => |dict_x| dict_x.keys.eql(y.as.dictionary.keys) and dict_x.values.eql(y.as.dictionary.values),
+            .table => |table_x| table_x.columns.eql(y.as.table.columns) and table_x.values.eql(y.as.table.values),
+            .function => |func_x| switch (y.as) {
+                .function => |func_y| blk: {
+                    if (func_x.arity != func_y.arity) break :blk false;
+                    if (func_x.local_count != func_y.local_count) break :blk false;
+                    if (!std.mem.eql(u8, func_x.chunk.code.items, func_y.chunk.code.items)) break :blk false;
+                    break :blk true;
+                },
+                else => unreachable,
+            },
+            .projection => |proj_x| switch (y.as) {
+                .projection => |proj_y| blk: {
+                    if (!proj_x.value.eql(proj_y.value)) break :blk false;
+                    if (!proj_x.arg_indices.eql(proj_y.arg_indices)) break :blk false;
+                    var it = proj_x.arg_indices.iterator(.{});
+                    while (it.next()) |i| {
+                        if (!proj_x.arguments[i].eql(proj_y.arguments[i])) break :blk false;
                     }
-                    return true;
+                    break :blk true;
                 },
-                else => false,
+                else => unreachable,
             },
-            .int_list => |list_x| switch (y.as) {
-                .int_list => |list_y| {
-                    if (list_x.len != list_y.len) return false;
-                    for (list_x, list_y) |value_x, value_y| {
-                        if (!value_x.eql(value_y)) return false;
-                    }
-                    return true;
-                },
-                else => false,
-            },
-            .float_list => |list_x| switch (y.as) {
-                .float_list => |list_y| {
-                    if (list_x.len != list_y.len) return false;
-                    for (list_x, list_y) |value_x, value_y| {
-                        if (!value_x.eql(value_y)) return false;
-                    }
-                    return true;
-                },
-                else => false,
-            },
-            .char_list => |list_x| switch (y.as) {
-                .char_list => |list_y| {
-                    if (list_x.len != list_y.len) return false;
-                    for (list_x, list_y) |value_x, value_y| {
-                        if (!value_x.eql(value_y)) return false;
-                    }
-                    return true;
-                },
-                else => false,
-            },
-            .symbol_list => |list_x| switch (y.as) {
-                .symbol_list => |list_y| {
-                    if (list_x.len != list_y.len) return false;
-                    for (list_x, list_y) |value_x, value_y| {
-                        if (!value_x.eql(value_y)) return false;
-                    }
-                    return true;
-                },
-                else => false,
-            },
-            else => false,
         };
     }
 
