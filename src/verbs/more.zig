@@ -184,7 +184,7 @@ pub fn more(vm: *VM, x: *Value, y: *Value) MoreError!*Value {
                 errdefer for (value_list.items) |v| v.deref(vm.allocator);
 
                 for (key_list.items, value_list.items) |k_x, *v_x| {
-                    if (!k_x.in(dict_y.keys.asList())) {
+                    if (!dict_y.hash_map.contains(k_x)) {
                         const old_x = v_x.*;
                         defer old_x.deref(vm.allocator);
                         v_x.* = vm.initValue(.{ .boolean = !old_x.isNull() });

@@ -425,20 +425,6 @@ pub const Value = struct {
         return array_list;
     }
 
-    pub fn indexOf(self: *Self, value: *Self) ?usize {
-        for (self.asList(), 0..) |v, i| {
-            if (v.eql(value)) return i;
-        }
-        return null;
-    }
-
-    pub fn in(self: *Self, haystack: []*Self) bool {
-        for (haystack) |v| {
-            if (self.eql(v)) return true;
-        }
-        return false;
-    }
-
     pub fn getListType(self: *Self) ValueType {
         return switch (self.as) {
             .boolean => .boolean_list,
