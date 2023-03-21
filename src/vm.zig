@@ -690,7 +690,7 @@ pub const VM = struct {
         const y = self.pop();
         defer y.deref(self.allocator);
 
-        const value = try verbs.match(self, x, y);
+        const value = verbs.match(self, x, y);
         try self.push(value);
     }
 

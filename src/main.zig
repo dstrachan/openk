@@ -107,8 +107,6 @@ test {
     _ = @import("tests/scanner.zig");
     _ = @import("tests/vm.zig");
 
-    // _ = @import("tests/verbs/match/_imports.zig");
-
     _ = @import("tests/verbs/add.zig");
     _ = @import("tests/verbs/apply.zig");
     _ = @import("tests/verbs/ascend.zig");
@@ -123,6 +121,7 @@ test {
     _ = @import("tests/verbs/group.zig");
     _ = @import("tests/verbs/index.zig");
     _ = @import("tests/verbs/less.zig");
+    _ = @import("tests/verbs/match.zig");
     _ = @import("tests/verbs/max.zig");
     _ = @import("tests/verbs/merge.zig");
     _ = @import("tests/verbs/min.zig");

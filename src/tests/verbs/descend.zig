@@ -1,7 +1,6 @@
 const vm_mod = @import("../vm.zig");
 const runTest = vm_mod.runTest;
 const runTestError = vm_mod.runTestError;
-const TestValue = vm_mod.TestValue;
 
 const DescendError = @import("../../verbs/descend.zig").DescendError;
 

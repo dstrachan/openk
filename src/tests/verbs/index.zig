@@ -3,7 +3,6 @@ const Value = value_mod.Value;
 
 const vm_mod = @import("../vm.zig");
 const runTest = vm_mod.runTest;
-const TestValue = vm_mod.TestValue;
 
 test "index" {
     try runTest("(!10)@2", .{ .int = 2 });
