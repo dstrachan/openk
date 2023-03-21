@@ -567,11 +567,7 @@ pub const VM = struct {
         const x = self.pop();
         defer x.deref(self.allocator);
 
-        const value = switch (x.as) {
-            .int => try verbs.til(self, x),
-            .dictionary => |dict| dict.keys.ref(),
-            else => unreachable,
-        };
+        const value = try verbs.key(self, x);
         try self.push(value);
     }
 
