@@ -3,7 +3,6 @@ const Value = value_mod.Value;
 
 const vm_mod = @import("../vm.zig");
 const runTest = vm_mod.runTest;
-const TestValue = vm_mod.TestValue;
 
 test "first boolean" {
     try runTest("*0b", .{ .boolean = false });

@@ -4,7 +4,6 @@ const Value = value_mod.Value;
 const vm_mod = @import("../vm.zig");
 const runTest = vm_mod.runTest;
 const runTestError = vm_mod.runTestError;
-const TestValue = vm_mod.TestValue;
 
 const MergeError = @import("../../verbs/merge.zig").MergeError;
 
