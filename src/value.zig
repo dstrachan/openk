@@ -11,6 +11,10 @@ const print = utils_mod.print;
 const vm_mod = @import("vm.zig");
 const VM = vm_mod.VM;
 
+pub const print_columns_count = 80;
+
+var buffer = std.io.bufferedWriter(std.io.getStdOut().writer());
+
 pub const ValueType = enum {
     nil,
     list,
@@ -73,7 +77,10 @@ pub const ValueUnion = union(ValueType) {
                     try writer.print(",{}", .{list[0].as});
                 } else {
                     try writer.writeAll("(");
-                    for (list[0 .. list.len - 1]) |value| try writer.print("{};", .{value.as});
+                    for (list[0 .. list.len - 1]) |value| {
+                        if (buffer.end > print_columns_count) return;
+                        try writer.print("{};", .{value.as});
+                    }
                     try writer.print("{})", .{list[list.len - 1].as});
                 }
             },
@@ -83,7 +90,10 @@ pub const ValueUnion = union(ValueType) {
                     return;
                 }
                 if (list.len == 1) try writer.writeAll(",");
-                for (list) |value| try writer.writeAll(if (value.as.boolean) "1" else "0");
+                for (list) |value| {
+                    if (buffer.end > print_columns_count) return;
+                    try writer.writeAll(if (value.as.boolean) "1" else "0");
+                }
                 try writer.writeAll("b");
             },
             .int_list => |list| {
@@ -93,6 +103,7 @@ pub const ValueUnion = union(ValueType) {
                 }
                 if (list.len == 1) try writer.writeAll(",");
                 for (list[0 .. list.len - 1]) |value| {
+                    if (buffer.end > print_columns_count) return;
                     try printInt(writer, value.as.int);
                     try writer.writeAll(" ");
                 }
@@ -106,6 +117,7 @@ pub const ValueUnion = union(ValueType) {
                 var needs_suffix = true;
                 if (list.len == 1) try writer.writeAll(",");
                 for (list[0 .. list.len - 1]) |value| {
+                    if (buffer.end > print_columns_count) return;
                     if (!try printFloat(writer, value.as.float)) needs_suffix = false;
                     try writer.writeAll(" ");
                 }
@@ -114,7 +126,10 @@ pub const ValueUnion = union(ValueType) {
             .char_list => |list| {
                 if (list.len == 1) try writer.writeAll(",");
                 try writer.writeAll("\"");
-                for (list) |value| try printChar(writer, value.as.char);
+                for (list) |value| {
+                    if (buffer.end > print_columns_count) return;
+                    try printChar(writer, value.as.char);
+                }
                 try writer.writeAll("\"");
             },
             .symbol_list => |list| {
@@ -123,7 +138,10 @@ pub const ValueUnion = union(ValueType) {
                     return;
                 }
                 if (list.len == 1) try writer.writeAll(",");
-                for (list) |value| try writer.print("`{s}", .{value.as.symbol});
+                for (list) |value| {
+                    if (buffer.end > print_columns_count) return;
+                    try writer.print("`{s}", .{value.as.symbol});
+                }
             },
             .dictionary => |dict| try writer.print("{}!{}", .{ dict.keys.as, dict.values.as }),
             .table => |table| try writer.print("+{}!{}", .{ table.columns.as, table.values.as }),
@@ -329,6 +347,16 @@ pub const Value = struct {
 
     pub fn format(self: Self, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
         try writer.print("{} [{d}]", .{ self.as, self.reference_count });
+    }
+
+    pub fn printBuffer(self: Self) !void {
+        const w = buffer.writer();
+        try std.fmt.format(w, "{}\n", .{self.as});
+        if (buffer.end > print_columns_count) {
+            buffer.end = print_columns_count - 3;
+            _ = try w.write("..\n");
+        }
+        try buffer.flush();
     }
 
     pub fn eql(x: *Self, y: *Self) bool {

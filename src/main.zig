@@ -52,13 +52,11 @@ fn repl(vm: *VM) !void {
 
         const result = vm.interpret(line[0..i]) catch continue;
         defer result.deref(vm.allocator);
-        try stdout.print("{}\n", .{result.as});
+        try result.printBuffer();
     }
 }
 
 fn runFile(vm: *VM, file: []const u8, allocator: std.mem.Allocator) !void {
-    const stdout = std.io.getStdOut().writer();
-
     const source = readFile(file, allocator);
     defer allocator.free(source);
 
@@ -72,7 +70,7 @@ fn runFile(vm: *VM, file: []const u8, allocator: std.mem.Allocator) !void {
 
     const result = vm.interpret(source[0..i]) catch std.process.exit(1);
     defer result.deref(vm.allocator);
-    try stdout.print("{}\n", .{result.as});
+    try result.printBuffer();
 }
 
 fn readFile(path: []const u8, allocator: std.mem.Allocator) []const u8 {
