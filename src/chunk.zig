@@ -21,7 +21,7 @@ pub const OpCode = enum {
     op_subtract,
     op_first,
     op_multiply,
-    op_sqrt,
+    op_reciprocal,
     op_divide,
     op_key,
     op_dict,

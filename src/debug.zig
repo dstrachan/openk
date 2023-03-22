@@ -92,7 +92,7 @@ pub fn disassembleInstruction(chunk: *const Chunk, offset: usize) usize {
         .op_subtract => simpleInstruction(.op_subtract, offset),
         .op_first => simpleInstruction(.op_first, offset),
         .op_multiply => simpleInstruction(.op_multiply, offset),
-        .op_sqrt => simpleInstruction(.op_sqrt, offset),
+        .op_reciprocal => simpleInstruction(.op_reciprocal, offset),
         .op_divide => simpleInstruction(.op_divide, offset),
         .op_key => simpleInstruction(.op_key, offset),
         .op_dict => simpleInstruction(.op_dict, offset),
