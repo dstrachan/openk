@@ -350,11 +350,11 @@ pub const Value = struct {
     }
 
     pub fn printBuffer(self: Self) !void {
-        const w = buffer.writer();
-        try std.fmt.format(w, "{}\n", .{self.as});
+        const writer = buffer.writer();
+        try std.fmt.format(writer, "{}\n", .{self.as});
         if (buffer.end > print_columns_count) {
             buffer.end = print_columns_count - 3;
-            _ = try w.write("..\n");
+            _ = try writer.write("..\n");
         }
         try buffer.flush();
     }
