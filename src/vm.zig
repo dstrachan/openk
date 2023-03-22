@@ -727,7 +727,13 @@ pub const VM = struct {
     }
 
     fn opTake(self: *Self) !void {
-        return self.dyadicVerb();
+        const x = self.pop();
+        defer x.deref(self.allocator);
+        const y = self.pop();
+        defer y.deref(self.allocator);
+
+        const value = try verbs.take(self, x, y);
+        try self.push(value);
     }
 
     fn opFloor(self: *Self) !void {
@@ -743,7 +749,13 @@ pub const VM = struct {
     }
 
     fn opCast(self: *Self) !void {
-        return self.dyadicVerb();
+        const x = self.pop();
+        defer x.deref(self.allocator);
+        const y = self.pop();
+        defer y.deref(self.allocator);
+
+        const value = try verbs.cast(self, x, y);
+        try self.push(value);
     }
 
     fn opUnique(self: *Self) !void {

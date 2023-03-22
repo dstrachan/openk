@@ -1,5 +1,6 @@
 pub const add = @import("verbs/add.zig").add;
 pub const ascend = @import("verbs/ascend.zig").ascend;
+pub const cast = @import("verbs/cast.zig").cast;
 pub const descend = @import("verbs/descend.zig").descend;
 pub const dict = @import("verbs/dict.zig").dict;
 pub const divide = @import("verbs/divide.zig").divide;
@@ -23,4 +24,5 @@ pub const not = @import("verbs/not.zig").not;
 pub const reciprocal = @import("verbs/reciprocal.zig").reciprocal;
 pub const reverse = @import("verbs/reverse.zig").reverse;
 pub const subtract = @import("verbs/subtract.zig").subtract;
+pub const take = @import("verbs/take.zig").take;
 pub const where = @import("verbs/where.zig").where;
