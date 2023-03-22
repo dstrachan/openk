@@ -347,7 +347,7 @@ pub const VM = struct {
                 .op_subtract => try self.opSubtract(),
                 .op_first => try self.opFirst(),
                 .op_multiply => try self.opMultiply(),
-                .op_sqrt => try self.opSqrt(),
+                .op_reciprocal => try self.opReciprocal(),
                 .op_divide => try self.opDivide(),
                 .op_key => try self.opKey(),
                 .op_dict => try self.opDict(),
@@ -545,11 +545,11 @@ pub const VM = struct {
         try self.push(value);
     }
 
-    fn opSqrt(self: *Self) !void {
+    fn opReciprocal(self: *Self) !void {
         const x = self.pop();
         defer x.deref(self.allocator);
 
-        const value = try verbs.sqrt(self, x);
+        const value = try verbs.reciprocal(self, x);
         try self.push(value);
     }
 
