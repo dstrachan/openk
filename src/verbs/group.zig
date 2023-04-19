@@ -33,29 +33,30 @@ pub fn group(vm: *VM, x: *Value) GroupError!*Value {
                 break :blk vm.initDictionary(.{ .keys = x.ref(), .values = value });
             }
 
-            var key_hash_map = std.ArrayHashMap(*Value, *std.ArrayList(*Value), ValueHashMapContext, false).init(vm.allocator);
+            var hash_map = std.ArrayHashMap(*Value, *std.ArrayList(*Value), ValueHashMapContext, false).init(vm.allocator);
+            defer hash_map.deinit();
 
             for (list_x, 0..) |k, i| {
-                if (key_hash_map.get(k)) |*list| {
+                if (hash_map.get(k)) |*list| {
                     list.*.append(vm.initValue(.{ .int = @intCast(i64, i) })) catch std.debug.panic("Failed to append item.", .{});
                 } else {
                     const list = vm.allocator.create(std.ArrayList(*Value)) catch std.debug.panic("Failed to create list.", .{});
                     list.* = std.ArrayList(*Value).init(vm.allocator);
                     list.*.append(vm.initValue(.{ .int = @intCast(i64, i) })) catch std.debug.panic("Failed to append item.", .{});
-                    key_hash_map.put(k.ref(), list) catch std.debug.panic("Failed to put item.", .{});
+                    hash_map.put(k.ref(), list) catch std.debug.panic("Failed to put item.", .{});
                 }
             }
 
-            const key_slice = key_hash_map.keys();
-            const key = vm.initList(key_slice, x.as);
-            const list = vm.allocator.alloc(*Value, key_slice.len) catch std.debug.panic("Failed to create list.", .{});
-            for (key_hash_map.values(), 0..) |array_list, i| {
+            const keys_list = vm.allocator.dupe(*Value, hash_map.keys()) catch std.debug.panic("Failed to create list.", .{});
+            const keys = vm.initList(keys_list, x.as);
+            const values_list = vm.allocator.alloc(*Value, keys_list.len) catch std.debug.panic("Failed to create list.", .{});
+            for (hash_map.values(), 0..) |array_list, i| {
                 const slice = array_list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
-                list[i] = vm.initList(slice, .int);
+                values_list[i] = vm.initList(slice, .int);
                 vm.allocator.destroy(array_list);
             }
-            const value = vm.initValue(.{ .list = list });
-            break :blk vm.initDictionary(.{ .keys = key, .values = value });
+            const values = vm.initValue(.{ .list = values_list });
+            break :blk vm.initDictionary(.{ .keys = keys, .values = values });
         },
         .dictionary => |dict_x| blk: {
             if (dict_x.keys.asList().len == 0) {
@@ -63,29 +64,30 @@ pub fn group(vm: *VM, x: *Value) GroupError!*Value {
                 break :blk vm.initDictionary(.{ .keys = dict_x.values.ref(), .values = value });
             }
 
-            var key_hash_map = std.ArrayHashMap(*Value, *std.ArrayList(*Value), ValueHashMapContext, false).init(vm.allocator);
+            var hash_map = std.ArrayHashMap(*Value, *std.ArrayList(*Value), ValueHashMapContext, false).init(vm.allocator);
+            defer hash_map.deinit();
 
             for (dict_x.values.asList(), dict_x.keys.asList()) |k, v| {
-                if (key_hash_map.get(k)) |*list| {
+                if (hash_map.get(k)) |*list| {
                     list.*.append(v.ref()) catch std.debug.panic("Failed to append item.", .{});
                 } else {
                     const list = vm.allocator.create(std.ArrayList(*Value)) catch std.debug.panic("Failed to create list.", .{});
                     list.* = std.ArrayList(*Value).init(vm.allocator);
                     list.*.append(v.ref()) catch std.debug.panic("Failed to append item.", .{});
-                    key_hash_map.put(k.ref(), list) catch std.debug.panic("Failed to put item.", .{});
+                    hash_map.put(k.ref(), list) catch std.debug.panic("Failed to put item.", .{});
                 }
             }
 
-            const key_slice = key_hash_map.keys();
-            const key = vm.initList(key_slice, dict_x.values.as);
-            const list = vm.allocator.alloc(*Value, key_slice.len) catch std.debug.panic("Failed to create list.", .{});
-            for (key_hash_map.values(), 0..) |array_list, i| {
+            const keys_list = vm.allocator.dupe(*Value, hash_map.keys()) catch std.debug.panic("Failed to create list.", .{});
+            const keys = vm.initList(keys_list, dict_x.values.as);
+            const values_list = vm.allocator.alloc(*Value, keys_list.len) catch std.debug.panic("Failed to create list.", .{});
+            for (hash_map.values(), 0..) |array_list, i| {
                 const slice = array_list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
-                list[i] = vm.initList(slice, dict_x.keys.as);
+                values_list[i] = vm.initList(slice, dict_x.keys.as);
                 vm.allocator.destroy(array_list);
             }
-            const value = vm.initValue(.{ .list = list });
-            break :blk vm.initDictionary(.{ .keys = key, .values = value });
+            const values = vm.initValue(.{ .list = values_list });
+            break :blk vm.initDictionary(.{ .keys = keys, .values = values });
         },
         .table => |table_x| blk: {
             const table_len = table_x.values.asList()[0].asList().len;
@@ -95,7 +97,8 @@ pub fn group(vm: *VM, x: *Value) GroupError!*Value {
                 break :blk vm.initDictionary(.{ .keys = key, .values = value });
             }
 
-            var key_hash_map = std.ArrayHashMap([]*Value, *std.ArrayList(*Value), ValueSliceHashMapContext, false).init(vm.allocator);
+            var hash_map = std.ArrayHashMap([]*Value, *std.ArrayList(*Value), ValueSliceHashMapContext, false).init(vm.allocator);
+            defer hash_map.deinit();
 
             var i: usize = 0;
             while (i < table_len) : (i += 1) {
@@ -104,7 +107,7 @@ pub fn group(vm: *VM, x: *Value) GroupError!*Value {
                     k[j] = c.asList()[i];
                 }
 
-                if (key_hash_map.get(k)) |*list| {
+                if (hash_map.get(k)) |*list| {
                     vm.allocator.free(k);
                     list.*.append(vm.initValue(.{ .int = @intCast(i64, i) })) catch std.debug.panic("Failed to append item.", .{});
                 } else {
@@ -112,34 +115,31 @@ pub fn group(vm: *VM, x: *Value) GroupError!*Value {
                     const list = vm.allocator.create(std.ArrayList(*Value)) catch std.debug.panic("Failed to create list.", .{});
                     list.* = std.ArrayList(*Value).init(vm.allocator);
                     list.*.append(vm.initValue(.{ .int = @intCast(i64, i) })) catch std.debug.panic("Failed to append item.", .{});
-                    key_hash_map.put(k, list) catch std.debug.panic("Failed to put item.", .{});
+                    hash_map.put(k, list) catch std.debug.panic("Failed to put item.", .{});
                 }
             }
 
-            const key_slice = key_hash_map.keys();
-            defer vm.allocator.free(key_slice);
-            defer for (key_slice) |v| vm.allocator.free(v);
-            const key_list = vm.allocator.alloc(*Value, key_slice[0].len) catch std.debug.panic("Failed to create list.", .{});
+            const keys_slice = hash_map.keys();
+            defer for (keys_slice) |v| vm.allocator.free(v);
+            const keys_list = vm.allocator.alloc(*Value, keys_slice[0].len) catch std.debug.panic("Failed to create list.", .{});
             i = 0;
-            while (i < key_slice[0].len) : (i += 1) {
-                const list = vm.allocator.alloc(*Value, key_slice.len) catch std.debug.panic("Failed to create list.", .{});
-                for (key_slice, 0..) |v, j| {
+            while (i < keys_slice[0].len) : (i += 1) {
+                const list = vm.allocator.alloc(*Value, keys_slice.len) catch std.debug.panic("Failed to create list.", .{});
+                for (keys_slice, 0..) |v, j| {
                     list[j] = v[i];
                 }
-                key_list[i] = vm.initValue(.{ .int_list = list });
+                keys_list[i] = vm.initValue(.{ .int_list = list });
             }
+            const keys = vm.initTable(.{ .columns = table_x.columns.ref(), .values = vm.initValue(.{ .list = keys_list }) });
 
-            const values = vm.initValue(.{ .list = key_list });
-            const key = vm.initTable(.{ .columns = table_x.columns.ref(), .values = values });
-
-            const value_list = vm.allocator.alloc(*Value, key_slice.len) catch std.debug.panic("Failed to create list.", .{});
-            for (key_hash_map.values(), 0..) |array_list, j| {
+            const values_list = vm.allocator.alloc(*Value, keys_slice.len) catch std.debug.panic("Failed to create list.", .{});
+            for (hash_map.values(), 0..) |array_list, j| {
                 const slice = array_list.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
-                value_list[j] = vm.initList(slice, .int);
+                values_list[j] = vm.initList(slice, .int);
                 vm.allocator.destroy(array_list);
             }
-            const value = vm.initValue(.{ .list = value_list });
-            break :blk vm.initDictionary(.{ .keys = key, .values = value });
+            const values = vm.initValue(.{ .list = values_list });
+            break :blk vm.initDictionary(.{ .keys = keys, .values = values });
         },
         else => runtimeError(GroupError.invalid_type),
     };

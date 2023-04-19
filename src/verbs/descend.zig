@@ -87,43 +87,47 @@ pub fn descend(vm: *VM, x: *Value) DescendError!*Value {
         .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_x| blk: {
             if (list_x.len == 0) break :blk vm.initValue(.{ .int_list = &.{} });
 
-            var list = std.MultiArrayList(Pair){};
-            defer list.deinit(vm.allocator);
+            var multi_list = std.MultiArrayList(Pair){};
+            defer multi_list.deinit(vm.allocator);
 
-            list.ensureTotalCapacity(vm.allocator, list_x.len) catch std.debug.panic("Failed to create list.", .{});
+            multi_list.ensureTotalCapacity(vm.allocator, list_x.len) catch std.debug.panic("Failed to create list.", .{});
             for (list_x, 0..) |v, i| {
-                list.appendAssumeCapacity(.{
+                multi_list.appendAssumeCapacity(.{
                     .value = v,
                     .index = vm.initValue(.{ .int = @intCast(i64, i) }),
                 });
             }
-            list.sort(PairContext{ .values = list.items(.value) });
-            break :blk vm.initValue(.{ .int_list = list.toOwnedSlice().items(.index) });
+            const slice = multi_list.slice();
+            multi_list.sort(PairContext{ .values = slice.items(.value) });
+            const list = vm.allocator.dupe(*Value, slice.items(.index)) catch std.debug.panic("Failed to create list.", .{});
+            break :blk vm.initValue(.{ .int_list = list });
         },
         .dictionary => |dict_x| blk: {
             if (dict_x.keys.asList().len == 0) break :blk dict_x.keys.ref();
 
-            var list = std.MultiArrayList(Pair){};
-            defer list.deinit(vm.allocator);
+            var multi_list = std.MultiArrayList(Pair){};
+            defer multi_list.deinit(vm.allocator);
 
-            list.ensureTotalCapacity(vm.allocator, dict_x.keys.asList().len) catch std.debug.panic("Failed to create list.", .{});
+            multi_list.ensureTotalCapacity(vm.allocator, dict_x.keys.asList().len) catch std.debug.panic("Failed to create list.", .{});
             for (dict_x.keys.asList(), dict_x.values.asList()) |k, v| {
-                list.appendAssumeCapacity(.{
+                multi_list.appendAssumeCapacity(.{
                     .value = v,
                     .index = k.ref(),
                 });
             }
-            list.sort(PairContext{ .values = list.items(.value) });
-            break :blk vm.initList(list.toOwnedSlice().items(.index), dict_x.keys.as);
+            const slice = multi_list.slice();
+            multi_list.sort(PairContext{ .values = slice.items(.value) });
+            const list = vm.allocator.dupe(*Value, slice.items(.index)) catch std.debug.panic("Failed to create list.", .{});
+            break :blk vm.initList(list, dict_x.keys.as);
         },
         .table => |table_x| blk: {
             const len = table_x.values.as.list[0].asList().len;
             if (len == 0) break :blk vm.initValue(.{ .int_list = &.{} });
 
-            var list = std.MultiArrayList(Pair){};
-            defer list.deinit(vm.allocator);
+            var multi_list = std.MultiArrayList(Pair){};
+            defer multi_list.deinit(vm.allocator);
 
-            list.ensureTotalCapacity(vm.allocator, len) catch std.debug.panic("Failed to create list.", .{});
+            multi_list.ensureTotalCapacity(vm.allocator, len) catch std.debug.panic("Failed to create list.", .{});
             var i: usize = 0;
             while (i < len) : (i += 1) {
                 const temp_list = vm.allocator.alloc(*Value, table_x.columns.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
@@ -131,17 +135,18 @@ pub fn descend(vm: *VM, x: *Value) DescendError!*Value {
                     v.* = table_x.values.as.list[j].asList()[i].ref();
                 }
                 const value = vm.initValue(.{ .list = temp_list });
-                list.appendAssumeCapacity(.{
+                multi_list.appendAssumeCapacity(.{
                     .value = value,
                     .index = vm.initValue(.{ .int = @intCast(i64, i) }),
                 });
             }
-            list.sort(PairContext{ .values = list.items(.value) });
-            const slice = list.toOwnedSlice();
+            const slice = multi_list.slice();
+            multi_list.sort(PairContext{ .values = slice.items(.value) });
             for (slice.items(.value)) |v| {
                 v.deref(vm.allocator);
             }
-            break :blk vm.initValue(.{ .int_list = slice.items(.index) });
+            const list = vm.allocator.dupe(*Value, slice.items(.index)) catch std.debug.panic("Failed to create list.", .{});
+            break :blk vm.initValue(.{ .int_list = list });
         },
         else => runtimeError(DescendError.invalid_type),
     };
