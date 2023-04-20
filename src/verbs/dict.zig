@@ -1,3 +1,5 @@
+const std = @import("std");
+
 const utils_mod = @import("../utils.zig");
 const print = utils_mod.print;
 
@@ -23,7 +25,22 @@ fn runtimeError(comptime err: DictError) DictError!*Value {
 pub fn dict(vm: *VM, x: *Value, y: *Value) DictError!*Value {
     return switch (x.as) {
         .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_x| switch (y.as) {
-            .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_y| blk: {
+            .list => |list_y| blk: {
+                if (list_y.len > 0) {
+                    if (list_x.len != list_y.len) return runtimeError(DictError.length_mismatch);
+
+                    break :blk vm.initDictionary(.{ .keys = x.ref(), .values = y.ref() });
+                }
+
+                const list = vm.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
+                var i: usize = 0;
+                while (i < list_x.len) : (i += 1) {
+                    list[i] = y.ref();
+                }
+                const values = vm.initValue(.{ .list = list });
+                break :blk vm.initDictionary(.{ .keys = x.ref(), .values = values });
+            },
+            .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_y| blk: {
                 if (list_x.len != list_y.len) return runtimeError(DictError.length_mismatch);
 
                 break :blk vm.initDictionary(.{ .keys = x.ref(), .values = y.ref() });
