@@ -413,94 +413,207 @@ test "dict int" {
 }
 
 test "dict float" {
-    if (true) return error.SkipZigTest;
-    try runTest("1b!0f", .{ .boolean = false });
-    try runTest("1b!`float$()", .{ .boolean = false });
-    try runTest("1b!0 1 2 3 4f", .{ .boolean = false });
+    try runTestError("1b!0f", DictError.incompatible_types);
+    try runTestError("1b!`float$()", DictError.incompatible_types);
+    try runTestError("1b!0 1f", DictError.incompatible_types);
 
-    try runTest("1!0f", .{ .boolean = false });
-    try runTest("1!`float$()", .{ .boolean = false });
-    try runTest("1!0 1 2 3 4f", .{ .boolean = false });
+    try runTestError("1!0f", DictError.incompatible_types);
+    try runTestError("1!`float$()", DictError.incompatible_types);
+    try runTestError("1!0 1f", DictError.incompatible_types);
 
-    try runTest("1f!0f", .{ .boolean = false });
-    try runTest("1f!`float$()", .{ .boolean = false });
-    try runTest("1f!0 1 2 3 4f", .{ .boolean = false });
+    try runTestError("1f!0f", DictError.incompatible_types);
+    try runTestError("1f!`float$()", DictError.incompatible_types);
+    try runTestError("1f!0 1f", DictError.incompatible_types);
 
-    try runTest("\"a\"!0f", .{ .boolean = false });
-    try runTest("\"a\"!`float$()", .{ .boolean = false });
-    try runTest("\"a\"!0 1 2 3 4f", .{ .boolean = false });
+    try runTestError("\"a\"!0f", DictError.incompatible_types);
+    try runTestError("\"a\"!`float$()", DictError.incompatible_types);
+    try runTestError("\"a\"!0 1f", DictError.incompatible_types);
 
-    try runTest("`symbol!0f", .{ .boolean = false });
-    try runTest("`symbol!`float$()", .{ .boolean = false });
-    try runTest("`symbol!0 1 2 3 4f", .{ .boolean = false });
+    try runTestError("`symbol!0f", DictError.incompatible_types);
+    try runTestError("`symbol!`float$()", DictError.incompatible_types);
+    try runTestError("`symbol!0 1f", DictError.incompatible_types);
 
-    try runTest("()!0f", .{ .boolean = false });
-    try runTest("(1b;2)!0f", .{ .boolean = false });
-    try runTest("(1b;2;3f)!0f", .{ .boolean = false });
-    try runTest("(1b;2;3f;(0b;1))!0f", .{ .boolean = false });
-    try runTest("(1b;2;3f;`symbol)!0f", .{ .boolean = false });
-    try runTest("()!`float$()", .{ .boolean = false });
-    try runTest("()!0 1 2f", .{ .boolean = false });
-    try runTest("(1b;2)!`float$()", .{ .boolean = false });
-    try runTest("(1b;2)!0 1f", .{ .boolean = false });
-    try runTest("(1b;2;3f)!0 1 2f", .{ .boolean = false });
-    try runTest("(1b;2;3f)!0 1 2 3f", .{ .boolean = false });
-    try runTest("(1b;2;3f;\"a\")!0 1 2 3f", .{ .boolean = false });
-    try runTest("(1b;2;3f;`symbol)!0 1 2 3f", .{ .boolean = false });
+    try runTestError("()!0f", DictError.incompatible_types);
+    try runTest("()!`float$()", .{
+        .dictionary = &.{
+            .{ .list = &.{} },
+            .{ .float_list = &.{} },
+        },
+    });
+    try runTestError("()!0 1f", DictError.length_mismatch);
+    try runTestError("(1b;2)!0f", DictError.incompatible_types);
+    try runTestError("(1b;2)!`float$()", DictError.length_mismatch);
+    try runTest("(1b;2)!0 1f", .{
+        .dictionary = &.{
+            .{ .list = &.{
+                .{ .boolean = true },
+                .{ .int = 2 },
+            } },
+            .{ .float_list = &.{
+                .{ .float = 0 },
+                .{ .float = 1 },
+            } },
+        },
+    });
 
-    try runTest("(`boolean$())!0f", .{ .boolean = false });
-    try runTest("11111b!0f", .{ .boolean = false });
-    try runTest("(`boolean$())!`float$()", .{ .boolean = false });
-    try runTest("11111b!`float$()", .{ .boolean = false });
-    try runTest("11111b!0 1 2 3 4f", .{ .boolean = false });
-    try runTest("11111b!0 1 2 3 4 5f", .{ .boolean = false });
+    try runTestError("(`boolean$())!0f", DictError.incompatible_types);
+    try runTestError("11111b!0f", DictError.incompatible_types);
+    try runTest("(`boolean$())!`float$()", .{
+        .dictionary = &.{
+            .{ .boolean_list = &.{} },
+            .{ .float_list = &.{} },
+        },
+    });
+    try runTestError("11111b!`float$()", DictError.length_mismatch);
+    try runTest("11111b!0 1 2 3 4f", .{
+        .dictionary = &.{
+            .{ .boolean_list = &.{
+                .{ .boolean = true },
+                .{ .boolean = true },
+                .{ .boolean = true },
+                .{ .boolean = true },
+                .{ .boolean = true },
+            } },
+            .{ .float_list = &.{
+                .{ .float = 0 },
+                .{ .float = 1 },
+                .{ .float = 2 },
+                .{ .float = 3 },
+                .{ .float = 4 },
+            } },
+        },
+    });
+    try runTestError("11111b!0 1 2 3 4 5f", DictError.length_mismatch);
 
-    try runTest("(`int$())!0f", .{ .boolean = false });
-    try runTest("5 4 3 2 1!0f", .{ .boolean = false });
-    try runTest("(`int$())!`float$()", .{ .boolean = false });
-    try runTest("5 4 3 2 1!`float$()", .{ .boolean = false });
-    try runTest("5 4 3 2 1!0 1 2 3 4f", .{ .boolean = false });
-    try runTest("5 4 3 2 1!0 1 2 3 4 5f", .{ .boolean = false });
+    try runTestError("(`int$())!0f", DictError.incompatible_types);
+    try runTestError("5 4 3 2 1!0f", DictError.incompatible_types);
+    try runTest("(`int$())!`float$()", .{
+        .dictionary = &.{
+            .{ .int_list = &.{} },
+            .{ .float_list = &.{} },
+        },
+    });
+    try runTestError("5 4 3 2 1!`float$()", DictError.length_mismatch);
+    try runTest("5 4 3 2 1!0 1 2 3 4f", .{
+        .dictionary = &.{
+            .{ .int_list = &.{
+                .{ .int = 5 },
+                .{ .int = 4 },
+                .{ .int = 3 },
+                .{ .int = 2 },
+                .{ .int = 1 },
+            } },
+            .{ .float_list = &.{
+                .{ .float = 0 },
+                .{ .float = 1 },
+                .{ .float = 2 },
+                .{ .float = 3 },
+                .{ .float = 4 },
+            } },
+        },
+    });
+    try runTestError("5 4 3 2 1!0 1 2 3 4 5f", DictError.length_mismatch);
 
-    try runTest("(`float$())!0f", .{ .boolean = false });
-    try runTest("5 4 3 2 1f!0f", .{ .boolean = false });
-    try runTest("(`float$())!`float$()", .{ .boolean = true });
-    try runTest("5 4 3 2 1f!`float$()", .{ .boolean = false });
-    try runTest("5 4 3 2 1f!0 1 2 3 4f", .{ .boolean = false });
-    try runTest("5 4 3 2 1f!0 1 2 3 4 5f", .{ .boolean = false });
+    try runTestError("(`float$())!0f", DictError.incompatible_types);
+    try runTestError("5 4 3 2 1f!0f", DictError.incompatible_types);
+    try runTest("(`float$())!`float$()", .{
+        .dictionary = &.{
+            .{ .float_list = &.{} },
+            .{ .float_list = &.{} },
+        },
+    });
+    try runTestError("5 4 3 2 1f!`float$()", DictError.length_mismatch);
+    try runTest("5 4 3 2 1f!0 1 2 3 4f", .{
+        .dictionary = &.{
+            .{ .float_list = &.{
+                .{ .float = 5 },
+                .{ .float = 4 },
+                .{ .float = 3 },
+                .{ .float = 2 },
+                .{ .float = 1 },
+            } },
+            .{ .float_list = &.{
+                .{ .float = 0 },
+                .{ .float = 1 },
+                .{ .float = 2 },
+                .{ .float = 3 },
+                .{ .float = 4 },
+            } },
+        },
+    });
+    try runTestError("5 4 3 2 1f!0 1 2 3 4 5f", DictError.length_mismatch);
 
-    try runTest("\"\"!0f", .{ .boolean = false });
-    try runTest("\"abcde\"!0f", .{ .boolean = false });
-    try runTest("\"\"!`float$()", .{ .boolean = false });
-    try runTest("\"abcde\"!`float$()", .{ .boolean = false });
-    try runTest("\"abcde\"!0 1 2 3 4f", .{ .boolean = false });
-    try runTest("\"abcde\"!0 1 2 3 4 5f", .{ .boolean = false });
+    try runTestError("\"\"!0f", DictError.incompatible_types);
+    try runTestError("\"abcde\"!0f", DictError.incompatible_types);
+    try runTest("\"\"!`float$()", .{
+        .dictionary = &.{
+            .{ .char_list = &.{} },
+            .{ .float_list = &.{} },
+        },
+    });
+    try runTestError("\"abcde\"!`float$()", DictError.length_mismatch);
+    try runTest("\"abcde\"!0 1 2 3 4f", .{
+        .dictionary = &.{
+            .{ .char_list = &.{
+                .{ .char = 'a' },
+                .{ .char = 'b' },
+                .{ .char = 'c' },
+                .{ .char = 'd' },
+                .{ .char = 'e' },
+            } },
+            .{ .float_list = &.{
+                .{ .float = 0 },
+                .{ .float = 1 },
+                .{ .float = 2 },
+                .{ .float = 3 },
+                .{ .float = 4 },
+            } },
+        },
+    });
+    try runTestError("\"abcde\"!0 1 2 3 4 5f", DictError.length_mismatch);
 
-    try runTest("(`$())!0f", .{ .boolean = false });
-    try runTest("`a`b`c`d`e!0f", .{ .boolean = false });
-    try runTest("(`$())!`float$()", .{ .boolean = false });
-    try runTest("`a`b`c`d`e!`float$()", .{ .boolean = false });
-    try runTest("`a`b`c`d`e!0 1 2 3 4f", .{ .boolean = false });
-    try runTest("`a`b`c`d`e!0 1 2 3 4 5f", .{ .boolean = false });
+    try runTestError("(`$())!0f", DictError.incompatible_types);
+    try runTestError("`a`b`c`d`e!0f", DictError.incompatible_types);
+    try runTest("(`$())!`float$()", .{
+        .dictionary = &.{
+            .{ .symbol_list = &.{} },
+            .{ .float_list = &.{} },
+        },
+    });
+    try runTestError("`a`b`c`d`e!`float$()", DictError.length_mismatch);
+    try runTest("`a`b`c`d`e!0 1 2 3 4f", .{
+        .dictionary = &.{
+            .{ .symbol_list = &.{
+                .{ .symbol = "a" },
+                .{ .symbol = "b" },
+                .{ .symbol = "c" },
+                .{ .symbol = "d" },
+                .{ .symbol = "e" },
+            } },
+            .{ .float_list = &.{
+                .{ .float = 0 },
+                .{ .float = 1 },
+                .{ .float = 2 },
+                .{ .float = 3 },
+                .{ .float = 4 },
+            } },
+        },
+    });
+    try runTestError("`a`b`c`d`e!0 1 2 3 4 5f", DictError.length_mismatch);
 
-    try runTest("(()!())!0f", .{ .boolean = false });
-    try runTest("(()!())!`float$()", .{ .boolean = false });
-    try runTest("(`a`b!1 2)!0f", .{ .boolean = false });
-    try runTest("(`a`b!1 2)!`float$()", .{ .boolean = false });
-    try runTest("(`a`b!1 2)!0 1f", .{ .boolean = false });
-    try runTest("(`a`b!1 2)!0 1 2f", .{ .boolean = false });
+    try runTestError("(()!())!0f", DictError.incompatible_types);
+    try runTestError("(()!())!`float$()", DictError.incompatible_types);
+    try runTestError("(()!())!0 1f", DictError.incompatible_types);
+    try runTestError("(`a`b!1 2)!0f", DictError.incompatible_types);
+    try runTestError("(`a`b!1 2)!`float$()", DictError.incompatible_types);
+    try runTestError("(`a`b!1 2)!0 1f", DictError.incompatible_types);
 
-    try runTest("(+`a`b!(();()))!0f", .{ .boolean = false });
-    try runTest("(+`a`b!(();()))!`float$()", .{ .boolean = false });
-    try runTest("(+`a`b!(();()))!0 1f", .{ .boolean = false });
-    try runTest("(+`a`b!(`int$();`float$()))!0f", .{ .boolean = false });
-    try runTest("(+`a`b!(`int$();`float$()))!`float$()", .{ .boolean = false });
-    try runTest("(+`a`b!(`int$();`float$()))!0 1f", .{ .boolean = false });
-    try runTest("(+`a`b!(,1;,2))!0", .{ .boolean = false });
-    try runTest("(+`a`b!(,1;,`symbol))!0f", .{ .boolean = false });
-    try runTest("(+`a`b!(,1;,2))!`float$()", .{ .boolean = false });
-    try runTest("(+`a`b!(,1;,2))!0 1f", .{ .boolean = false });
-    try runTest("(+`a`b!(,1;,2))!0 1 2f", .{ .boolean = false });
+    try runTestError("(+`a`b!(();()))!0f", DictError.incompatible_types);
+    try runTestError("(+`a`b!(();()))!`float$()", DictError.incompatible_types);
+    try runTestError("(+`a`b!(();()))!0 1f", DictError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))!0f", DictError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))!`float$()", DictError.incompatible_types);
+    try runTestError("(+`a`b!(,1;,2))!0 1f", DictError.incompatible_types);
 }
 
 test "dict char" {
