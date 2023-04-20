@@ -47,6 +47,35 @@ pub fn dict(vm: *VM, x: *Value, y: *Value) DictError!*Value {
             },
             else => runtimeError(DictError.incompatible_types),
         },
+        .table => |table_x| switch (y.as) {
+            .list => |list_y| blk: {
+                const table_len = table_x.values.asList()[0].asList().len;
+                if (list_y.len > 0) {
+                    if (table_len != list_y.len) return runtimeError(DictError.length_mismatch);
+
+                    break :blk vm.initDictionary(.{ .keys = x.ref(), .values = y.ref() });
+                }
+
+                const list = vm.allocator.alloc(*Value, table_len) catch std.debug.panic("Failed to create list.", .{});
+                var i: usize = 0;
+                while (i < table_len) : (i += 1) {
+                    list[i] = y.ref();
+                }
+                const values = vm.initValue(.{ .list = list });
+                break :blk vm.initDictionary(.{ .keys = x.ref(), .values = values });
+            },
+            .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_y| blk: {
+                if (table_x.values.asList()[0].asList().len != list_y.len) return runtimeError(DictError.length_mismatch);
+
+                break :blk vm.initDictionary(.{ .keys = x.ref(), .values = y.ref() });
+            },
+            .table => |table_y| blk: {
+                if (table_x.values.asList()[0].asList().len != table_y.values.asList()[0].asList().len) return runtimeError(DictError.length_mismatch);
+
+                break :blk vm.initDictionary(.{ .keys = x.ref(), .values = y.ref() });
+            },
+            else => runtimeError(DictError.incompatible_types),
+        },
         else => runtimeError(DictError.incompatible_types),
     };
 }
