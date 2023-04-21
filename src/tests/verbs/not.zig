@@ -203,7 +203,7 @@ test "not dictionary" {
 }
 
 test "not table" {
-    try runTest("~+`a`b!(();())", .{
+    try runTest("~+`a`b!()", .{
         .table = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },

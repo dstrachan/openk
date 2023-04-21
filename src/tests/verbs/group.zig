@@ -486,7 +486,7 @@ test "group dictionary" {
 }
 
 test "group table" {
-    try runTest("=+`a`b!(();())", .{
+    try runTest("=+`a`b!()", .{
         .dictionary = &.{
             .{ .table = &.{
                 .{ .symbol_list = &.{

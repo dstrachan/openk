@@ -66,7 +66,7 @@ test "key dictionary" {
 }
 
 test "key table" {
-    try runTestError("!+`a`b!(();())", KeyError.invalid_type);
+    try runTestError("!+`a`b!()", KeyError.invalid_type);
     try runTestError("!+`a`b!(`int$();`float$())", KeyError.invalid_type);
     try runTestError("!+`a`b!(,1;,2)", KeyError.invalid_type);
     try runTestError("!+`a`b!(1 1;2 2)", KeyError.invalid_type);

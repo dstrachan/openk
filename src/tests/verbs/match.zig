@@ -82,9 +82,9 @@ test "match boolean" {
     try runTest("(`a`b!1 2)~01b", .{ .boolean = false });
     try runTest("(`a`b!1 2)~010b", .{ .boolean = false });
 
-    try runTest("(+`a`b!(();()))~0b", .{ .boolean = false });
-    try runTest("(+`a`b!(();()))~`boolean$()", .{ .boolean = false });
-    try runTest("(+`a`b!(();()))~010b", .{ .boolean = false });
+    try runTest("(+`a`b!())~0b", .{ .boolean = false });
+    try runTest("(+`a`b!())~`boolean$()", .{ .boolean = false });
+    try runTest("(+`a`b!())~010b", .{ .boolean = false });
     try runTest("(+`a`b!(`int$();`float$()))~0b", .{ .boolean = false });
     try runTest("(+`a`b!(`int$();`float$()))~`boolean$()", .{ .boolean = false });
     try runTest("(+`a`b!(`int$();`float$()))~010b", .{ .boolean = false });
@@ -172,9 +172,9 @@ test "match int" {
     try runTest("(`a`b!1 2)~0 1", .{ .boolean = false });
     try runTest("(`a`b!1 2)~0 1 2", .{ .boolean = false });
 
-    try runTest("(+`a`b!(();()))~0", .{ .boolean = false });
-    try runTest("(+`a`b!(();()))~`int$()", .{ .boolean = false });
-    try runTest("(+`a`b!(();()))~0 1", .{ .boolean = false });
+    try runTest("(+`a`b!())~0", .{ .boolean = false });
+    try runTest("(+`a`b!())~`int$()", .{ .boolean = false });
+    try runTest("(+`a`b!())~0 1", .{ .boolean = false });
     try runTest("(+`a`b!(`int$();`float$()))~0", .{ .boolean = false });
     try runTest("(+`a`b!(`int$();`float$()))~`int$()", .{ .boolean = false });
     try runTest("(+`a`b!(`int$();`float$()))~0 1", .{ .boolean = false });
@@ -262,9 +262,9 @@ test "match float" {
     try runTest("(`a`b!1 2)~0 1f", .{ .boolean = false });
     try runTest("(`a`b!1 2)~0 1 2f", .{ .boolean = false });
 
-    try runTest("(+`a`b!(();()))~0f", .{ .boolean = false });
-    try runTest("(+`a`b!(();()))~`float$()", .{ .boolean = false });
-    try runTest("(+`a`b!(();()))~0 1f", .{ .boolean = false });
+    try runTest("(+`a`b!())~0f", .{ .boolean = false });
+    try runTest("(+`a`b!())~`float$()", .{ .boolean = false });
+    try runTest("(+`a`b!())~0 1f", .{ .boolean = false });
     try runTest("(+`a`b!(`int$();`float$()))~0f", .{ .boolean = false });
     try runTest("(+`a`b!(`int$();`float$()))~`float$()", .{ .boolean = false });
     try runTest("(+`a`b!(`int$();`float$()))~0 1f", .{ .boolean = false });
@@ -529,15 +529,15 @@ test "match dictionary" {
 }
 
 test "match table" {
-    try runTest("1b~+`a`b!(();())", .{ .boolean = false });
+    try runTest("1b~+`a`b!()", .{ .boolean = false });
     try runTest("1b~+`a`b!(`int$();`float$())", .{ .boolean = false });
     try runTest("1b~+`a`b!(,1;,2)", .{ .boolean = false });
 
-    try runTest("1~+`a`b!(();())", .{ .boolean = false });
+    try runTest("1~+`a`b!()", .{ .boolean = false });
     try runTest("1~+`a`b!(`int$();`float$())", .{ .boolean = false });
     try runTest("1~+`a`b!(,1;,2)", .{ .boolean = false });
 
-    try runTest("1f~+`a`b!(();())", .{ .boolean = false });
+    try runTest("1f~+`a`b!()", .{ .boolean = false });
     try runTest("1f~+`a`b!(`int$();`float$())", .{ .boolean = false });
     try runTest("1f~+`a`b!(,1;,2)", .{ .boolean = false });
 
@@ -571,13 +571,13 @@ test "match table" {
 
     try runTest("(`a`b!1 2)~+`a`b!(,1;,2)", .{ .boolean = false });
 
-    try runTest("(+`a`b!(();()))~+`a`b!(();())", .{ .boolean = true });
-    try runTest("(+`a`b!(();()))~+`a`b!(`int$();`float$())", .{ .boolean = false });
-    try runTest("(+`a`b!(();()))~+`a`b!(,1;,2)", .{ .boolean = false });
-    try runTest("(+`a`b!(`int$();`float$()))~+`a`b!(();())", .{ .boolean = false });
+    try runTest("(+`a`b!())~+`a`b!()", .{ .boolean = true });
+    try runTest("(+`a`b!())~+`a`b!(`int$();`float$())", .{ .boolean = false });
+    try runTest("(+`a`b!())~+`a`b!(,1;,2)", .{ .boolean = false });
+    try runTest("(+`a`b!(`int$();`float$()))~+`a`b!()", .{ .boolean = false });
     try runTest("(+`a`b!(`int$();`float$()))~+`a`b!(`int$();`float$())", .{ .boolean = true });
     try runTest("(+`a`b!(`int$();`float$()))~+`a`b!(,1;,2)", .{ .boolean = false });
-    try runTest("(+`a`b!(,1;,2))~+`a`b!(();())", .{ .boolean = false });
+    try runTest("(+`a`b!(,1;,2))~+`a`b!()", .{ .boolean = false });
     try runTest("(+`a`b!(,1;,2))~+`a`b!(`int$();`float$())", .{ .boolean = false });
     try runTest("(+`a`b!(,1;,2))~+`a`b!(,1;,2)", .{ .boolean = true });
     try runTest("(+`b`a!(,1;,2))~+`a`b!(,1;,2)", .{ .boolean = false });

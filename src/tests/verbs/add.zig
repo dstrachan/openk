@@ -211,7 +211,7 @@ test "add boolean" {
     });
     try runTestError("(`a`b!1 2)+010b", AddError.length_mismatch);
 
-    try runTest("(+`a`b!(();()))+0b", .{
+    try runTest("(+`a`b!())+0b", .{
         .table = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
@@ -223,8 +223,8 @@ test "add boolean" {
             } },
         },
     });
-    try runTestError("(+`a`b!(();()))+`boolean$()", AddError.incompatible_types);
-    try runTestError("(+`a`b!(();()))+01b", AddError.incompatible_types);
+    try runTestError("(+`a`b!())+`boolean$()", AddError.incompatible_types);
+    try runTestError("(+`a`b!())+01b", AddError.incompatible_types);
     try runTest("(+`a`b!(,1;,2))+0b", .{
         .table = &.{
             .{ .symbol_list = &.{
@@ -456,7 +456,7 @@ test "add int" {
     });
     try runTestError("(`a`b!1 2)+0 1 2", AddError.length_mismatch);
 
-    try runTest("(+`a`b!(();()))+0", .{
+    try runTest("(+`a`b!())+0", .{
         .table = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
@@ -468,8 +468,8 @@ test "add int" {
             } },
         },
     });
-    try runTestError("(+`a`b!(();()))+`int$()", AddError.incompatible_types);
-    try runTestError("(+`a`b!(();()))+0 1", AddError.incompatible_types);
+    try runTestError("(+`a`b!())+`int$()", AddError.incompatible_types);
+    try runTestError("(+`a`b!())+0 1", AddError.incompatible_types);
     try runTest("(+`a`b!(,1;,2))+0", .{
         .table = &.{
             .{ .symbol_list = &.{
@@ -686,7 +686,7 @@ test "add float" {
     });
     try runTestError("(`a`b!1 2)+0 1 2f", AddError.length_mismatch);
 
-    try runTest("(+`a`b!(();()))+0f", .{
+    try runTest("(+`a`b!())+0f", .{
         .table = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
@@ -698,8 +698,8 @@ test "add float" {
             } },
         },
     });
-    try runTestError("(+`a`b!(();()))+`float$()", AddError.incompatible_types);
-    try runTestError("(+`a`b!(();()))+0 1f", AddError.incompatible_types);
+    try runTestError("(+`a`b!())+`float$()", AddError.incompatible_types);
+    try runTestError("(+`a`b!())+0 1f", AddError.incompatible_types);
     try runTest("(+`a`b!(,1;,2))+0f", .{
         .table = &.{
             .{ .symbol_list = &.{

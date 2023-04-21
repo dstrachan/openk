@@ -221,7 +221,7 @@ test "equal boolean" {
     });
     try runTestError("(`a`b!1 2)=010b", EqualError.length_mismatch);
 
-    try runTest("(+`a`b!(();()))=0b", .{
+    try runTest("(+`a`b!())=0b", .{
         .table = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
@@ -233,8 +233,8 @@ test "equal boolean" {
             } },
         },
     });
-    try runTestError("(+`a`b!(();()))=`boolean$()", EqualError.incompatible_types);
-    try runTestError("(+`a`b!(();()))=010b", EqualError.incompatible_types);
+    try runTestError("(+`a`b!())=`boolean$()", EqualError.incompatible_types);
+    try runTestError("(+`a`b!())=010b", EqualError.incompatible_types);
     try runTest("(+`a`b!(`int$();`float$()))=0b", .{
         .table = &.{
             .{ .symbol_list = &.{
@@ -484,7 +484,7 @@ test "equal int" {
     });
     try runTestError("(`a`b!1 2)=0 1 2", EqualError.length_mismatch);
 
-    try runTest("(+`a`b!(();()))=0", .{
+    try runTest("(+`a`b!())=0", .{
         .table = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
@@ -496,8 +496,8 @@ test "equal int" {
             } },
         },
     });
-    try runTestError("(+`a`b!(();()))=`int$()", EqualError.incompatible_types);
-    try runTestError("(+`a`b!(();()))=0 1", EqualError.incompatible_types);
+    try runTestError("(+`a`b!())=`int$()", EqualError.incompatible_types);
+    try runTestError("(+`a`b!())=0 1", EqualError.incompatible_types);
     try runTest("(+`a`b!(`int$();`float$()))=0", .{
         .table = &.{
             .{ .symbol_list = &.{
@@ -747,7 +747,7 @@ test "equal float" {
     });
     try runTestError("(`a`b!1 2)=0 1 2f", EqualError.length_mismatch);
 
-    try runTest("(+`a`b!(();()))=0f", .{
+    try runTest("(+`a`b!())=0f", .{
         .table = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
@@ -759,8 +759,8 @@ test "equal float" {
             } },
         },
     });
-    try runTestError("(+`a`b!(();()))=`float$()", EqualError.incompatible_types);
-    try runTestError("(+`a`b!(();()))=0 1f", EqualError.incompatible_types);
+    try runTestError("(+`a`b!())=`float$()", EqualError.incompatible_types);
+    try runTestError("(+`a`b!())=0 1f", EqualError.incompatible_types);
     try runTest("(+`a`b!(`int$();`float$()))=0f", .{
         .table = &.{
             .{ .symbol_list = &.{
@@ -1460,7 +1460,7 @@ test "equal dictionary" {
 }
 
 test "equal table" {
-    try runTest("1b=+`a`b!(();())", .{
+    try runTest("1b=+`a`b!()", .{
         .table = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
@@ -1501,7 +1501,7 @@ test "equal table" {
         },
     });
 
-    try runTest("1=+`a`b!(();())", .{
+    try runTest("1=+`a`b!()", .{
         .table = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
@@ -1542,7 +1542,7 @@ test "equal table" {
         },
     });
 
-    try runTest("1f=+`a`b!(();())", .{
+    try runTest("1f=+`a`b!()", .{
         .table = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
@@ -1613,7 +1613,7 @@ test "equal table" {
 
     try runTestError("(`a`b!1 2)=+`a`b!(,1;,2)", EqualError.incompatible_types);
 
-    try runTest("(+`a`b!(();()))=+`a`b!(();())", .{
+    try runTest("(+`a`b!())=+`a`b!()", .{
         .table = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
@@ -1625,7 +1625,7 @@ test "equal table" {
             } },
         },
     });
-    try runTest("(+`a`b!(();()))=+`a`b!(`int$();`float$())", .{
+    try runTest("(+`a`b!())=+`a`b!(`int$();`float$())", .{
         .table = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
@@ -1637,8 +1637,8 @@ test "equal table" {
             } },
         },
     });
-    try runTestError("(+`a`b!(();()))=+`a`b!(,1;,2)", EqualError.length_mismatch);
-    try runTest("(+`a`b!(`int$();`float$()))=+`a`b!(();())", .{
+    try runTestError("(+`a`b!())=+`a`b!(,1;,2)", EqualError.length_mismatch);
+    try runTest("(+`a`b!(`int$();`float$()))=+`a`b!()", .{
         .table = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
@@ -1663,7 +1663,7 @@ test "equal table" {
         },
     });
     try runTestError("(+`a`b!(`int$();`float$()))=+`a`b!(,1;,2)", EqualError.length_mismatch);
-    try runTestError("(+`a`b!(,1;,2))=+`a`b!(();())", EqualError.length_mismatch);
+    try runTestError("(+`a`b!(,1;,2))=+`a`b!()", EqualError.length_mismatch);
     try runTestError("(+`a`b!(,1;,2))=+`a`b!(`int$();`float$())", EqualError.length_mismatch);
     try runTest("(+`a`b!(,1;,2))=+`a`b!(,1;,2)", .{
         .table = &.{

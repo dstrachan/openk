@@ -90,7 +90,7 @@ test "where dictionary" {
 }
 
 test "where table" {
-    try runTestError("&+`a`b!(();())", WhereError.invalid_type);
+    try runTestError("&+`a`b!()", WhereError.invalid_type);
     try runTestError("&+`a`b!(`int$();`float$())", WhereError.invalid_type);
     try runTestError("&+`a`b!(,1;,2)", WhereError.invalid_type);
     try runTestError("&+`a`b!(1 1;2 2)", WhereError.invalid_type);

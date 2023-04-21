@@ -250,7 +250,7 @@ test "reverse dictionary" {
 }
 
 test "reverse table" {
-    try runTest("|+`a`b!(();())", .{
+    try runTest("|+`a`b!()", .{
         .table = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },

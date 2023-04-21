@@ -218,7 +218,7 @@ test "descend dictionary" {
 }
 
 test "descend table" {
-    try runTest(">+`a`b!(();())", .{ .int_list = &.{} });
+    try runTest(">+`a`b!()", .{ .int_list = &.{} });
     try runTest(">+`a`b!(`int$();`float$())", .{ .int_list = &.{} });
 
     try runTest(">+`a`b!(,1;,2)", .{

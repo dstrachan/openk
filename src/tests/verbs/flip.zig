@@ -131,7 +131,7 @@ test "flip list" {
 
 test "flip dictionary" {
     try runTestError("+()!()", FlipError.invalid_column_type);
-    try runTest("+`a`b!(();())", .{
+    try runTest("+`a`b!()", .{
         .table = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
@@ -212,7 +212,7 @@ test "flip dictionary" {
 }
 
 test "flip table" {
-    try runTest("++`a`b!(();())", .{
+    try runTest("++`a`b!()", .{
         .dictionary = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },

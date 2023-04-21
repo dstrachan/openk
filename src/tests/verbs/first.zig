@@ -78,7 +78,7 @@ test "first dictionary" {
 }
 
 test "first table" {
-    try runTest("*+`a`b!(();())", .{
+    try runTest("*+`a`b!()", .{
         .dictionary = &.{
             .{ .symbol_list = &.{
                 .{ .symbol = "a" },
