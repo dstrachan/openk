@@ -16,7 +16,7 @@ pub fn first(vm: *VM, x: *Value) *Value {
         .table => |table_x| blk: {
             const list = vm.allocator.alloc(*Value, table_x.columns.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
             var list_type: ?ValueType = null;
-            for (table_x.values.asList(), 0..) |v, i| {
+            for (table_x.values.as.list, 0..) |v, i| {
                 list[i] = first(vm, v);
                 if (list_type == null and @as(ValueType, list[0].as) != list[i].as) list_type = .list;
             }

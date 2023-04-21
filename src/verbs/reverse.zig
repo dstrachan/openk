@@ -32,9 +32,9 @@ pub fn reverse(vm: *VM, x: *Value) *Value {
             break :blk vm.initDictionary(.{ .keys = key, .values = value });
         },
         .table => |table_x| blk: {
-            const list = vm.allocator.alloc(*Value, table_x.values.asList().len) catch std.debug.panic("Failed to create list.", .{});
+            const list = vm.allocator.alloc(*Value, table_x.values.as.list.len) catch std.debug.panic("Failed to create list.", .{});
             for (list, 0..) |*v, i| {
-                v.* = reverse(vm, table_x.values.asList()[i]);
+                v.* = reverse(vm, table_x.values.as.list[i]);
             }
             const values = vm.initValue(.{ .list = list });
             break :blk vm.initTable(.{ .columns = table_x.columns.ref(), .values = values });

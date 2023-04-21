@@ -474,16 +474,16 @@ pub fn add(vm: *VM, x: *Value, y: *Value) AddError!*Value {
                 var values = table_x.values.asArrayList(vm.allocator);
                 errdefer values.deinit();
                 errdefer for (values.items) |v| v.deref(vm.allocator);
-                for (table_y.columns.asList(), 0..) |c_y, i_y| loop: {
+                for (table_y.columns.as.symbol_list, 0..) |c_y, i_y| loop: {
                     for (columns.items, 0..) |c_x, i_x| {
                         if (c_x.eql(c_y)) {
                             values.items[i_x].deref(vm.allocator);
-                            values.items[i_x] = try add(vm, values.items[i_x], table_y.values.asList()[i_y]);
+                            values.items[i_x] = try add(vm, values.items[i_x], table_y.values.as.list[i_y]);
                             break :loop;
                         }
                     }
                     columns.append(c_y.ref()) catch std.debug.panic("Failed to append item.", .{});
-                    values.append(table_y.values.asList()[i_y].ref()) catch std.debug.panic("Failed to append item.", .{});
+                    values.append(table_y.values.as.list[i_y].ref()) catch std.debug.panic("Failed to append item.", .{});
                 }
                 const columns_list = columns.toOwnedSlice() catch std.debug.panic("Failed to create list.", .{});
                 const new_columns = vm.initValue(.{ .symbol_list = columns_list });

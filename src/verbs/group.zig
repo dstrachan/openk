@@ -90,7 +90,7 @@ pub fn group(vm: *VM, x: *Value) GroupError!*Value {
             break :blk vm.initDictionary(.{ .keys = keys, .values = values });
         },
         .table => |table_x| blk: {
-            const table_len = table_x.values.asList()[0].asList().len;
+            const table_len = table_x.values.as.list[0].asList().len;
             if (table_len == 0) {
                 const key = x.ref();
                 const value = vm.initValue(.{ .list = &.{} });
@@ -103,7 +103,7 @@ pub fn group(vm: *VM, x: *Value) GroupError!*Value {
             var i: usize = 0;
             while (i < table_len) : (i += 1) {
                 const k = vm.allocator.alloc(*Value, table_x.columns.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
-                for (table_x.values.asList(), 0..) |c, j| {
+                for (table_x.values.as.list, 0..) |c, j| {
                     k[j] = c.asList()[i];
                 }
 

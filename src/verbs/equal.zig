@@ -223,7 +223,7 @@ pub fn equal(vm: *VM, x: *Value, y: *Value) EqualError!*Value {
 
                 const list = vm.allocator.alloc(*Value, table_x.columns.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
                 errdefer vm.allocator.free(list);
-                for (list, table_x.columns.as.symbol_list, table_x.values.asList(), 0..) |*value, column_name, column_x, i| {
+                for (list, table_x.columns.as.symbol_list, table_x.values.as.list, 0..) |*value, column_name, column_x, i| {
                     errdefer for (list[0..i]) |v| v.deref(vm.allocator);
                     const column_y = table_y.hash_map.get(column_name).?;
                     value.* = try equal(vm, column_x, column_y);
