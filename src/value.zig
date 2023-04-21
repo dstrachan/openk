@@ -540,7 +540,6 @@ pub const ValueDictionary = struct {
                 },
                 .table => |table_x| switch (config.values.as) {
                     .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_y| blk: {
-                        if (true) @compileError("NYI");
                         var hash_map = ValueHashMap.init(vm.allocator);
                         hash_map.ensureTotalCapacity(table_x.values.as.list[0].asList().len) catch std.debug.panic("Failed to create dictionary.", .{});
                         for (list_y, 0..) |v, i| {
@@ -559,7 +558,34 @@ pub const ValueDictionary = struct {
                         }
                         break :blk hash_map;
                     },
-                    .table => @compileError("NYI"),
+                    .table => |table_y| blk: {
+                        var hash_map = ValueHashMap.init(vm.allocator);
+                        hash_map.ensureTotalCapacity(table_x.values.as.list[0].asList().len) catch std.debug.panic("Failed to create dictionary.", .{});
+                        var i: usize = 0;
+                        while (i < table_y.values.as.list[0].asList().len) : (i += 1) {
+                            const key_list = vm.allocator.alloc(*Value, table_x.columns.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
+                            var key_list_type: ?ValueType = null;
+                            for (key_list, table_x.values.as.list) |*value, column| {
+                                value.* = column.asList()[i].ref();
+                                if (key_list_type == null and @as(ValueType, key_list[0].as) != value.*.as) key_list_type = .list;
+                            }
+                            const k = vm.initList(key_list, key_list_type);
+                            defer k.deref(vm.allocator); // This is most likely wrong, need some more tests to figure out correct cleanup approach
+                            const result = hash_map.getOrPutAssumeCapacity(k);
+                            if (!result.found_existing) {
+                                const value_list = vm.allocator.alloc(*Value, table_y.columns.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
+                                var value_list_type: ?ValueType = null;
+                                for (value_list, table_y.values.as.list) |*value, column| {
+                                    value.* = column.asList()[i].ref();
+                                    if (value_list_type == null and @as(ValueType, value_list[0].as) != value.*.as) value_list_type = .list;
+                                }
+                                const v = vm.initList(value_list, value_list_type);
+                                defer v.deref(vm.allocator); // This is most likely wrong, need some more tests to figure out correct cleanup approach
+                                result.value_ptr.* = v;
+                            }
+                        }
+                        break :blk hash_map;
+                    },
                     else => unreachable,
                 },
                 else => unreachable,

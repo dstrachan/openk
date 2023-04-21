@@ -495,8 +495,7 @@ test "keyed table" {
 
     try runTestError("(+`a`b!())!()!()", DictError.incompatible_types);
 
-    if (true) return error.SkipZigTest;
-    try runTest("(+`a`b!())!+`a`b!()", .{
+    try runTest("(+`a`b!())!+`c`d!()", .{
         .dictionary = &.{
             .{ .table = &.{
                 .{ .symbol_list = &.{
@@ -510,12 +509,86 @@ test "keyed table" {
             } },
             .{ .table = &.{
                 .{ .symbol_list = &.{
-                    .{ .symbol = "a" },
-                    .{ .symbol = "b" },
+                    .{ .symbol = "c" },
+                    .{ .symbol = "d" },
                 } },
                 .{ .list = &.{
                     .{ .list = &.{} },
                     .{ .list = &.{} },
+                } },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!())!+`c`d!(,1;,2)", DictError.length_mismatch);
+    try runTestError("(+`a`b!())!+`c`d!(1 2;3 4)", DictError.length_mismatch);
+    try runTestError("(+`a`b!(,1;,2))!+`c`d!()", DictError.length_mismatch);
+    try runTest("(+`a`b!(,1;,2))!+`c`d!(,1;,2)", .{
+        .dictionary = &.{
+            .{ .table = &.{
+                .{ .symbol_list = &.{
+                    .{ .symbol = "a" },
+                    .{ .symbol = "b" },
+                } },
+                .{ .list = &.{
+                    .{ .int_list = &.{
+                        .{ .int = 1 },
+                    } },
+                    .{ .int_list = &.{
+                        .{ .int = 2 },
+                    } },
+                } },
+            } },
+            .{ .table = &.{
+                .{ .symbol_list = &.{
+                    .{ .symbol = "c" },
+                    .{ .symbol = "d" },
+                } },
+                .{ .list = &.{
+                    .{ .int_list = &.{
+                        .{ .int = 1 },
+                    } },
+                    .{ .int_list = &.{
+                        .{ .int = 2 },
+                    } },
+                } },
+            } },
+        },
+    });
+    try runTestError("(+`a`b!(,1;,2))!+`c`d!(1 2;3 4)", DictError.length_mismatch);
+    try runTestError("(+`a`b!(1 2;3 4))!+`c`d!()", DictError.length_mismatch);
+    try runTestError("(+`a`b!(1 2;3 4))!+`c`d!(,1;,2)", DictError.length_mismatch);
+    try runTest("(+`a`b!(1 2;3 4))!+`c`d!(1 2;3 4)", .{
+        .dictionary = &.{
+            .{ .table = &.{
+                .{ .symbol_list = &.{
+                    .{ .symbol = "a" },
+                    .{ .symbol = "b" },
+                } },
+                .{ .list = &.{
+                    .{ .int_list = &.{
+                        .{ .int = 1 },
+                        .{ .int = 2 },
+                    } },
+                    .{ .int_list = &.{
+                        .{ .int = 3 },
+                        .{ .int = 4 },
+                    } },
+                } },
+            } },
+            .{ .table = &.{
+                .{ .symbol_list = &.{
+                    .{ .symbol = "c" },
+                    .{ .symbol = "d" },
+                } },
+                .{ .list = &.{
+                    .{ .int_list = &.{
+                        .{ .int = 1 },
+                        .{ .int = 2 },
+                    } },
+                    .{ .int_list = &.{
+                        .{ .int = 3 },
+                        .{ .int = 4 },
+                    } },
                 } },
             } },
         },
