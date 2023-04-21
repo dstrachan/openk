@@ -109,6 +109,7 @@ test {
     _ = @import("tests/verbs/apply.zig");
     _ = @import("tests/verbs/ascend.zig");
     _ = @import("tests/verbs/descend.zig");
+    _ = @import("tests/verbs/dict.zig");
     _ = @import("tests/verbs/divide.zig");
     _ = @import("tests/verbs/enlist.zig");
     _ = @import("tests/verbs/equal.zig");

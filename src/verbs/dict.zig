@@ -5,8 +5,6 @@ const print = utils_mod.print;
 
 const value_mod = @import("../value.zig");
 const Value = value_mod.Value;
-const ValueType = value_mod.ValueType;
-const ValueDictionary = value_mod.ValueDictionary;
 
 const vm_mod = @import("../vm.zig");
 const VM = vm_mod.VM;
@@ -27,13 +25,57 @@ fn runtimeError(comptime err: DictError) DictError!*Value {
 pub fn dict(vm: *VM, x: *Value, y: *Value) DictError!*Value {
     return switch (x.as) {
         .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_x| switch (y.as) {
-            .list, .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_y| blk: {
-                if (list_y.len > 0 and list_x.len != list_y.len) return runtimeError(DictError.length_mismatch);
+            .list => |list_y| blk: {
+                if (list_y.len > 0) {
+                    if (list_x.len != list_y.len) return runtimeError(DictError.length_mismatch);
+
+                    break :blk vm.initDictionary(.{ .keys = x.ref(), .values = y.ref() });
+                }
+
+                const list = vm.allocator.alloc(*Value, list_x.len) catch std.debug.panic("Failed to create list.", .{});
+                var i: usize = 0;
+                while (i < list_x.len) : (i += 1) {
+                    list[i] = y.ref();
+                }
+                const values = vm.initValue(.{ .list = list });
+                break :blk vm.initDictionary(.{ .keys = x.ref(), .values = values });
+            },
+            .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_y| blk: {
+                if (list_x.len != list_y.len) return runtimeError(DictError.length_mismatch);
 
                 break :blk vm.initDictionary(.{ .keys = x.ref(), .values = y.ref() });
             },
-            else => runtimeError(DictError.length_mismatch),
+            else => runtimeError(DictError.incompatible_types),
         },
-        else => runtimeError(DictError.length_mismatch),
+        .table => |table_x| switch (y.as) {
+            .list => |list_y| blk: {
+                const table_len = table_x.values.as.list[0].asList().len;
+                if (list_y.len > 0) {
+                    if (table_len != list_y.len) return runtimeError(DictError.length_mismatch);
+
+                    break :blk vm.initDictionary(.{ .keys = x.ref(), .values = y.ref() });
+                }
+
+                const list = vm.allocator.alloc(*Value, table_len) catch std.debug.panic("Failed to create list.", .{});
+                var i: usize = 0;
+                while (i < table_len) : (i += 1) {
+                    list[i] = y.ref();
+                }
+                const values = vm.initValue(.{ .list = list });
+                break :blk vm.initDictionary(.{ .keys = x.ref(), .values = values });
+            },
+            .boolean_list, .int_list, .float_list, .char_list, .symbol_list => |list_y| blk: {
+                if (table_x.values.as.list[0].asList().len != list_y.len) return runtimeError(DictError.length_mismatch);
+
+                break :blk vm.initDictionary(.{ .keys = x.ref(), .values = y.ref() });
+            },
+            .table => |table_y| blk: {
+                if (table_x.values.as.list[0].asList().len != table_y.values.as.list[0].asList().len) return runtimeError(DictError.length_mismatch);
+
+                break :blk vm.initDictionary(.{ .keys = x.ref(), .values = y.ref() });
+            },
+            else => runtimeError(DictError.incompatible_types),
+        },
+        else => runtimeError(DictError.incompatible_types),
     };
 }

@@ -127,8 +127,8 @@ pub const VM = struct {
 
                 const columns = list[0].as.dictionary.keys.ref();
 
-                const new_list = self.allocator.alloc(*Value, columns.asList().len) catch std.debug.panic("Failed to create list.", .{});
-                for (new_list, columns.asList()) |*value, column| {
+                const new_list = self.allocator.alloc(*Value, columns.as.symbol_list.len) catch std.debug.panic("Failed to create list.", .{});
+                for (new_list, columns.as.symbol_list) |*value, column| {
                     const inner_list = self.allocator.alloc(*Value, list.len) catch std.debug.panic("Failed to create list.", .{});
                     var inner_list_type: ?ValueType = null;
                     for (inner_list, list) |*row, row_value| {
