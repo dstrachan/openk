@@ -68,9 +68,10 @@ fn mainArgs(gpa: Allocator, arena: Allocator, args: []const []const u8) !void {
 
     const cmd = args[1];
     const cmd_args = args[2..];
+    _ = cmd_args; // autofix
     if (std.mem.eql(u8, cmd, "help") or std.mem.eql(u8, cmd, "-h") or std.mem.eql(u8, cmd, "--help")) {
         try std.fs.File.stdout().writeAll(usage);
-    } else return cmdRepl(gpa, cmd_args);
+    } else return cmdRepl(gpa, args[1..]);
 }
 
 const usage_repl =
@@ -96,7 +97,7 @@ fn cmdRepl(gpa: Allocator, args: []const []const u8) !void {
     var color: std.zig.Color = .auto;
 
     var i: usize = 0;
-    while (1 < args.len) : (i += 1) {
+    while (i < args.len) : (i += 1) {
         const arg = args[i];
         if (std.mem.startsWith(u8, arg, "-")) {
             if (std.mem.eql(u8, arg, "-h") or std.mem.eql(u8, arg, "--help")) {
@@ -146,6 +147,10 @@ fn cmdRepl(gpa: Allocator, args: []const []const u8) !void {
 
             var tree: Ast = try .parse(gpa, trimmed_input);
             defer tree.deinit(gpa);
+            if (tree.errors.len > 0) {
+                try utils.printAstErrorsToStderr(gpa, tree, "<stdin>", color);
+                continue;
+            }
 
             try stderr.print("======\n", .{});
             try stderr.print("TOKENS\n", .{});
