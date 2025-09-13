@@ -10,6 +10,9 @@ pub const Tokenizer = tokenizer.Tokenizer;
 pub const Ast = @import("k/Ast.zig");
 pub const Node = Ast.Node;
 pub const Parse = @import("k/Parse.zig");
+pub const Chunk = @import("k/Chunk.zig");
+pub const OpCode = Chunk.OpCode;
+pub const Value = f64;
 
 pub fn putAstErrorsIntoBundle(gpa: Allocator, tree: Ast, src_path: []const u8, eb: *std.zig.ErrorBundle.Wip) !void {
     _ = gpa; // autofix

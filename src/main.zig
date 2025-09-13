@@ -6,6 +6,8 @@ const assert = std.debug.assert;
 const k = @import("k");
 const build_options = k.build_options;
 const Ast = k.Ast;
+const Chunk = k.Chunk;
+const OpCode = k.OpCode;
 
 const utils = @import("utils.zig");
 
@@ -152,19 +154,16 @@ fn cmdRepl(gpa: Allocator, args: []const []const u8) !void {
                 continue;
             }
 
-            try stderr.print("======\n", .{});
-            try stderr.print("TOKENS\n", .{});
-            try stderr.print("======\n", .{});
-            for (tree.tokens.items(.tag)) |tag| {
-                try stderr.print("{t} ({s})\n", .{ tag, tag.symbol() });
-            }
+            var chunk: Chunk = .empty;
+            defer chunk.deinit(gpa);
 
-            try stderr.print("=====\n", .{});
-            try stderr.print("NODES\n", .{});
-            try stderr.print("=====\n", .{});
-            for (tree.nodes.items(.tag)) |tag| {
-                try stderr.print("{t}\n", .{tag});
-            }
+            const constant = try chunk.addConstant(gpa, 1.2);
+            try chunk.write(gpa, OpCode.constant, 123);
+            try chunk.write(gpa, constant, 123);
+
+            try chunk.write(gpa, OpCode.@"return", 123);
+
+            try chunk.disassemble(stderr, "test chunk");
         }
     } else {
         _ = try stdin.streamRemaining(&buffer.writer);
