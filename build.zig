@@ -85,6 +85,8 @@ pub fn build(b: *std.Build) !void {
     const version = try b.allocator.dupeZ(u8, version_slice);
     mod_options.addOption([:0]const u8, "version", version);
 
+    mod_options.addOption(bool, "trace_execution", optimize == .Debug);
+
     const exe = b.addExecutable(.{
         .name = "openk",
         .root_module = b.createModule(.{

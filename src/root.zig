@@ -3,6 +3,8 @@ const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
 
 pub const build_options = @import("build_options");
+pub const version = build_options.version;
+pub const trace_execution = build_options.trace_execution;
 
 pub const tokenizer = @import("k/tokenizer.zig");
 pub const Token = tokenizer.Token;
@@ -13,6 +15,7 @@ pub const Parse = @import("k/Parse.zig");
 pub const Chunk = @import("k/Chunk.zig");
 pub const OpCode = Chunk.OpCode;
 pub const Value = f64;
+pub const Vm = @import("k/Vm.zig");
 
 pub fn putAstErrorsIntoBundle(gpa: Allocator, tree: Ast, src_path: []const u8, eb: *std.zig.ErrorBundle.Wip) !void {
     _ = gpa; // autofix

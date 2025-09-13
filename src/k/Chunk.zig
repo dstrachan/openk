@@ -14,6 +14,13 @@ pub const empty: Chunk = .{};
 
 pub const OpCode = enum(u8) {
     constant,
+
+    add,
+    subtract,
+    multiply,
+    divide,
+    negate,
+
     @"return",
 
     pub const Index = enum(u32) { _ };
@@ -61,6 +68,14 @@ pub fn disassembleInstruction(chunk: Chunk, writer: *Writer, offset: usize) !usi
 
     switch (chunk.opCode(@enumFromInt(offset))) {
         .constant => |t| return chunk.constantInstruction(writer, t, offset),
+
+        .add,
+        .subtract,
+        .multiply,
+        .divide,
+        .negate,
+        => |t| return simpleInstruction(writer, t, offset),
+
         .@"return" => |t| return simpleInstruction(writer, t, offset),
     }
 }

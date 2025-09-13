@@ -4,10 +4,11 @@ const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
 
 const k = @import("k");
-const build_options = k.build_options;
+const version = k.version;
 const Ast = k.Ast;
 const Chunk = k.Chunk;
 const OpCode = k.OpCode;
+const Vm = k.Vm;
 
 const utils = @import("utils.zig");
 
@@ -89,7 +90,7 @@ const usage_repl =
 ;
 
 const banner = std.fmt.comptimePrint("OpenK {s} {t} {t}-{t}\n\n", .{
-    build_options.version,
+    version,
     builtin.mode,
     builtin.cpu.arch,
     builtin.os.tag,
@@ -124,11 +125,17 @@ fn cmdRepl(gpa: Allocator, args: []const []const u8) !void {
 
     var stdin_reader = std.fs.File.stdin().reader(&stdin_buffer);
     const stdin = &stdin_reader.interface;
+    var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
+    const stdout = &stdout_writer.interface;
     var stderr_writer = std.fs.File.stderr().writer(&.{});
     const stderr = &stderr_writer.interface;
 
     var buffer: std.Io.Writer.Allocating = .init(gpa);
     defer buffer.deinit();
+
+    var vm: Vm = undefined;
+    try vm.init(gpa, stdout, stderr);
+    defer vm.deinit();
 
     if (std.posix.isatty(stdin_reader.file.handle)) {
         try stderr.writeAll(banner);
@@ -157,13 +164,28 @@ fn cmdRepl(gpa: Allocator, args: []const []const u8) !void {
             var chunk: Chunk = .empty;
             defer chunk.deinit(gpa);
 
-            const constant = try chunk.addConstant(gpa, 1.2);
+            var constant = try chunk.addConstant(gpa, 1.2);
             try chunk.write(gpa, OpCode.constant, 123);
             try chunk.write(gpa, constant, 123);
+
+            constant = try chunk.addConstant(gpa, 3.4);
+            try chunk.write(gpa, OpCode.constant, 123);
+            try chunk.write(gpa, constant, 123);
+
+            try chunk.write(gpa, OpCode.add, 123);
+
+            constant = try chunk.addConstant(gpa, 5.6);
+            try chunk.write(gpa, OpCode.constant, 123);
+            try chunk.write(gpa, constant, 123);
+
+            try chunk.write(gpa, OpCode.divide, 123);
+            try chunk.write(gpa, OpCode.negate, 123);
 
             try chunk.write(gpa, OpCode.@"return", 123);
 
             try chunk.disassemble(stderr, "test chunk");
+
+            try vm.interpret(&chunk);
         }
     } else {
         _ = try stdin.streamRemaining(&buffer.writer);
