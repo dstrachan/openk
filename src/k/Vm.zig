@@ -72,27 +72,11 @@ fn run(vm: *Vm) !void {
                 vm.push(constant);
             },
 
-            .add => {
-                const b = vm.pop();
-                const a = vm.pop();
-                vm.push(a + b);
-            },
-            .subtract => {
-                const b = vm.pop();
-                const a = vm.pop();
-                vm.push(a - b);
-            },
-            .multiply => {
-                const b = vm.pop();
-                const a = vm.pop();
-                vm.push(a * b);
-            },
-            .divide => {
-                const b = vm.pop();
-                const a = vm.pop();
-                vm.push(a / b);
-            },
-            .negate => vm.push(-vm.pop()),
+            .add => vm.binary(add),
+            .subtract => vm.binary(subtract),
+            .multiply => vm.binary(multiply),
+            .divide => vm.binary(divide),
+            .negate => vm.unary(negate),
 
             .@"return" => {
                 try vm.stdout.print("{d}\n", .{vm.pop()});
@@ -111,4 +95,35 @@ inline fn readByte(vm: *Vm) u8 {
 
 inline fn readConstant(vm: *Vm) Value {
     return vm.chunk.constants.items[vm.readByte()];
+}
+
+inline fn unary(vm: *Vm, f: *const fn (*Vm, Value) Value) void {
+    const x = vm.pop();
+    vm.push(f(vm, x));
+}
+
+inline fn binary(vm: *Vm, f: *const fn (*Vm, Value, Value) Value) void {
+    const y = vm.pop();
+    const x = vm.pop();
+    vm.push(f(vm, x, y));
+}
+
+fn add(_: *Vm, x: Value, y: Value) Value {
+    return x + y;
+}
+
+fn subtract(_: *Vm, x: Value, y: Value) Value {
+    return x - y;
+}
+
+fn multiply(_: *Vm, x: Value, y: Value) Value {
+    return x * y;
+}
+
+fn divide(_: *Vm, x: Value, y: Value) Value {
+    return x / y;
+}
+
+fn negate(_: *Vm, x: Value) Value {
+    return -x;
 }
