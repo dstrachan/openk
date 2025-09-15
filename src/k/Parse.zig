@@ -75,6 +75,7 @@ fn isNoun(p: *const Parse, node: Node.Index) bool {
         .table_literal,
         .expr_block,
         .function,
+        .negation,
         .call,
         .apply_unary,
         .apply_binary,
