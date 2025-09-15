@@ -48,5 +48,5 @@ pub fn putAstErrorsIntoBundle(gpa: Allocator, tree: Ast, src_path: []const u8, e
 }
 
 test {
-    std.testing.refAllDecls(@This());
+    std.testing.refAllDeclsRecursive(@This());
 }

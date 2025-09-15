@@ -127,3 +127,7 @@ fn divide(_: *Vm, x: Value, y: Value) Value {
 fn negate(_: *Vm, x: Value) Value {
     return -x;
 }
+
+test {
+    std.testing.refAllDeclsRecursive(@This());
+}

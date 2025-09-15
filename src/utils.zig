@@ -15,3 +15,7 @@ pub fn printAstErrorsToStderr(gpa: Allocator, tree: Ast, path: []const u8, color
     defer error_bundle.deinit(gpa);
     error_bundle.renderToStdErr(color.renderOptions());
 }
+
+test {
+    std.testing.refAllDeclsRecursive(@This());
+}

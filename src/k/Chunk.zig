@@ -92,5 +92,5 @@ fn constantInstruction(chunk: Chunk, writer: *Writer, op_code: OpCode, offset: u
 }
 
 test {
-    try std.testing.refAllDeclsRecursive(@This());
+    std.testing.refAllDeclsRecursive(@This());
 }

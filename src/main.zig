@@ -220,5 +220,5 @@ fn cmdRepl(gpa: Allocator, args: []const []const u8) !void {
 }
 
 test {
-    std.testing.refAllDecls(@This());
+    std.testing.refAllDeclsRecursive(@This());
 }
