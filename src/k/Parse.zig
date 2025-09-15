@@ -67,6 +67,28 @@ fn tokenSlice(p: *const Parse, token_index: TokenIndex) []const u8 {
     return p.source[token.loc.start..token.loc.end];
 }
 
+fn isNoun(p: *const Parse, node: Node.Index) bool {
+    return switch (p.nodeTag(node)) {
+        .grouped_expression,
+        .empty_list,
+        .list,
+        .table_literal,
+        .expr_block,
+        .function,
+        .call,
+        .apply_unary,
+        .apply_binary,
+        .number_literal,
+        .number_list_literal,
+        .string_literal,
+        .symbol_literal,
+        .symbol_list_literal,
+        .identifier,
+        => true,
+        else => false,
+    };
+}
+
 const Exprs = struct {
     len: usize,
     data: Node.Data,
@@ -350,7 +372,7 @@ fn parseNoun(p: *Parse) Error!Node.OptionalIndex {
         // Misc.
         .system => try p.addNoun(.system),
         .invalid => return p.fail(.expected_expr),
-        .eof => unreachable,
+        .eof => return .none,
     };
     const call = try p.parseCall(noun);
     return call.toOptional();
@@ -420,7 +442,7 @@ fn parseVerb(p: *Parse, lhs: Node.Index) Error!Node.OptionalIndex {
         .one_colon,
         .one_colon_colon,
         .two_colon,
-        => try p.parseBinary(lhs),
+        => try if (p.isNoun(lhs)) p.parseBinary(lhs) else p.parseUnary(lhs),
 
         // Iterators
         .apostrophe => unreachable,
