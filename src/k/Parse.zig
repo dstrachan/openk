@@ -275,7 +275,7 @@ fn expectNoun(p: *Parse) !Node.Index {
     return noun.unwrap() orelse p.fail(.expected_noun);
 }
 
-fn parseNoun(p: *Parse) !Node.OptionalIndex {
+fn parseNoun(p: *Parse) Error!Node.OptionalIndex {
     const noun = switch (p.tokenTag(p.tok_i)) {
         // Punctuation
         .l_paren => try p.parseGroup(),
@@ -303,7 +303,7 @@ fn parseNoun(p: *Parse) !Node.OptionalIndex {
         .plus_colon => try p.addNoun(.plus_colon),
         .comma => try p.addNoun(.comma),
         .comma_colon => try p.addNoun(.comma_colon),
-        .minus => try p.addNoun(.minus),
+        .minus => try p.parseMinus(),
         .minus_colon => try p.addNoun(.minus_colon),
         .dot => try p.addNoun(.dot),
         .dot_colon => try p.addNoun(.dot_colon),
@@ -681,6 +681,19 @@ fn parseFunction(p: *Parse) !Node.Index {
         .main_token = l_brace,
         .data = .{ .extra_and_token = .{ try p.addExtra(function), r_brace } },
     });
+}
+
+fn parseMinus(p: *Parse) !Node.Index {
+    // Handle negative number literals
+    if (p.tokenTag(p.tok_i + 1) == .number_literal and p.tokenStart(p.tok_i) + 1 == p.tokenStart(p.tok_i + 1)) {
+        return p.addNode(.{
+            .tag = .negation,
+            .main_token = p.assertToken(.minus),
+            .data = .{ .node = try p.expectNoun() },
+        });
+    }
+
+    return p.addNoun(.minus);
 }
 
 fn parseNumberLiteral(p: *Parse) !Node.Index {

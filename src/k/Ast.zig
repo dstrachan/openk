@@ -325,6 +325,13 @@ pub const Node = struct {
         /// The `main_token` field is the `{` token.
         function,
 
+        /// `-number_literal`.
+        ///
+        /// The `data` field is a `.node`
+        ///
+        /// The `main_token` field is the `-` token.
+        negation,
+
         /// The `main_token` field is the `:` token.
         colon,
         /// The `main_token` field is the `::` token.
