@@ -220,9 +220,16 @@ fn parseExprs(p: *Parse) !Exprs {
         }
     }
 
+    const items = p.scratch.items[scratch_top..];
     return .{
-        .len = 0,
-        .data = undefined,
+        .len = items.len,
+        .data = switch (items.len) {
+            0, 1, 2 => .{ .opt_node_and_opt_node = .{
+                if (items.len > 0) items[0].toOptional() else .none,
+                if (items.len > 1) items[1].toOptional() else .none,
+            } },
+            else => .{ .extra_range = try p.listToSpan(items) },
+        },
     };
 }
 
