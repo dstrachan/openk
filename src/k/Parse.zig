@@ -24,6 +24,7 @@ errors: std.ArrayList(AstError),
 nodes: Ast.NodeList,
 extra_data: std.ArrayList(u32),
 scratch: std.ArrayList(Node.Index),
+allow_negation: bool,
 
 fn tokenTag(p: *const Parse, token_index: TokenIndex) Token.Tag {
     return p.tokens.items(.tag)[token_index];
@@ -57,12 +58,8 @@ fn tokenSlice(p: *const Parse, token_index: TokenIndex) []const u8 {
     var tokenizer: Tokenizer = .{
         .buffer = p.source,
         .index = p.tokenStart(token_index),
-        .next_is_minus = false,
     };
-    const token = token: {
-        const token = tokenizer.next();
-        break :token if (token.tag == .eos) tokenizer.next() else token;
-    };
+    const token = tokenizer.next();
     assert(token.tag == token_tag);
     return p.source[token.loc.start..token.loc.end];
 }
@@ -503,7 +500,12 @@ fn parseBinary(p: *Parse, lhs: Node.Index) !Node.Index {
     const apply_index = try p.reserveNode(.apply_binary);
     errdefer p.unreserveNode(apply_index);
 
-    const op = try p.expectNoun();
+    const op = blk: {
+        const prev_allow_negation = p.allow_negation;
+        defer p.allow_negation = prev_allow_negation;
+        p.allow_negation = false;
+        break :blk try p.expectNoun();
+    };
 
     return p.setNode(apply_index, .{
         .tag = .apply_binary,
@@ -711,7 +713,10 @@ fn parseFunction(p: *Parse) !Node.Index {
 
 fn parseMinus(p: *Parse) !Node.Index {
     // Handle negative number literals
-    if (p.tokenTag(p.tok_i + 1) == .number_literal and p.tokenStart(p.tok_i) + 1 == p.tokenStart(p.tok_i + 1)) {
+    if (p.allow_negation and
+        p.tokenTag(p.tok_i + 1) == .number_literal and
+        p.tokenStart(p.tok_i) + 1 == p.tokenStart(p.tok_i + 1))
+    {
         return p.addNode(.{
             .tag = .negation,
             .main_token = p.assertToken(.minus),
@@ -726,7 +731,19 @@ fn parseNumberLiteral(p: *Parse) !Node.Index {
     const number_literal = p.assertToken(.number_literal);
 
     var maybe_last_number_literal: ?TokenIndex = null;
-    while (p.eatToken(.number_literal)) |token_index| maybe_last_number_literal = token_index;
+    while (p.tokenTag(p.tok_i) == .number_literal or
+        p.tokenTag(p.tok_i) == .minus and
+            p.tokenTag(p.tok_i + 1) == .number_literal and
+            p.tokenStart(p.tok_i) + 1 == p.tokenStart(p.tok_i + 1) and
+            p.tokenStart(p.tok_i) != p.tokenStart(p.tok_i - 1) + p.tokenSlice(p.tok_i - 1).len)
+    {
+        if (p.eatToken(.minus)) |token_index| {
+            maybe_last_number_literal = token_index;
+            _ = p.assertToken(.number_literal);
+        } else {
+            maybe_last_number_literal = p.assertToken(.number_literal);
+        }
+    }
     if (maybe_last_number_literal) |last_number_literal| {
         return p.addNode(.{
             .tag = .number_list_literal,

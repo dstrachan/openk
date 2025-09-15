@@ -97,6 +97,7 @@ pub fn parse(gpa: Allocator, source: [:0]const u8) Allocator.Error!Ast {
         .extra_data = .empty,
         .scratch = .empty,
         .tok_i = 0,
+        .allow_negation = true,
     };
     defer parser.deinit();
 
