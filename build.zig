@@ -21,15 +21,11 @@ pub fn build(b: *std.Build) !void {
     );
     const version_slice = if (opt_version_string) |version| version else v: {
         if (!std.process.can_spawn) {
-            std.process.fatal(
-                "version info cannot be retrieved from git. OpenQ version must be provided using -Dversion-string",
-                .{},
-            );
+            std.process.fatal("version info cannot be retrieved from git.", .{});
         }
-        const version_string = b.fmt(
-            "{d}.{d}.{d}",
-            .{ openk_version.major, openk_version.minor, openk_version.patch },
-        );
+        const version_string = b.fmt("{d}.{d}.{d}", .{
+            openk_version.major, openk_version.minor, openk_version.patch,
+        });
 
         var code: u8 = undefined;
         const git_describe_untrimmed = b.runAllowFail(&[_][]const u8{
@@ -38,17 +34,16 @@ pub fn build(b: *std.Build) !void {
             "--git-dir", ".git", // affected by the -C argument
             "describe", "--match",    "*.*.*", //
             "--tags",   "--abbrev=9",
-        }, &code, .Ignore) catch break :v version_string;
+        }, &code, .ignore) catch break :v version_string;
         const git_describe = std.mem.trim(u8, git_describe_untrimmed, " \n\r");
 
         switch (std.mem.count(u8, git_describe, "-")) {
             0 => {
                 // Tagged release version (e.g. 0.10.0).
                 if (!std.mem.eql(u8, git_describe, version_string)) {
-                    std.process.fatal(
-                        "OpenQ version '{s}' does not match git tag '{s}'",
-                        .{ version_string, git_describe },
-                    );
+                    std.process.fatal("OpenK version '{s}' does not match git tag '{s}'", .{
+                        version_string, git_describe,
+                    });
                 }
                 break :v version_string;
             },
@@ -61,10 +56,9 @@ pub fn build(b: *std.Build) !void {
 
                 const ancestor_ver = try std.SemanticVersion.parse(tagged_ancestor);
                 if (openk_version.order(ancestor_ver) != .gt) {
-                    std.process.fatal(
-                        "OpenQ version '{f}' must be greater than tagged ancestor '{f}'",
-                        .{ openk_version, ancestor_ver },
-                    );
+                    std.process.fatal("OpenK version '{f}' must be greater than tagged ancestor '{f}'", .{
+                        openk_version, ancestor_ver,
+                    });
                 }
 
                 // Check that the commit hash is prefixed with a 'g' (a git convention).

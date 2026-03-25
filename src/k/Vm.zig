@@ -1,4 +1,5 @@
 const std = @import("std");
+const Io = std.Io;
 const Allocator = std.mem.Allocator;
 const Writer = std.Io.Writer;
 
@@ -14,14 +15,14 @@ gpa: Allocator,
 chunk: *Chunk,
 ip: [*]u8,
 stack: std.ArrayList(Value),
-stdout: *Writer,
-stderr: *Writer,
+stdout: *Io.Writer,
+stderr: *Io.Writer,
 
 pub const Error = error{ CompileError, RuntimeError };
 
 pub const stack_max = 256;
 
-pub fn init(vm: *Vm, gpa: Allocator, stdout: *Writer, stderr: *Writer) !void {
+pub fn init(vm: *Vm, gpa: Allocator, stdout: *Io.Writer, stderr: *Io.Writer) !void {
     const stack_buf = try gpa.alloc(Value, stack_max);
     errdefer gpa.free(stack_buf);
     vm.* = .{
@@ -129,5 +130,5 @@ fn negate(_: *Vm, x: Value) Value {
 }
 
 test {
-    std.testing.refAllDeclsRecursive(@This());
+    std.testing.refAllDecls(@This());
 }

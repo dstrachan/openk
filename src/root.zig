@@ -1,4 +1,5 @@
 const std = @import("std");
+const Io = std.Io;
 const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
 
@@ -17,8 +18,7 @@ pub const OpCode = Chunk.OpCode;
 pub const Value = f64;
 pub const Vm = @import("k/Vm.zig");
 
-pub fn putAstErrorsIntoBundle(gpa: Allocator, tree: Ast, src_path: []const u8, eb: *std.zig.ErrorBundle.Wip) !void {
-    _ = gpa; // autofix
+pub fn putAstErrorsIntoBundle(tree: Ast, src_path: []const u8, eb: *std.zig.ErrorBundle.Wip) !void {
     assert(tree.errors.len > 0);
 
     for (tree.errors) |err| {
@@ -48,5 +48,5 @@ pub fn putAstErrorsIntoBundle(gpa: Allocator, tree: Ast, src_path: []const u8, e
 }
 
 test {
-    std.testing.refAllDeclsRecursive(@This());
+    std.testing.refAllDecls(@This());
 }

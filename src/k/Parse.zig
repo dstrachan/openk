@@ -835,5 +835,5 @@ fn skipExpr(p: *Parse) void {
 }
 
 test {
-    std.testing.refAllDeclsRecursive(@This());
+    std.testing.refAllDecls(@This());
 }

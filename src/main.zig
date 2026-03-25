@@ -1,5 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const Io = std.Io;
 const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
 
@@ -13,14 +14,17 @@ const Vm = k.Vm;
 const utils = @import("utils.zig");
 
 pub const std_options: std.Options = .{
-    .log_level = switch (builtin.mode) {
-        .Debug => .debug,
-        .ReleaseSafe, .ReleaseFast => .info,
-        .ReleaseSmall => .err,
-    },
+    .log_level = .debug,
 };
+pub const std_options_cwd = if (builtin.os.tag == .wasi) wasi_cwd else null;
 
-var wasi_preopens: std.fs.wasi.Preopens = undefined;
+var preopens: std.process.Preopens = .empty;
+pub fn wasi_cwd() Io.Dir {
+    // Expect the first preopen to be current working directory.
+    const cwd_fd: std.posix.fd_t = 3;
+    if (!builtin.is_test) assert(std.mem.eql(u8, preopens.map.keys()[cwd_fd], "."));
+    return .{ .handle = cwd_fd };
+}
 
 const fatal = std.process.fatal;
 const cleanExit = std.process.cleanExit;
@@ -39,42 +43,39 @@ const usage =
     \\
 ;
 
-var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
+pub fn main(init: std.process.Init) !void {
+    const io = init.io;
+    const gpa = init.gpa;
+    const arena = init.arena.allocator();
 
-pub fn main() !void {
-    const gpa, const is_debug = gpa: {
-        if (builtin.os.tag == .wasi) break :gpa .{ std.heap.wasm_allocator, false };
-        break :gpa switch (builtin.mode) {
-            .Debug, .ReleaseSafe => .{ debug_allocator.allocator(), true },
-            .ReleaseFast, .ReleaseSmall => .{ std.heap.smp_allocator, false },
-        };
-    };
-    defer if (is_debug) {
-        _ = debug_allocator.deinit();
-    };
-    var arena_instance: std.heap.ArenaAllocator = .init(gpa);
-    defer arena_instance.deinit();
-    const arena = arena_instance.allocator();
+    const args = try init.minimal.args.toSlice(arena);
 
-    const args = try std.process.argsAlloc(arena);
+    const environ_map = init.environ_map;
 
     if (builtin.os.tag == .wasi) {
-        wasi_preopens = try std.fs.wasi.preopensAlloc(arena);
+        preopens = try .init(arena);
     }
 
-    return mainArgs(gpa, arena, args);
+    return mainArgs(io, gpa, arena, args, environ_map);
 }
 
-fn mainArgs(gpa: Allocator, arena: Allocator, args: []const []const u8) !void {
+fn mainArgs(
+    io: Io,
+    gpa: Allocator,
+    arena: Allocator,
+    args: []const []const u8,
+    environ_map: *std.process.Environ.Map,
+) !void {
     _ = arena; // autofix
-    if (args.len < 2) return cmdRepl(gpa, &.{});
+    _ = environ_map; // autofix
+    if (args.len < 2) return cmdRepl(io, gpa, &.{});
 
     const cmd = args[1];
     const cmd_args = args[2..];
     _ = cmd_args; // autofix
     if (std.mem.eql(u8, cmd, "help") or std.mem.eql(u8, cmd, "-h") or std.mem.eql(u8, cmd, "--help")) {
-        try std.fs.File.stdout().writeAll(usage);
-    } else return cmdRepl(gpa, args[1..]);
+        try Io.File.stdout().writeStreamingAll(io, usage);
+    } else return cmdRepl(io, gpa, args[1..]);
 }
 
 const usage_repl =
@@ -96,7 +97,7 @@ const banner = std.fmt.comptimePrint("OpenK {s} {t} {t}-{t}\n\n", .{
     builtin.os.tag,
 });
 
-fn cmdRepl(gpa: Allocator, args: []const []const u8) !void {
+fn cmdRepl(io: Io, gpa: Allocator, args: []const []const u8) !void {
     var color: std.zig.Color = .auto;
 
     var i: usize = 0;
@@ -104,8 +105,8 @@ fn cmdRepl(gpa: Allocator, args: []const []const u8) !void {
         const arg = args[i];
         if (std.mem.startsWith(u8, arg, "-")) {
             if (std.mem.eql(u8, arg, "-h") or std.mem.eql(u8, arg, "--help")) {
-                try std.fs.File.stdout().writeAll(usage_repl);
-                return cleanExit();
+                try Io.File.stdout().writeStreamingAll(io, usage_repl);
+                return cleanExit(io);
             } else if (std.mem.eql(u8, arg, "--color")) {
                 if (i + 1 >= args.len) {
                     fatal("expected [auto|off|on] after --color", .{});
@@ -123,41 +124,38 @@ fn cmdRepl(gpa: Allocator, args: []const []const u8) !void {
         }
     }
 
-    var stdin_reader = std.fs.File.stdin().reader(&stdin_buffer);
+    var stdin_reader = Io.File.stdin().reader(io, &stdin_buffer);
     const stdin = &stdin_reader.interface;
-    var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
+    var stdout_writer = Io.File.stdout().writer(io, &stdout_buffer);
     const stdout = &stdout_writer.interface;
-    var stderr_writer = std.fs.File.stderr().writer(&.{});
+    var stderr_buffer: [1024]u8 = undefined;
+    var stderr_writer = Io.File.stderr().writer(io, &stderr_buffer);
     const stderr = &stderr_writer.interface;
-
-    var buffer: std.Io.Writer.Allocating = .init(gpa);
-    defer buffer.deinit();
 
     var vm: Vm = undefined;
     try vm.init(gpa, stdout, stderr);
     defer vm.deinit();
 
-    if (std.posix.isatty(stdin_reader.file.handle)) {
+    if (try Io.File.stdin().isTty(io)) {
         try stderr.writeAll(banner);
 
         while (true) {
             try stderr.writeAll("k)");
+            try stderr.flush();
 
-            buffer.clearRetainingCapacity();
-            _ = try stdin.streamDelimiterEnding(&buffer.writer, '\n');
-            stdin.toss(1);
+            const line = try stdin.takeDelimiterInclusive('\n');
+            const trimmed = std.mem.trimEnd(u8, line, " \t\r\n");
+            line[trimmed.len] = 0;
+            const slice = line[0..trimmed.len :0];
 
-            const input = buffer.written();
-            const trimmed_len = std.mem.trimEnd(u8, input, &std.ascii.whitespace).len;
-            assert(trimmed_len < input.len);
-            input[trimmed_len] = 0;
-            const trimmed_input = input[0..trimmed_len :0];
-            if (std.mem.eql(u8, trimmed_input, "\\\\")) break;
+            if (slice.len == 0) continue;
 
-            var tree: Ast = try .parse(gpa, trimmed_input);
+            if (std.mem.eql(u8, slice, "\\\\")) break;
+
+            var tree: Ast = try .parse(gpa, slice);
             defer tree.deinit(gpa);
             if (tree.errors.len > 0) {
-                try utils.printAstErrorsToStderr(gpa, tree, "<stdin>", color);
+                try utils.printAstErrorsToStderr(io, gpa, tree, "<stdin>", color);
                 continue;
             }
 
@@ -188,6 +186,9 @@ fn cmdRepl(gpa: Allocator, args: []const []const u8) !void {
             try vm.interpret(&chunk);
         }
     } else {
+        var buffer: Io.Writer.Allocating = .init(gpa);
+        defer buffer.deinit();
+
         _ = try stdin.streamRemaining(&buffer.writer);
 
         try buffer.writer.writeByte(0);
@@ -197,7 +198,7 @@ fn cmdRepl(gpa: Allocator, args: []const []const u8) !void {
         var tree: Ast = try .parse(gpa, trimmed_input);
         defer tree.deinit(gpa);
         if (tree.errors.len > 0) {
-            try utils.printAstErrorsToStderr(gpa, tree, "<stdin>", color);
+            try utils.printAstErrorsToStderr(io, gpa, tree, "<stdin>", color);
             std.process.exit(1);
         }
 
@@ -214,11 +215,12 @@ fn cmdRepl(gpa: Allocator, args: []const []const u8) !void {
         for (tree.nodes.items(.tag)) |tag| {
             try stderr.print("{t}\n", .{tag});
         }
+        try stderr.flush();
     }
 
-    return cleanExit();
+    return cleanExit(io);
 }
 
 test {
-    std.testing.refAllDeclsRecursive(@This());
+    std.testing.refAllDecls(@This());
 }
