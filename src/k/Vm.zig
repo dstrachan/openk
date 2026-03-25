@@ -55,12 +55,15 @@ fn pop(vm: *Vm) *Value {
     return vm.stack.pop().?;
 }
 
-pub fn createSymbol(vm: *Vm, bytes: []const u8) !*Value {
-    const value = try vm.intern(bytes);
-    const self = try vm.gpa.create(Value);
-    errdefer comptime unreachable;
-    self.* = .{ .as = .{ .symbol = value } };
-    return self;
+pub fn internSymbol(vm: *Vm, value: []const u8) !*Value {
+    return .symbol(vm.gpa, try vm.intern(value));
+}
+
+pub fn internSymbolList(vm: *Vm, value: []const []const u8) !*Value {
+    const list = try vm.gpa.alloc([*:0]const u8, value.len);
+    errdefer vm.gpa.free(value);
+    for (list, value) |*v, bytes| v.* = try vm.intern(bytes);
+    return .symbolList(vm.gpa, list);
 }
 
 pub fn intern(vm: *Vm, bytes: []const u8) ![*:0]const u8 {
