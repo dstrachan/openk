@@ -47,6 +47,7 @@ pub fn putAstErrorsIntoBundle(tree: Ast, src_path: []const u8, eb: *std.zig.Erro
 }
 
 const Type = enum(i8) {
+    boolean = -1,
     byte = -4,
     short = -5,
     int = -6,
@@ -58,6 +59,7 @@ const Type = enum(i8) {
 };
 
 const Union = union(Type) {
+    boolean: bool,
     byte: u8,
     short: i16,
     int: i32,
@@ -82,7 +84,7 @@ pub const Value = struct {
             self.ref_count -= 1;
         } else {
             switch (self.as) {
-                .byte, .short, .int, .long => {},
+                .boolean, .byte, .short, .int, .long => {},
                 .real, .float => {},
                 .char => {},
                 .symbol => {},
@@ -93,6 +95,7 @@ pub const Value = struct {
 
     pub fn format(self: Value, w: *Io.Writer) !void {
         switch (self.as) {
+            .boolean => |v| try w.print("{d}b", .{@intFromBool(v)}),
             .byte => |v| try w.print("0x{x:02}", .{v}),
             .short => |v| try w.print("{d}h", .{v}),
             .int => |v| try w.print("{d}i", .{v}),
