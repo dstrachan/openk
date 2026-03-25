@@ -1,7 +1,7 @@
 const std = @import("std");
 const Io = std.Io;
 const Allocator = std.mem.Allocator;
-const Writer = std.Io.Writer;
+const assert = std.debug.assert;
 
 const k = @import("../root.zig");
 const Chunk = k.Chunk;
@@ -14,36 +14,35 @@ const Vm = @This();
 gpa: Allocator,
 chunk: *Chunk,
 ip: [*]u8,
-stack: std.ArrayList(Value),
+stack: std.ArrayList(*Value),
 stdout: *Io.Writer,
 stderr: *Io.Writer,
 
 pub const Error = error{ CompileError, RuntimeError };
 
 pub const stack_max = 256;
+var stack_buf: [stack_max]*Value = undefined;
 
 pub fn init(vm: *Vm, gpa: Allocator, stdout: *Io.Writer, stderr: *Io.Writer) !void {
-    const stack_buf = try gpa.alloc(Value, stack_max);
-    errdefer gpa.free(stack_buf);
     vm.* = .{
         .gpa = gpa,
         .chunk = undefined,
         .ip = undefined,
-        .stack = .initBuffer(stack_buf),
+        .stack = .initBuffer(&stack_buf),
         .stdout = stdout,
         .stderr = stderr,
     };
 }
 
 pub fn deinit(vm: *Vm) void {
-    vm.stack.deinit(vm.gpa);
+    assert(vm.stack.items.len == 0);
 }
 
-fn push(vm: *Vm, value: Value) void {
+fn push(vm: *Vm, value: *Value) void {
     vm.stack.appendAssumeCapacity(value);
 }
 
-fn pop(vm: *Vm) Value {
+fn pop(vm: *Vm) *Value {
     return vm.stack.pop().?;
 }
 
@@ -59,7 +58,7 @@ fn run(vm: *Vm) !void {
         if (trace_execution) {
             try vm.stdout.writeAll("          ");
             for (vm.stack.items) |slot| {
-                try vm.stdout.print("[ {d} ]", .{slot});
+                try vm.stdout.print("[ {f} ]", .{slot});
             }
             try vm.stdout.writeByte('\n');
             _ = try vm.chunk.disassembleInstruction(vm.stdout, vm.ip - vm.chunk.data.items(.code).ptr);
@@ -70,17 +69,19 @@ fn run(vm: *Vm) !void {
         switch (instruction) {
             .constant => {
                 const constant = vm.readConstant();
-                vm.push(constant);
+                vm.push(constant.ref());
             },
 
-            .add => vm.binary(add),
-            .subtract => vm.binary(subtract),
-            .multiply => vm.binary(multiply),
-            .divide => vm.binary(divide),
-            .negate => vm.unary(negate),
+            .add => try vm.binary(add),
+            .subtract => try vm.binary(subtract),
+            .multiply => try vm.binary(multiply),
+            .divide => try vm.binary(divide),
+            .negate => try vm.unary(negate),
 
             .@"return" => {
-                try vm.stdout.print("{d}\n", .{vm.pop()});
+                const value = vm.pop();
+                defer value.deref(vm.gpa);
+                try vm.stdout.print("{f}\n", .{value});
                 try vm.stdout.flush();
                 return;
             },
@@ -94,39 +95,42 @@ inline fn readByte(vm: *Vm) u8 {
     return byte;
 }
 
-inline fn readConstant(vm: *Vm) Value {
+inline fn readConstant(vm: *Vm) *Value {
     return vm.chunk.constants.items[vm.readByte()];
 }
 
-inline fn unary(vm: *Vm, f: *const fn (*Vm, Value) Value) void {
+inline fn unary(vm: *Vm, f: *const fn (*Vm, *Value) anyerror!*Value) !void {
     const x = vm.pop();
-    vm.push(f(vm, x));
+    defer x.deref(vm.gpa);
+    vm.push(try f(vm, x));
 }
 
-inline fn binary(vm: *Vm, f: *const fn (*Vm, Value, Value) Value) void {
+inline fn binary(vm: *Vm, f: *const fn (*Vm, *Value, *Value) anyerror!*Value) !void {
     const y = vm.pop();
+    defer y.deref(vm.gpa);
     const x = vm.pop();
-    vm.push(f(vm, x, y));
+    defer x.deref(vm.gpa);
+    vm.push(try f(vm, x, y));
 }
 
-fn add(_: *Vm, x: Value, y: Value) Value {
-    return x + y;
+fn add(vm: *Vm, x: *Value, y: *Value) !*Value {
+    return .float(vm.gpa, x.as.float + y.as.float);
 }
 
-fn subtract(_: *Vm, x: Value, y: Value) Value {
-    return x - y;
+fn subtract(vm: *Vm, x: *Value, y: *Value) !*Value {
+    return .float(vm.gpa, x.as.float - y.as.float);
 }
 
-fn multiply(_: *Vm, x: Value, y: Value) Value {
-    return x * y;
+fn multiply(vm: *Vm, x: *Value, y: *Value) !*Value {
+    return .float(vm.gpa, x.as.float * y.as.float);
 }
 
-fn divide(_: *Vm, x: Value, y: Value) Value {
-    return x / y;
+fn divide(vm: *Vm, x: *Value, y: *Value) !*Value {
+    return .float(vm.gpa, x.as.float / y.as.float);
 }
 
-fn negate(_: *Vm, x: Value) Value {
-    return -x;
+fn negate(vm: *Vm, x: *Value) !*Value {
+    return .float(vm.gpa, -x.as.float);
 }
 
 test {

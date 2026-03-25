@@ -15,7 +15,6 @@ pub const Node = Ast.Node;
 pub const Parse = @import("k/Parse.zig");
 pub const Chunk = @import("k/Chunk.zig");
 pub const OpCode = Chunk.OpCode;
-pub const Value = f64;
 pub const Vm = @import("k/Vm.zig");
 
 pub fn putAstErrorsIntoBundle(tree: Ast, src_path: []const u8, eb: *std.zig.ErrorBundle.Wip) !void {
@@ -46,6 +45,99 @@ pub fn putAstErrorsIntoBundle(tree: Ast, src_path: []const u8, eb: *std.zig.Erro
         }
     }
 }
+
+const Type = enum(i8) {
+    byte = -4,
+    short = -5,
+    int = -6,
+    long = -7,
+    real = -8,
+    float = -9,
+};
+
+const Union = union(Type) {
+    byte: u8,
+    short: i16,
+    int: i32,
+    long: i64,
+    real: f32,
+    float: f64,
+};
+
+pub const Value = struct {
+    ref_count: u32 = 0,
+    as: Union,
+
+    pub fn ref(self: *Value) *Value {
+        self.ref_count += 1;
+        return self;
+    }
+
+    pub fn deref(self: *Value, gpa: Allocator) void {
+        if (self.ref_count > 0) {
+            self.ref_count -= 1;
+        } else {
+            switch (self.as) {
+                .byte, .short, .int, .long => {},
+                .real, .float => {},
+            }
+            gpa.destroy(self);
+        }
+    }
+
+    pub fn format(self: Value, w: *Io.Writer) !void {
+        switch (self.as) {
+            .byte => |v| try w.print("0x{x:02}", .{v}),
+            .short => |v| try w.print("{d}h", .{v}),
+            .int => |v| try w.print("{d}i", .{v}),
+            .long => |v| try w.print("{d}j", .{v}),
+            .real => |v| try w.print("{d}e", .{v}),
+            .float => |v| try w.print("{d}f", .{v}),
+        }
+    }
+
+    pub fn byte(gpa: Allocator, value: u8) !*Value {
+        const self = try gpa.create(Value);
+        errdefer comptime unreachable;
+        self.* = .{ .as = .{ .byte = value } };
+        return self;
+    }
+
+    pub fn short(gpa: Allocator, value: i16) !*Value {
+        const self = try gpa.create(Value);
+        errdefer comptime unreachable;
+        self.* = .{ .as = .{ .short = value } };
+        return self;
+    }
+
+    pub fn int(gpa: Allocator, value: i32) !*Value {
+        const self = try gpa.create(Value);
+        errdefer comptime unreachable;
+        self.* = .{ .as = .{ .int = value } };
+        return self;
+    }
+
+    pub fn long(gpa: Allocator, value: i64) !*Value {
+        const self = try gpa.create(Value);
+        errdefer comptime unreachable;
+        self.* = .{ .as = .{ .long = value } };
+        return self;
+    }
+
+    pub fn real(gpa: Allocator, value: f32) !*Value {
+        const self = try gpa.create(Value);
+        errdefer comptime unreachable;
+        self.* = .{ .as = .{ .real = value } };
+        return self;
+    }
+
+    pub fn float(gpa: Allocator, value: f64) !*Value {
+        const self = try gpa.create(Value);
+        errdefer comptime unreachable;
+        self.* = .{ .as = .{ .float = value } };
+        return self;
+    }
+};
 
 test {
     std.testing.refAllDecls(@This());

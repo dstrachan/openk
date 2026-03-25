@@ -162,17 +162,17 @@ fn cmdRepl(io: Io, gpa: Allocator, args: []const []const u8) !void {
             var chunk: Chunk = .empty;
             defer chunk.deinit(gpa);
 
-            var constant = try chunk.addConstant(gpa, 1.2);
+            var constant = try chunk.addConstant(gpa, try .float(gpa, 1.2));
             try chunk.write(gpa, OpCode.constant, 123);
             try chunk.write(gpa, constant, 123);
 
-            constant = try chunk.addConstant(gpa, 3.4);
+            constant = try chunk.addConstant(gpa, try .float(gpa, 3.4));
             try chunk.write(gpa, OpCode.constant, 123);
             try chunk.write(gpa, constant, 123);
 
             try chunk.write(gpa, OpCode.add, 123);
 
-            constant = try chunk.addConstant(gpa, 5.6);
+            constant = try chunk.addConstant(gpa, try .float(gpa, 5.6));
             try chunk.write(gpa, OpCode.constant, 123);
             try chunk.write(gpa, constant, 123);
 

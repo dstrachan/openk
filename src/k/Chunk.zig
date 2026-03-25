@@ -8,7 +8,7 @@ const Value = k.Value;
 const Chunk = @This();
 
 data: std.MultiArrayList(struct { code: u8, line: u32 }) = .empty,
-constants: std.ArrayList(Value) = .empty,
+constants: std.ArrayList(*Value) = .empty,
 
 pub const empty: Chunk = .{};
 
@@ -32,6 +32,7 @@ pub fn opCode(chunk: *const Chunk, index: OpCode.Index) OpCode {
 
 pub fn deinit(chunk: *Chunk, gpa: Allocator) void {
     chunk.data.deinit(gpa);
+    for (chunk.constants.items) |v| v.deref(gpa);
     chunk.constants.deinit(gpa);
 }
 
@@ -44,7 +45,7 @@ pub fn write(chunk: *Chunk, gpa: Allocator, code: anytype, line: u32) !void {
     try chunk.data.append(gpa, .{ .code = byte, .line = line });
 }
 
-pub fn addConstant(chunk: *Chunk, gpa: Allocator, value: Value) !usize {
+pub fn addConstant(chunk: *Chunk, gpa: Allocator, value: *Value) !usize {
     try chunk.constants.append(gpa, value);
     return chunk.constants.items.len - 1;
 }
@@ -87,7 +88,7 @@ fn simpleInstruction(writer: *Io.Writer, op_code: OpCode, offset: usize) !usize 
 
 fn constantInstruction(chunk: Chunk, writer: *Io.Writer, op_code: OpCode, offset: usize) !usize {
     const constant = chunk.data.items(.code)[offset + 1];
-    try writer.print("{t: <16} {d:4} '{d}'\n", .{ op_code, constant, chunk.constants.items[constant] });
+    try writer.print("{t: <16} {d:4} '{f}'\n", .{ op_code, constant, chunk.constants.items[constant] });
     return offset + 2;
 }
 
