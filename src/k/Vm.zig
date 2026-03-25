@@ -17,6 +17,13 @@ ip: [*]u8,
 stack: std.ArrayList(*Value),
 stdout: *Io.Writer,
 stderr: *Io.Writer,
+string_bytes: std.ArrayList(u8) = .empty,
+string_table: std.HashMapUnmanaged(
+    u32,
+    void,
+    std.hash_map.StringIndexContext,
+    std.hash_map.default_max_load_percentage,
+) = .empty,
 
 pub const Error = error{ CompileError, RuntimeError };
 
@@ -36,6 +43,8 @@ pub fn init(vm: *Vm, gpa: Allocator, stdout: *Io.Writer, stderr: *Io.Writer) !vo
 
 pub fn deinit(vm: *Vm) void {
     assert(vm.stack.items.len == 0);
+    vm.string_bytes.deinit(vm.gpa);
+    vm.string_table.deinit(vm.gpa);
 }
 
 fn push(vm: *Vm, value: *Value) void {
@@ -44,6 +53,34 @@ fn push(vm: *Vm, value: *Value) void {
 
 fn pop(vm: *Vm) *Value {
     return vm.stack.pop().?;
+}
+
+pub fn createSymbol(vm: *Vm, bytes: []const u8) !*Value {
+    const value = try vm.intern(bytes);
+    const self = try vm.gpa.create(Value);
+    errdefer comptime unreachable;
+    self.* = .{ .as = .{ .symbol = value } };
+    return self;
+}
+
+pub fn intern(vm: *Vm, bytes: []const u8) ![*:0]const u8 {
+    const str_index: u32 = @intCast(vm.string_bytes.items.len);
+    try vm.string_bytes.appendSlice(vm.gpa, bytes);
+    const gop = try vm.string_table.getOrPutContextAdapted(
+        vm.gpa,
+        bytes,
+        std.hash_map.StringIndexAdapter{ .bytes = &vm.string_bytes },
+        std.hash_map.StringIndexContext{ .bytes = &vm.string_bytes },
+    );
+    if (gop.found_existing) {
+        vm.string_bytes.shrinkRetainingCapacity(str_index);
+    } else {
+        gop.key_ptr.* = str_index;
+        try vm.string_bytes.append(vm.gpa, 0);
+    }
+
+    const slice = vm.string_bytes.items[gop.key_ptr.*..];
+    return slice[0..std.mem.findScalar(u8, slice, 0).? :0];
 }
 
 pub fn interpret(vm: *Vm, chunk: *Chunk) Error!void {

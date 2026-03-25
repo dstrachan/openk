@@ -53,6 +53,8 @@ const Type = enum(i8) {
     long = -7,
     real = -8,
     float = -9,
+    char = -10,
+    symbol = -11,
 };
 
 const Union = union(Type) {
@@ -62,6 +64,8 @@ const Union = union(Type) {
     long: i64,
     real: f32,
     float: f64,
+    char: u8,
+    symbol: [*:0]const u8,
 };
 
 pub const Value = struct {
@@ -80,6 +84,8 @@ pub const Value = struct {
             switch (self.as) {
                 .byte, .short, .int, .long => {},
                 .real, .float => {},
+                .char => {},
+                .symbol => {},
             }
             gpa.destroy(self);
         }
@@ -93,6 +99,8 @@ pub const Value = struct {
             .long => |v| try w.print("{d}j", .{v}),
             .real => |v| try w.print("{d}e", .{v}),
             .float => |v| try w.print("{d}f", .{v}),
+            .char => |v| try w.print("\"{c}\"", .{v}),
+            .symbol => |v| try w.print("`{s}", .{v}),
         }
     }
 
@@ -135,6 +143,13 @@ pub const Value = struct {
         const self = try gpa.create(Value);
         errdefer comptime unreachable;
         self.* = .{ .as = .{ .float = value } };
+        return self;
+    }
+
+    pub fn char(gpa: Allocator, value: u8) !*Value {
+        const self = try gpa.create(Value);
+        errdefer comptime unreachable;
+        self.* = .{ .as = .{ .char = value } };
         return self;
     }
 };
