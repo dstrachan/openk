@@ -57,6 +57,8 @@ pub fn disassemble(chunk: Chunk, writer: *Io.Writer, name: []const u8) !void {
     while (offset < chunk.data.len) {
         offset = try chunk.disassembleInstruction(writer, offset);
     }
+
+    try writer.flush();
 }
 
 pub fn disassembleInstruction(chunk: Chunk, writer: *Io.Writer, offset: usize) !usize {

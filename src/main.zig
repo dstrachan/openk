@@ -10,6 +10,7 @@ const Ast = k.Ast;
 const Chunk = k.Chunk;
 const OpCode = k.OpCode;
 const Vm = k.Vm;
+const Compiler = k.Compiler;
 
 const utils = @import("utils.zig");
 
@@ -136,6 +137,10 @@ fn cmdRepl(io: Io, gpa: Allocator, args: []const []const u8) !void {
     try vm.init(gpa, stdout, stderr);
     defer vm.deinit();
 
+    var compiler: Compiler = undefined;
+    try compiler.init(gpa, &vm);
+    defer compiler.deinit();
+
     if (try Io.File.stdin().isTty(io)) {
         try stderr.writeAll(banner);
 
@@ -162,27 +167,8 @@ fn cmdRepl(io: Io, gpa: Allocator, args: []const []const u8) !void {
             var chunk: Chunk = .empty;
             defer chunk.deinit(gpa);
 
-            var constant = try chunk.addConstant(gpa, try .float(gpa, 1.2));
-            try chunk.write(gpa, OpCode.constant, 123);
-            try chunk.write(gpa, constant, 123);
-
-            constant = try chunk.addConstant(gpa, try .float(gpa, 3.4));
-            try chunk.write(gpa, OpCode.constant, 123);
-            try chunk.write(gpa, constant, 123);
-
-            try chunk.write(gpa, OpCode.add, 123);
-
-            constant = try chunk.addConstant(gpa, try .float(gpa, 5.6));
-            try chunk.write(gpa, OpCode.constant, 123);
-            try chunk.write(gpa, constant, 123);
-
-            try chunk.write(gpa, OpCode.divide, 123);
-            try chunk.write(gpa, OpCode.negate, 123);
-
-            try chunk.write(gpa, OpCode.@"return", 123);
-
+            try compiler.compile(tree, &chunk);
             try chunk.disassemble(stderr, "test chunk");
-
             try vm.interpret(&chunk);
         }
     } else {
@@ -193,29 +179,21 @@ fn cmdRepl(io: Io, gpa: Allocator, args: []const []const u8) !void {
 
         try buffer.writer.writeByte(0);
         const input = buffer.written();
-        const trimmed_input = input[0 .. input.len - 1 :0];
+        const slice = input[0 .. input.len - 1 :0];
 
-        var tree: Ast = try .parse(gpa, trimmed_input);
+        var tree: Ast = try .parse(gpa, slice);
         defer tree.deinit(gpa);
         if (tree.errors.len > 0) {
             try utils.printAstErrorsToStderr(io, gpa, tree, "<stdin>", color);
             std.process.exit(1);
         }
 
-        try stderr.print("======\n", .{});
-        try stderr.print("TOKENS\n", .{});
-        try stderr.print("======\n", .{});
-        for (tree.tokens.items(.tag)) |tag| {
-            try stderr.print("{t} ({s})\n", .{ tag, tag.symbol() });
-        }
+        var chunk: Chunk = .empty;
+        defer chunk.deinit(gpa);
 
-        try stderr.print("=====\n", .{});
-        try stderr.print("NODES\n", .{});
-        try stderr.print("=====\n", .{});
-        for (tree.nodes.items(.tag)) |tag| {
-            try stderr.print("{t}\n", .{tag});
-        }
-        try stderr.flush();
+        try compiler.compile(tree, &chunk);
+        try chunk.disassemble(stderr, "<stdin>");
+        try vm.interpret(&chunk);
     }
 
     return cleanExit(io);

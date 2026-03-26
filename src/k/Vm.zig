@@ -146,10 +146,10 @@ inline fn unary(vm: *Vm, f: *const fn (*Vm, *Value) anyerror!*Value) !void {
 }
 
 inline fn binary(vm: *Vm, f: *const fn (*Vm, *Value, *Value) anyerror!*Value) !void {
-    const y = vm.pop();
-    defer y.deref(vm.gpa);
     const x = vm.pop();
     defer x.deref(vm.gpa);
+    const y = vm.pop();
+    defer y.deref(vm.gpa);
     vm.push(try f(vm, x, y));
 }
 

@@ -784,7 +784,7 @@ fn parseSymbolLiteral(p: *Parse) !Node.Index {
 fn noOp(p: *Parse) !Node.Index {
     return p.addNode(.{
         .tag = .no_op,
-        .main_token = undefined,
+        .main_token = p.tok_i,
         .data = undefined,
     });
 }

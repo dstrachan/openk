@@ -51,6 +51,12 @@ pub fn tokenStart(tree: *const Ast, token_index: TokenIndex) ByteOffset {
     return tree.tokens.items(.start)[token_index];
 }
 
+pub fn tokenLine(tree: *const Ast, token_index: TokenIndex) u32 {
+    const start = tree.tokenStart(token_index);
+    const loc = std.zig.findLineColumn(tree.source, start);
+    return @intCast(loc.line);
+}
+
 pub fn nodeTag(tree: *const Ast, node_index: Node.Index) Node.Tag {
     return tree.nodes.items(.tag)[@intFromEnum(node_index)];
 }
