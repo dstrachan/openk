@@ -70,8 +70,8 @@ fn isNoun(p: *const Parse, node: Node.Index) bool {
         .empty_list,
         .list,
         .table_literal,
+        .lambda,
         .expr_block,
-        .function,
         .negation,
         .call,
         .apply_unary,
@@ -302,7 +302,7 @@ fn parseNoun(p: *Parse) Error!Node.OptionalIndex {
         .r_paren => return .none,
         .l_bracket => try p.parseBlock(),
         .r_bracket => return .none,
-        .l_brace => try p.parseFunction(),
+        .l_brace => try p.parseLambda(),
         .r_brace => return .none,
         .semicolon => return .none,
 
@@ -668,11 +668,11 @@ fn parseBlock(p: *Parse) !Node.Index {
     });
 }
 
-fn parseFunction(p: *Parse) !Node.Index {
+fn parseLambda(p: *Parse) !Node.Index {
     const l_brace = p.assertToken(.l_brace);
 
-    const function_index = try p.reserveNode(.function);
-    errdefer p.unreserveNode(function_index);
+    const lambda_index = try p.reserveNode(.lambda);
+    errdefer p.unreserveNode(lambda_index);
 
     const scratch_top = p.scratch.items.len;
     defer p.scratch.shrinkRetainingCapacity(scratch_top);
@@ -699,15 +699,15 @@ fn parseFunction(p: *Parse) !Node.Index {
 
     const params = try p.listToSpan(p.scratch.items[params_top..body_top]);
     const body = try p.listToSpan(p.scratch.items[body_top..]);
-    const function: Node.Function = .{
+    const lambda: Node.Lambda = .{
         .params_start = params.start,
         .body_start = body.start,
         .body_end = body.end,
     };
-    return p.setNode(function_index, .{
-        .tag = .function,
+    return p.setNode(lambda_index, .{
+        .tag = .lambda,
         .main_token = l_brace,
-        .data = .{ .extra_and_token = .{ try p.addExtra(function), r_brace } },
+        .data = .{ .extra_and_token = .{ try p.addExtra(lambda), r_brace } },
     });
 }
 

@@ -532,6 +532,15 @@ pub const Node = struct {
         /// The `main_token` field is the `(` token.
         table_literal,
 
+        /// `{[]expr}`.
+        ///
+        /// The `data` field is a `.extra_and_token`:
+        ///   1. a `ExtraIndex` to a `Lambda`.
+        ///   2. a `TokenIndex` to the `}` token.
+        ///
+        /// The `main_token` field is the `{` token.
+        lambda,
+
         /// `[expr]`.
         ///
         /// The `data` field is a `.extra_range` that stores a `Node.Index` for
@@ -539,15 +548,6 @@ pub const Node = struct {
         ///
         /// The `main_token` field is the `[` token.
         expr_block,
-
-        /// `{[]expr}`.
-        ///
-        /// The `data` field is a `.extra_and_token`:
-        ///   1. a `ExtraIndex` to a `Function`.
-        ///   2. a `TokenIndex` to the `}` token.
-        ///
-        /// The `main_token` field is the `{` token.
-        function,
 
         /// `-number_literal`.
         ///
@@ -774,7 +774,7 @@ pub const Node = struct {
         columns_end: ExtraIndex,
     };
 
-    pub const Function = struct {
+    pub const Lambda = struct {
         params_start: ExtraIndex,
         body_start: ExtraIndex,
         body_end: ExtraIndex,
