@@ -219,6 +219,12 @@ fn parseExprs(p: *Parse) !Exprs {
     defer p.scratch.shrinkRetainingCapacity(scratch_top);
 
     while (p.tokenTag(p.tok_i) != .eof) {
+        if (!p.startsExpr()) {
+            try p.warn(.expected_expr);
+            p.skipExpr();
+            continue;
+        }
+
         const expr = p.parseExpr() catch |err| switch (err) {
             error.OutOfMemory => return error.OutOfMemory,
             else => blk: {
@@ -226,18 +232,21 @@ fn parseExprs(p: *Parse) !Exprs {
                 break :blk .none;
             },
         };
-        if (expr.unwrap()) |node| try p.scratch.append(p.gpa, node);
-        switch (p.tokenTag(p.tok_i)) {
-            .semicolon => {
-                _ = p.nextToken();
-                continue;
-            },
-            .eof => break,
-            else => if (!p.startsExpr()) {
-                try p.warn(.expected_expr);
-                p.skipExpr();
-            },
-        }
+        if (expr.unwrap()) |expr_node| {
+            const node = switch (p.tokenTag(p.tok_i)) {
+                .semicolon => try p.addNode(.{
+                    .tag = .discard,
+                    .main_token = p.nextToken(),
+                    .data = .{ .node = expr_node },
+                }),
+                else => try p.addNode(.{
+                    .tag = .print,
+                    .main_token = p.tok_i - 1,
+                    .data = .{ .node = expr_node },
+                }),
+            };
+            try p.scratch.append(p.gpa, node);
+        } else _ = p.eatToken(.semicolon);
     }
 
     const items = p.scratch.items[scratch_top..];

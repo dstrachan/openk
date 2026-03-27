@@ -137,10 +137,6 @@ fn cmdRepl(io: Io, gpa: Allocator, args: []const []const u8) !void {
     try vm.init(gpa, stdout, stderr);
     defer vm.deinit();
 
-    var compiler: Compiler = undefined;
-    try compiler.init(gpa, &vm);
-    defer compiler.deinit();
-
     if (try Io.File.stdin().isTty(io)) {
         try stderr.writeAll(banner);
 
@@ -164,12 +160,7 @@ fn cmdRepl(io: Io, gpa: Allocator, args: []const []const u8) !void {
                 continue;
             }
 
-            var chunk: Chunk = .empty;
-            defer chunk.deinit(gpa);
-
-            try compiler.compile(tree, &chunk);
-            try chunk.disassemble(stderr, "test chunk");
-            try vm.interpret(&chunk);
+            try vm.interpret(tree);
         }
     } else {
         var buffer: Io.Writer.Allocating = .init(gpa);
@@ -188,12 +179,7 @@ fn cmdRepl(io: Io, gpa: Allocator, args: []const []const u8) !void {
             std.process.exit(1);
         }
 
-        var chunk: Chunk = .empty;
-        defer chunk.deinit(gpa);
-
-        try compiler.compile(tree, &chunk);
-        try chunk.disassemble(stderr, "<stdin>");
-        try vm.interpret(&chunk);
+        try vm.interpret(tree);
     }
 
     return cleanExit(io);

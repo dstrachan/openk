@@ -17,6 +17,9 @@ pub const Chunk = @import("k/Chunk.zig");
 pub const OpCode = Chunk.OpCode;
 pub const Vm = @import("k/Vm.zig");
 pub const Value = @import("k/Value.zig");
+pub const Lambda = Value.Lambda;
+pub const UnaryPrimitive = Value.UnaryPrimitive;
+pub const Operator = Value.Operator;
 pub const Compiler = @import("k/Compiler.zig");
 
 pub fn putAstErrorsIntoBundle(tree: Ast, src_path: []const u8, eb: *std.zig.ErrorBundle.Wip) !void {

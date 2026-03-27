@@ -499,8 +499,16 @@ pub const Node = struct {
         root,
         /// The `data` field is unused.
         ///
-        /// The `main_token` field is unused.
+        /// The `main_token` field is the previous token.
         no_op,
+        /// The `data` field is a `.node`.
+        ///
+        /// The `main_token` field is the `;` token.
+        discard,
+        /// The `data` field is `.node`.
+        ///
+        /// The `main_token` field is the last token of the expression.
+        print,
 
         /// `(expr)`.
         ///

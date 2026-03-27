@@ -14,14 +14,15 @@ pub const empty: Chunk = .{};
 
 pub const OpCode = enum(u8) {
     constant,
-
-    add,
-    subtract,
-    multiply,
-    divide,
-    negate,
+    get_global,
+    set_global,
+    get_local,
+    set_local,
 
     @"return",
+    pop,
+    print,
+    apply,
 
     pub const Index = enum(u32) { _ };
 };
@@ -70,16 +71,20 @@ pub fn disassembleInstruction(chunk: Chunk, writer: *Io.Writer, offset: usize) !
     }
 
     switch (chunk.opCode(@enumFromInt(offset))) {
-        .constant => |t| return chunk.constantInstruction(writer, t, offset),
+        .constant,
+        .get_global,
+        .set_global,
+        => |t| return chunk.constantInstruction(writer, t, offset),
 
-        .add,
-        .subtract,
-        .multiply,
-        .divide,
-        .negate,
+        .get_local,
+        .set_local,
+        => |t| return chunk.byteInstruction(writer, t, offset),
+
+        .@"return",
+        .pop,
+        .print,
+        .apply,
         => |t| return simpleInstruction(writer, t, offset),
-
-        .@"return" => |t| return simpleInstruction(writer, t, offset),
     }
 }
 
@@ -91,6 +96,12 @@ fn simpleInstruction(writer: *Io.Writer, op_code: OpCode, offset: usize) !usize 
 fn constantInstruction(chunk: Chunk, writer: *Io.Writer, op_code: OpCode, offset: usize) !usize {
     const constant = chunk.data.items(.code)[offset + 1];
     try writer.print("{t: <16} {d:4} '{f}'\n", .{ op_code, constant, chunk.constants.items[constant] });
+    return offset + 2;
+}
+
+fn byteInstruction(chunk: Chunk, writer: *Io.Writer, op_code: OpCode, offset: usize) !usize {
+    const slot = chunk.data.items(.code)[offset + 1];
+    try writer.print("{t: <16} {d:4}\n", .{ op_code, slot });
     return offset + 2;
 }
 

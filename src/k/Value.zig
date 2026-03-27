@@ -3,6 +3,9 @@ const Io = std.Io;
 const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
 
+const k = @import("../root.zig");
+const Chunk = k.Chunk;
+
 const Value = @This();
 
 ref_count: u32 = 0,
@@ -27,6 +30,9 @@ const Type = enum(i8) {
     char_list = 10,
     symbol = -11,
     symbol_list = 11,
+    lambda = 100,
+    unary_primitive = 101,
+    operator = 102,
 };
 
 const Union = union(Type) {
@@ -48,6 +54,145 @@ const Union = union(Type) {
     char_list: []const u8,
     symbol: [*:0]const u8,
     symbol_list: []const [*:0]const u8,
+    lambda: Lambda,
+    unary_primitive: UnaryPrimitive,
+    operator: Operator,
+};
+
+pub const Lambda = struct {
+    source: [*:0]const u8,
+    arity: u8,
+    chunk: Chunk,
+
+    pub fn deinit(self: Lambda, gpa: Allocator) void {
+        var chunk = self.chunk;
+        chunk.deinit(gpa);
+    }
+};
+
+// :: +: -: *: %: &: |: ^: =: <: >: $: ,: #: _: ~: !: ?: @: .: 0:: 1:: 2::
+// avg last sum prd min max exit getenv abs sqrt log exp sin asin cos acos tan atan enlist var dev hopen
+pub const UnaryPrimitive = enum(u8) {
+    identity,
+    flip,
+    neg,
+    first,
+    reciprocal,
+    where,
+    reverse,
+    null,
+    group,
+    asc,
+    desc,
+    string,
+    list,
+    count,
+    lower,
+    not,
+    key,
+    distinct,
+    type,
+    value,
+    read_text,
+    read_binary,
+    _unused,
+    avg,
+    last,
+    sum,
+    prd,
+    min,
+    max,
+    exit,
+    getenv,
+    abs,
+    sqrt,
+    log,
+    exp,
+    sin,
+    asin,
+    cos,
+    acos,
+    tan,
+    atan,
+    enlist,
+    @"var",
+    dev,
+    hopen,
+
+    pub fn format(self: UnaryPrimitive, w: *Io.Writer) !void {
+        try w.writeAll(@tagName(self));
+    }
+};
+
+// : + - * % & | ^ = < > $ , # _ ~ ! ? @ . 0: 1: 2:
+// in within like bin ss insert wsum wavg div xexp setenv binr cov cor
+pub const Operator = enum(u8) {
+    assign,
+    add,
+    subtract,
+    multiply,
+    divide,
+    @"and",
+    @"or",
+    fill,
+    equals,
+    less_than,
+    greater_than,
+    cast,
+    join,
+    take,
+    drop,
+    match,
+    dict,
+    find,
+    apply_at,
+    apply,
+    file_text,
+    file_binary,
+    dynamic_load,
+    in,
+    within,
+    like,
+    bin,
+    ss,
+    insert,
+    wsum,
+    wavg,
+    div,
+    xexp,
+    setenv,
+    binr,
+    cov,
+    cor,
+
+    pub fn format(self: Operator, w: *Io.Writer) !void {
+        switch (self) {
+            .assign => try w.writeAll("TODO"),
+            .add => try w.writeByte('+'),
+            .subtract => try w.writeByte('-'),
+            .multiply => try w.writeByte('*'),
+            .divide => try w.writeByte('%'),
+            .@"and" => try w.writeByte('&'),
+            .@"or" => try w.writeByte('|'),
+            .fill => try w.writeByte('^'),
+            .equals => try w.writeByte('='),
+            .less_than => try w.writeByte('<'),
+            .greater_than => try w.writeByte('>'),
+            .cast => try w.writeByte('$'),
+            .join => try w.writeByte(','),
+            .take => try w.writeByte('#'),
+            .drop => try w.writeByte('_'),
+            .match => try w.writeByte('~'),
+            .dict => try w.writeByte('!'),
+            .find => try w.writeByte('?'),
+            .apply_at => try w.writeByte('@'),
+            .apply => try w.writeByte('.'),
+            .file_text => try w.writeAll("0:"),
+            .file_binary => try w.writeAll("1:"),
+            .dynamic_load => try w.writeAll("2:"),
+            inline else => |t| try w.writeAll(@tagName(t)),
+        }
+    }
 };
 
 pub fn ref(self: *Value) *Value {
@@ -78,6 +223,9 @@ pub fn deref(self: *Value, gpa: Allocator) void {
             .char_list => |v| gpa.free(v),
             .symbol => {},
             .symbol_list => |v| gpa.free(v),
+            .lambda => |v| v.deinit(gpa),
+            .unary_primitive => {},
+            .operator => {},
         }
         gpa.destroy(self);
     }
@@ -141,6 +289,9 @@ pub fn format(self: Value, w: *Io.Writer) !void {
         .symbol_list => |value| {
             for (value) |v| try w.print("`{s}", .{v});
         },
+        .lambda => |v| try w.print("{s}", .{v.source}),
+        .unary_primitive => |v| try w.print("{f}", .{v}),
+        .operator => |v| try w.print("{f}", .{v}),
     }
 }
 
@@ -348,6 +499,27 @@ pub fn copySymbolList(gpa: Allocator, value: []const [*:0]const u8) !*Value {
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
     self.* = .{ .as = .{ .symbol_list = list } };
+    return self;
+}
+
+pub fn lambda(gpa: Allocator, value: Lambda) !*Value {
+    const self = try gpa.create(Value);
+    errdefer comptime unreachable;
+    self.* = .{ .as = .{ .lambda = value } };
+    return self;
+}
+
+pub fn unaryPrimitive(gpa: Allocator, value: UnaryPrimitive) !*Value {
+    const self = try gpa.create(Value);
+    errdefer comptime unreachable;
+    self.* = .{ .as = .{ .unary_primitive = value } };
+    return self;
+}
+
+pub fn operator(gpa: Allocator, value: Operator) !*Value {
+    const self = try gpa.create(Value);
+    errdefer comptime unreachable;
+    self.* = .{ .as = .{ .operator = value } };
     return self;
 }
 
