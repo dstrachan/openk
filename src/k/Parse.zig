@@ -233,18 +233,11 @@ fn parseExprs(p: *Parse) !Exprs {
             },
         };
         if (expr.unwrap()) |expr_node| {
-            const node = switch (p.tokenTag(p.tok_i)) {
-                .semicolon => try p.addNode(.{
-                    .tag = .discard,
-                    .main_token = p.nextToken(),
-                    .data = .{ .node = expr_node },
-                }),
-                else => try p.addNode(.{
-                    .tag = .print,
-                    .main_token = p.tok_i - 1,
-                    .data = .{ .node = expr_node },
-                }),
-            };
+            const node = if (p.eatToken(.semicolon)) |_| expr_node else try p.addNode(.{
+                .tag = .print,
+                .main_token = p.tok_i - 1,
+                .data = .{ .node = expr_node },
+            });
             try p.scratch.append(p.gpa, node);
         } else _ = p.eatToken(.semicolon);
     }

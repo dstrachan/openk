@@ -20,7 +20,6 @@ pub const OpCode = enum(u8) {
     set_local,
 
     @"return",
-    pop,
     print,
     apply,
 
@@ -39,7 +38,7 @@ pub fn deinit(chunk: *Chunk, gpa: Allocator) void {
 
 pub fn write(chunk: *Chunk, gpa: Allocator, code: anytype, line: u32) !void {
     const byte: u8 = switch (@typeInfo(@TypeOf(code))) {
-        .int => @intCast(code),
+        .int, .comptime_int => @intCast(code),
         .@"enum" => @intFromEnum(code),
         else => |t| @compileError(@tagName(t)),
     };
@@ -78,12 +77,11 @@ pub fn disassembleInstruction(chunk: Chunk, writer: *Io.Writer, offset: usize) !
 
         .get_local,
         .set_local,
+        .apply,
         => |t| return chunk.byteInstruction(writer, t, offset),
 
         .@"return",
-        .pop,
         .print,
-        .apply,
         => |t| return simpleInstruction(writer, t, offset),
     }
 }

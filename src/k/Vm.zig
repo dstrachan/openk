@@ -130,31 +130,22 @@ pub fn interpret(vm: *Vm, tree: Ast) Error!void {
     defer compiler.deinit();
 
     const lambda = try compiler.compile();
-    defer lambda.deref(vm.gpa);
+    errdefer lambda.deref(vm.gpa);
 
-    vm.push(lambda);
-    defer _ = vm.pop();
-    vm.frames.appendAssumeCapacity(.{
-        .lambda = lambda.as.lambda,
-        .ip = lambda.as.lambda.chunk.data.items(.code).ptr,
-        .slots = vm.stack.items[vm.stack.items.len..].ptr,
-    });
-    defer vm.frames.shrinkRetainingCapacity(0);
-
+    try vm.applyLambda(lambda, 0);
     vm.run() catch return error.RuntimeError;
 }
 
-fn run(vm: *Vm) !void {
-    const frame = &vm.frames.items[vm.frames.items.len - 1];
-    const chunk = frame.lambda.chunk;
+fn run(vm: *Vm) Error!void {
+    var frame = &vm.frames.items[vm.frames.items.len - 1];
     while (true) {
         if (trace_execution) {
             try vm.stdout.writeAll("          ");
-            for (vm.stack.items[1..]) |slot| {
+            for (vm.stack.items) |slot| {
                 try vm.stdout.print("[ {f} ]", .{slot});
             }
             try vm.stdout.writeByte('\n');
-            _ = try chunk.disassembleInstruction(vm.stdout, frame.ip - chunk.data.items(.code).ptr);
+            _ = try frame.lambda.chunk.disassembleInstruction(vm.stdout, frame.ip - frame.lambda.chunk.data.items(.code).ptr);
             try vm.stdout.flush();
         }
 
@@ -179,33 +170,37 @@ fn run(vm: *Vm) !void {
             .get_local => vm.push(frame.slots[vm.readByte()].ref()),
             .set_local => frame.slots[vm.readByte()] = vm.peek().ref(),
 
-            .@"return" => return,
-            .pop => vm.pop().deref(vm.gpa),
+            .@"return" => {
+                const result = vm.pop();
+                defer result.deref(vm.gpa);
+                defer vm.frames.shrinkRetainingCapacity(vm.frames.items.len - 1);
+                if (vm.frames.items.len == 1) {
+                    vm.pop().deref(vm.gpa);
+                    return;
+                }
+
+                while (vm.stack.items.len > frame.slots - vm.stack.items.ptr) {
+                    vm.pop().deref(vm.gpa);
+                }
+
+                vm.push(result.ref());
+                frame = &vm.frames.items[vm.frames.items.len - 2];
+            },
             .print => {
-                const value = vm.pop();
-                defer value.deref(vm.gpa);
-                try vm.stdout.print("{f}\n", .{value});
+                try vm.stdout.print("{f}\n", .{vm.peek()});
                 try vm.stdout.flush();
             },
 
             .apply => {
-                const callee = vm.pop();
-                defer callee.deref(vm.gpa);
-
-                const args_len = switch (callee.as) {
-                    .lambda => |lambda| lambda.arity,
-                    .unary_primitive => 1,
-                    .operator => 2,
-                    inline else => |_, t| std.debug.panic("{t}", .{t}),
-                };
-                const args = args: {
-                    var args: [8]*Value = undefined;
-                    for (0..args_len) |i| args[i] = vm.pop();
-                    break :args args[0..args_len];
-                };
-                defer for (args) |v| v.deref(vm.gpa);
-
-                vm.push(try vm.apply(callee, args));
+                const arg_count = vm.readByte();
+                assert(arg_count > 0 and arg_count <= 8);
+                if (vm.peek().as == .lambda) {
+                    const lambda = vm.pop();
+                    try vm.applyLambda(lambda, arg_count);
+                    frame = &vm.frames.items[vm.frames.items.len - 1];
+                } else {
+                    vm.push(try vm.apply(arg_count));
+                }
             },
         }
     }
@@ -213,16 +208,8 @@ fn run(vm: *Vm) !void {
 
 inline fn readByte(vm: *Vm) u8 {
     const frame = &vm.frames.items[vm.frames.items.len - 1];
-    const byte = frame.ip[0];
-    frame.ip += 1;
-    return byte;
-}
-
-inline fn readShort(vm: *Vm) u16 {
-    const frame = &vm.frames.items[vm.frames.items.len - 1];
-    const short: u16 = @intCast((frame.ip[0] << 8) | frame.ip[1]);
-    frame.ip += 2;
-    return short;
+    defer frame.ip += 1;
+    return frame.ip[0];
 }
 
 inline fn readConstant(vm: *Vm) *Value {
@@ -230,12 +217,58 @@ inline fn readConstant(vm: *Vm) *Value {
     return frame.lambda.chunk.constants.items[vm.readByte()];
 }
 
-fn apply(vm: *Vm, callee: *Value, args: []*Value) !*Value {
+fn apply(vm: *Vm, arg_count: u8) !*Value {
+    const callee = vm.pop();
+    defer callee.deref(vm.gpa);
+
+    const args = args: {
+        var args: [8]*Value = undefined;
+        for (0..arg_count) |i| args[i] = vm.pop();
+        break :args args[0..arg_count];
+    };
+    defer for (args) |v| v.deref(vm.gpa);
+
     return switch (callee.as) {
-        .unary_primitive => |unary_primitive| vm.applyUnaryPrimitive(unary_primitive, args[0]),
-        .operator => |operator| vm.applyOperator(operator, args[0], args[1]),
+        .lambda => unreachable,
+        .unary_primitive => |unary_primitive| blk: {
+            if (args.len != 1) return vm.runtimeError("expected 1 argument, found: {d}", .{args.len});
+            break :blk vm.applyUnaryPrimitive(unary_primitive, args[0]);
+        },
+        .operator => |operator| blk: {
+            if (args.len != 2) return vm.runtimeError("expected 2 arguments, found: {d}", .{args.len});
+            break :blk vm.applyOperator(operator, args[0], args[1]);
+        },
         inline else => |_, t| std.debug.panic("NYI: {t}", .{t}),
     };
+}
+
+// TODO: Test edge cases for memory leaks
+fn applyLambda(vm: *Vm, lambda: *Value, arg_count: u8) !void {
+    const args = args: {
+        var args: [8]*Value = undefined;
+        for (0..arg_count) |i| args[i] = vm.pop();
+        break :args args[0..arg_count];
+    };
+    errdefer for (args) |v| v.deref(vm.gpa);
+
+    if (lambda.as.lambda.arity != arg_count) {
+        return vm.runtimeError("expected {d} argument(s), found: {d}", .{ lambda.as.lambda.arity, arg_count });
+    }
+
+    if (vm.frames.items.len == frames_max) {
+        return vm.runtimeError("stack overflow", .{});
+    }
+
+    const stack_len = vm.stack.items.len;
+
+    vm.push(lambda);
+    for (args) |v| vm.push(v);
+
+    vm.frames.appendAssumeCapacity(.{
+        .lambda = lambda.as.lambda,
+        .ip = lambda.as.lambda.chunk.data.items(.code).ptr,
+        .slots = vm.stack.items[stack_len..].ptr,
+    });
 }
 
 fn applyUnaryPrimitive(vm: *Vm, unary_primitive: UnaryPrimitive, x: *Value) !*Value {

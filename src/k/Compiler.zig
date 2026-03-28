@@ -63,10 +63,6 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
 
     switch (tree.nodeTag(node)) {
         .root => unreachable,
-        .discard => {
-            try c.compileNode(tree.nodeData(node).node);
-            try c.emitOpCode(.pop);
-        },
         .print => {
             try c.compileNode(tree.nodeData(node).node);
             try c.emitOpCode(.print);
@@ -91,7 +87,7 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
 
             compiler.in_lambda = true;
             compiler.lambda.as.lambda.source = try c.vm.intern(tree.nodeSlice(node));
-            compiler.lambda.as.lambda.arity = @intCast(params.len);
+            compiler.lambda.as.lambda.arity = @intCast(@max(1, params.len));
 
             for (nodes) |n| try compiler.compileNode(n);
 
@@ -137,9 +133,16 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
 
         .call => {
             const nodes = tree.extraDataSlice(tree.nodeData(node).extra_range, Node.Index);
+            assert(nodes.len > 0);
+            if (nodes.len == 1) {
+                const identity: *Value = try .unaryPrimitive(c.gpa, .identity);
+                errdefer identity.deref(c.gpa);
+                try c.emitConstant(identity);
+            }
             var it = std.mem.reverseIterator(nodes);
             while (it.next()) |n| try c.compileNode(n);
             try c.emitOpCode(.apply);
+            try c.emitByte(@max(1, nodes.len - 1));
         },
 
         .apply_unary => {
@@ -147,6 +150,7 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             try c.compileNode(rhs);
             try c.compileUnaryNode(lhs);
             try c.emitOpCode(.apply);
+            try c.emitByte(1);
         },
 
         .apply_binary => {
@@ -174,6 +178,7 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             try c.compileNode(lhs);
             try c.compileNode(op);
             try c.emitOpCode(.apply);
+            try c.emitByte(2);
         },
 
         .number_literal => {
