@@ -84,10 +84,17 @@ fn pop(vm: *Vm) *Value {
 fn runtimeError(vm: *Vm, comptime fmt: []const u8, args: anytype) Error {
     try vm.stderr.print(fmt ++ "\n", args);
 
-    const frame = &vm.frames.items[vm.frames.items.len - 1];
-    const instruction = frame.ip - frame.lambda.chunk.data.items(.code).ptr - 1;
-    const line = frame.lambda.chunk.data.items(.line)[instruction];
-    try vm.stderr.print("[line {d}] in script\n", .{line});
+    var it = std.mem.reverseIterator(vm.frames.items);
+    while (it.next()) |frame| {
+        const instruction = frame.ip - frame.lambda.chunk.data.items(.code).ptr - 1;
+        try vm.stderr.print("[line {d}] in ", .{frame.lambda.chunk.data.items(.line)[instruction]});
+        if (std.mem.span(frame.lambda.source).len > 0) {
+            try vm.stderr.print("{s}()\n", .{frame.lambda.source});
+        } else {
+            try vm.stderr.writeAll("script\n");
+        }
+    }
+
     try vm.stderr.flush();
     vm.stack.shrinkRetainingCapacity(0);
     return error.RuntimeError;
