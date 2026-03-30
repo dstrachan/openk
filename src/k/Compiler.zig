@@ -63,6 +63,11 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
 
     switch (tree.nodeTag(node)) {
         .root => unreachable,
+
+        .pop => {
+            try c.compileNode(tree.nodeData(node).node);
+            try c.emitOpCode(.pop);
+        },
         .print => {
             try c.compileNode(tree.nodeData(node).node);
             try c.emitOpCode(.print);

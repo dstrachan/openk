@@ -182,6 +182,7 @@ pub fn firstToken(tree: Ast, node: Node.Index) TokenIndex {
         .no_op,
         => return tree.nodeMainToken(n) - end_offset,
 
+        .pop,
         .print,
         => n = tree.nodeData(n).node,
 
@@ -279,6 +280,7 @@ pub fn lastToken(tree: Ast, node: Node.Index) TokenIndex {
         .no_op,
         => return tree.nodeMainToken(n) + end_offset,
 
+        .pop,
         .print,
         => n = tree.nodeData(n).node,
 
@@ -499,6 +501,11 @@ pub const Node = struct {
         ///
         /// The `main_token` field is the previous token.
         no_op,
+
+        /// The `data` field is `.node`.
+        ///
+        /// The `main_token` field is the `;` token.
+        pop,
         /// The `data` field is `.node`.
         ///
         /// The `main_token` field is the last token of the expression.

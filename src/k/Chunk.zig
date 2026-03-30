@@ -20,6 +20,7 @@ pub const OpCode = enum(u8) {
     set_local,
 
     @"return",
+    pop,
     print,
     apply,
 
@@ -81,6 +82,7 @@ pub fn disassembleInstruction(chunk: Chunk, writer: *Io.Writer, offset: usize) !
         => |t| return chunk.byteInstruction(writer, t, offset),
 
         .@"return",
+        .pop,
         .print,
         => |t| return simpleInstruction(writer, t, offset),
     }

@@ -694,8 +694,15 @@ fn parseLambda(p: *Parse) !Node.Index {
     const body_top = p.scratch.items.len;
     while (true) {
         const expr = try p.parseExpr();
-        if (expr.unwrap()) |node| try p.scratch.append(p.gpa, node);
-        _ = p.eatToken(.semicolon) orelse break;
+        if (expr.unwrap()) |node| {
+            if (p.eatToken(.semicolon)) |semicolon| {
+                try p.scratch.append(p.gpa, try p.addNode(.{
+                    .tag = .pop,
+                    .main_token = semicolon,
+                    .data = .{ .node = node },
+                }));
+            } else try p.scratch.append(p.gpa, node);
+        } else _ = p.eatToken(.semicolon) orelse break;
     }
     const r_brace = try p.expectToken(.r_brace);
 

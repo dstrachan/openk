@@ -193,6 +193,7 @@ fn run(vm: *Vm) Error!void {
                 vm.push(result.ref());
                 frame = &vm.frames.items[vm.frames.items.len - 2];
             },
+            .pop => vm.pop().deref(vm.gpa),
             .print => {
                 try vm.stdout.print("{f}\n", .{vm.peek()});
                 try vm.stdout.flush();
@@ -203,6 +204,7 @@ fn run(vm: *Vm) Error!void {
                 assert(arg_count > 0 and arg_count <= 8);
                 if (vm.peek().as == .lambda) {
                     const lambda = vm.pop();
+                    errdefer lambda.deref(vm.gpa);
                     try vm.applyLambda(lambda, arg_count);
                     frame = &vm.frames.items[vm.frames.items.len - 1];
                 } else {
@@ -249,7 +251,6 @@ fn apply(vm: *Vm, arg_count: u8) !*Value {
     };
 }
 
-// TODO: Test edge cases for memory leaks
 fn applyLambda(vm: *Vm, lambda: *Value, arg_count: u8) !void {
     const args = args: {
         var args: [8]*Value = undefined;
@@ -265,6 +266,8 @@ fn applyLambda(vm: *Vm, lambda: *Value, arg_count: u8) !void {
     if (vm.frames.items.len == frames_max) {
         return vm.runtimeError("stack overflow", .{});
     }
+
+    errdefer comptime unreachable;
 
     const stack_len = vm.stack.items.len;
 
