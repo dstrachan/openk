@@ -160,6 +160,7 @@ pub fn extraData(tree: Ast, index: ExtraIndex, comptime T: type) T {
     var result: T = undefined;
     inline for (fields, 0..) |field, i| {
         @field(result, field.name) = switch (field.type) {
+            bool => tree.extra_data[@intFromEnum(index) + i] == 1,
             Node.Index,
             Node.OptionalIndex,
             OptionalTokenIndex,
@@ -787,6 +788,7 @@ pub const Node = struct {
         params_start: ExtraIndex,
         body_start: ExtraIndex,
         body_end: ExtraIndex,
+        trailing_semicolon: bool,
     };
 };
 

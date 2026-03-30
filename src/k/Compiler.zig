@@ -9,6 +9,7 @@ const Chunk = k.Chunk;
 const Node = k.Node;
 const Value = k.Value;
 const Vm = k.Vm;
+const OpCode = k.OpCode;
 
 const Compiler = @This();
 
@@ -95,6 +96,13 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             compiler.lambda.as.lambda.arity = @intCast(@max(1, params.len));
 
             for (nodes) |n| try compiler.compileNode(n);
+            const value: ?*Value = if (data.trailing_semicolon) blk: {
+                const value: *Value = try .unaryPrimitive(c.gpa, .identity);
+                errdefer value.deref(c.gpa);
+                try compiler.emitConstant(value);
+                break :blk value;
+            } else null;
+            errdefer if (value) |v| v.deref(c.gpa);
 
             const lambda = try compiler.endCompiler();
             errdefer lambda.deref(c.gpa);
@@ -299,7 +307,7 @@ fn emitReturn(c: *Compiler) !void {
     try c.emitOpCode(.@"return");
 }
 
-fn emitOpCode(c: *Compiler, code: k.OpCode) !void {
+fn emitOpCode(c: *Compiler, code: OpCode) !void {
     try c.emitByte(code);
 }
 

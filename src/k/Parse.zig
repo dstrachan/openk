@@ -140,6 +140,7 @@ fn addExtra(p: anytype, extra: anytype) Allocator.Error!ExtraIndex {
     const result: ExtraIndex = @enumFromInt(p.extra_data.items.len);
     inline for (fields) |field| {
         const data: u32 = switch (field.type) {
+            bool => @intFromBool(@field(extra, field.name)),
             Node.Index,
             Node.OptionalIndex,
             OptionalTokenIndex,
@@ -704,6 +705,7 @@ fn parseLambda(p: *Parse) !Node.Index {
             } else try p.scratch.append(p.gpa, node);
         } else _ = p.eatToken(.semicolon) orelse break;
     }
+    const trailing_semicolon = p.tokenTag(p.tok_i - 1) == .semicolon;
     const r_brace = try p.expectToken(.r_brace);
 
     const params = try p.listToSpan(p.scratch.items[params_top..body_top]);
@@ -712,6 +714,7 @@ fn parseLambda(p: *Parse) !Node.Index {
         .params_start = params.start,
         .body_start = body.start,
         .body_end = body.end,
+        .trailing_semicolon = trailing_semicolon,
     };
     return p.setNode(lambda_index, .{
         .tag = .lambda,
