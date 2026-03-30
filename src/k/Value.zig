@@ -120,7 +120,31 @@ pub const UnaryPrimitive = enum(u8) {
     hopen,
 
     pub fn format(self: UnaryPrimitive, w: *Io.Writer) !void {
-        try w.writeAll(@tagName(self));
+        switch (self) {
+            .identity => try w.writeAll("::"),
+            .flip => try w.writeAll("+:"),
+            .neg => try w.writeAll("-:"),
+            .first => try w.writeAll("*:"),
+            .reciprocal => try w.writeAll("%:"),
+            .where => try w.writeAll("&:"),
+            .reverse => try w.writeAll("|:"),
+            .null => try w.writeAll("^:"),
+            .group => try w.writeAll("=:"),
+            .asc => try w.writeAll("<:"),
+            .desc => try w.writeAll(">:"),
+            .string => try w.writeAll("$:"),
+            .list => try w.writeAll(",:"),
+            .count => try w.writeAll("#:"),
+            .lower => try w.writeAll("_:"),
+            .not => try w.writeAll("~:"),
+            .key => try w.writeAll("!:"),
+            .distinct => try w.writeAll("?:"),
+            .type => try w.writeAll("@:"),
+            .value => try w.writeAll(".:"),
+            .read_text => try w.writeAll("0::"),
+            .read_binary => try w.writeAll("1::"),
+            inline else => |t| try w.writeAll(@tagName(t)),
+        }
     }
 };
 

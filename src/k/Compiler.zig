@@ -124,24 +124,114 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
         .colon => unreachable,
         .colon_colon => unreachable,
         .plus => {
-            const add: *Value = try .operator(c.gpa, .add);
-            errdefer add.deref(c.gpa);
-            try c.emitConstant(add);
+            const v: *Value = try .operator(c.gpa, .add);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
         },
         .minus => {
-            const subtract: *Value = try .operator(c.gpa, .subtract);
-            errdefer subtract.deref(c.gpa);
-            try c.emitConstant(subtract);
+            const v: *Value = try .operator(c.gpa, .subtract);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
         },
         .asterisk => {
-            const multiply: *Value = try .operator(c.gpa, .multiply);
-            errdefer multiply.deref(c.gpa);
-            try c.emitConstant(multiply);
+            const v: *Value = try .operator(c.gpa, .multiply);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
         },
         .percent => {
-            const divide: *Value = try .operator(c.gpa, .divide);
-            errdefer divide.deref(c.gpa);
-            try c.emitConstant(divide);
+            const v: *Value = try .operator(c.gpa, .divide);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .ampersand => {
+            const v: *Value = try .operator(c.gpa, .@"and");
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .pipe => {
+            const v: *Value = try .operator(c.gpa, .@"or");
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .caret => {
+            const v: *Value = try .operator(c.gpa, .fill);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .equal => {
+            const v: *Value = try .operator(c.gpa, .equals);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .l_angle_bracket => {
+            const v: *Value = try .operator(c.gpa, .less_than);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .r_angle_bracket => {
+            const v: *Value = try .operator(c.gpa, .greater_than);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .dollar => {
+            const v: *Value = try .operator(c.gpa, .cast);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .comma => {
+            const v: *Value = try .operator(c.gpa, .join);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .hash => {
+            const v: *Value = try .operator(c.gpa, .take);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .underscore => {
+            const v: *Value = try .operator(c.gpa, .drop);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .tilde => {
+            const v: *Value = try .operator(c.gpa, .match);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .bang => {
+            const v: *Value = try .operator(c.gpa, .dict);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .question_mark => {
+            const v: *Value = try .operator(c.gpa, .find);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .at => {
+            const v: *Value = try .operator(c.gpa, .apply_at);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .dot => {
+            const v: *Value = try .operator(c.gpa, .apply);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .zero_colon => {
+            const v: *Value = try .operator(c.gpa, .file_text);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .one_colon => {
+            const v: *Value = try .operator(c.gpa, .file_binary);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .two_colon => {
+            const v: *Value = try .operator(c.gpa, .dynamic_load);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
         },
 
         .call => {
@@ -258,13 +348,113 @@ fn compileUnaryNode(c: *Compiler, node: Node.Index) !void {
     switch (tree.nodeTag(node)) {
         .grouped_expression => try c.compileUnaryNode(tree.nodeData(node).node_and_token[0]),
 
-        .minus => {
-            const neg: *Value = try .unaryPrimitive(c.gpa, .neg);
-            errdefer neg.deref(c.gpa);
-            try c.emitConstant(neg);
+        .plus, .plus_colon => {
+            const v: *Value = try .unaryPrimitive(c.gpa, .flip);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .minus, .minus_colon => {
+            const v: *Value = try .unaryPrimitive(c.gpa, .neg);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .asterisk, .asterisk_colon => {
+            const v: *Value = try .unaryPrimitive(c.gpa, .first);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .percent, .percent_colon => {
+            const v: *Value = try .unaryPrimitive(c.gpa, .reciprocal);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .ampersand, .ampersand_colon => {
+            const v: *Value = try .unaryPrimitive(c.gpa, .where);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .pipe, .pipe_colon => {
+            const v: *Value = try .unaryPrimitive(c.gpa, .reverse);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .caret, .caret_colon => {
+            const v: *Value = try .unaryPrimitive(c.gpa, .null);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .equal, .equal_colon => {
+            const v: *Value = try .unaryPrimitive(c.gpa, .group);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .l_angle_bracket, .l_angle_bracket_colon => {
+            const v: *Value = try .unaryPrimitive(c.gpa, .asc);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .r_angle_bracket, .r_angle_bracket_colon => {
+            const v: *Value = try .unaryPrimitive(c.gpa, .desc);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .dollar, .dollar_colon => {
+            const v: *Value = try .unaryPrimitive(c.gpa, .string);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .comma, .comma_colon => {
+            const v: *Value = try .unaryPrimitive(c.gpa, .list);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .hash, .hash_colon => {
+            const v: *Value = try .unaryPrimitive(c.gpa, .count);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .underscore, .underscore_colon => {
+            const v: *Value = try .unaryPrimitive(c.gpa, .lower);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .tilde, .tilde_colon => {
+            const v: *Value = try .unaryPrimitive(c.gpa, .not);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .bang, .bang_colon => {
+            const v: *Value = try .unaryPrimitive(c.gpa, .key);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .question_mark, .question_mark_colon => {
+            const v: *Value = try .unaryPrimitive(c.gpa, .distinct);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .at, .at_colon => {
+            const v: *Value = try .unaryPrimitive(c.gpa, .type);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .dot, .dot_colon => {
+            const v: *Value = try .unaryPrimitive(c.gpa, .value);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .zero_colon, .zero_colon_colon => {
+            const v: *Value = try .unaryPrimitive(c.gpa, .read_text);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
+        },
+        .one_colon, .one_colon_colon => {
+            const v: *Value = try .unaryPrimitive(c.gpa, .read_binary);
+            errdefer v.deref(c.gpa);
+            try c.emitConstant(v);
         },
 
-        else => try c.compileNode(node),
+        inline else => |t| std.debug.panic("NYI: {t}", .{t}),
     }
 }
 
