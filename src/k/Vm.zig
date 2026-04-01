@@ -290,12 +290,17 @@ fn applyUnaryPrimitive(vm: *Vm, unary_primitive: UnaryPrimitive, x: *Value) !*Va
     };
 }
 
+fn neg(vm: *Vm, x: *Value) !*Value {
+    return .float(vm.gpa, -x.as.float);
+}
+
 fn applyOperator(vm: *Vm, operator: Operator, x: *Value, y: *Value) !*Value {
     return switch (operator) {
         inline .add,
         .subtract,
         .multiply,
         .divide,
+        .match,
         => |t| @call(.auto, @field(Vm, @tagName(t)), .{ vm, x, y }),
         inline else => |t| std.debug.panic("NYI: {t}", .{t}),
     };
@@ -317,8 +322,8 @@ fn divide(vm: *Vm, x: *Value, y: *Value) !*Value {
     return .float(vm.gpa, x.as.float / y.as.float);
 }
 
-fn neg(vm: *Vm, x: *Value) !*Value {
-    return .float(vm.gpa, -x.as.float);
+fn match(vm: *Vm, x: *Value, y: *Value) !*Value {
+    return .boolean(vm.gpa, x.match(y));
 }
 
 test {
