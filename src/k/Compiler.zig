@@ -96,11 +96,13 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             errdefer compiler.lambda.deref(c.gpa);
             defer compiler.deinit();
 
-            for (params) |n| {
-                assert(tree.nodeTag(n) == .identifier);
-                const identifier = tree.nodeMainToken(n);
-                const slice = tree.tokenSlice(identifier);
-                _ = try compiler.addLocal(slice);
+            if (params.len > 0 and tree.nodeTag(params[0]) != .no_op) {
+                for (params) |n| {
+                    assert(tree.nodeTag(n) == .identifier);
+                    const identifier = tree.nodeMainToken(n);
+                    const slice = tree.tokenSlice(identifier);
+                    _ = try compiler.addLocal(slice);
+                }
             }
             for (body) |n| try compiler.findLocals(n);
 
@@ -754,4 +756,68 @@ fn findLocals(c: *Compiler, node: Node.Index) !void {
 
         .system => {},
     }
+}
+
+fn testCompiler(source: [:0]const u8, expected: []const u8) !void {
+    var stdout_writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer stdout_writer.deinit();
+    const stdout = &stdout_writer.writer;
+
+    var stderr_writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer stderr_writer.deinit();
+    const stderr = &stderr_writer.writer;
+
+    var vm: Vm = undefined;
+    try vm.init(std.testing.allocator, stdout, stderr);
+    defer vm.deinit();
+
+    var tree: Ast = try .parse(std.testing.allocator, source);
+    defer tree.deinit(std.testing.allocator);
+
+    var compiler: Compiler = undefined;
+    try compiler.init(&vm, tree);
+    defer compiler.deinit();
+
+    const lambda = try compiler.compile();
+    defer lambda.deref(std.testing.allocator);
+
+    try std.testing.expectEqualStrings(
+        std.mem.trim(u8, expected, &std.ascii.whitespace),
+        std.mem.trim(u8, stderr_writer.written(), &std.ascii.whitespace),
+    );
+}
+
+test {
+    try testCompiler("{x;x+1;x}",
+        \\== {x;x+1;x} ==
+        \\0000    0 get_local           0
+        \\0002    | pop
+        \\0003    | constant            0 '1f'
+        \\0005    | get_local           0
+        \\0007    | constant            1 '+'
+        \\0009    | apply               2
+        \\0011    | pop
+        \\0012    | get_local           0
+        \\0014    | return
+        \\== <script> ==
+        \\0000    0 constant            0 '{x;x+1;x}'
+        \\0002    | print
+        \\0003    | return
+    );
+    try testCompiler("{[]x;x+1;x}",
+        \\== {[]x;x+1;x} ==
+        \\0000    0 get_global          0 '`x'
+        \\0002    | pop
+        \\0003    | constant            1 '1f'
+        \\0005    | get_global          0 '`x'
+        \\0007    | constant            2 '+'
+        \\0009    | apply               2
+        \\0011    | pop
+        \\0012    | get_global          0 '`x'
+        \\0014    | return
+        \\== <script> ==
+        \\0000    0 constant            0 '{[]x;x+1;x}'
+        \\0002    | print
+        \\0003    | return
+    );
 }

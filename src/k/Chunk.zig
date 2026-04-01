@@ -47,6 +47,12 @@ pub fn write(chunk: *Chunk, gpa: Allocator, code: anytype, line: u32) !void {
 }
 
 pub fn addConstant(chunk: *Chunk, gpa: Allocator, value: *Value) !usize {
+    for (chunk.constants.items, 0..) |constant, i| {
+        if (constant.match(value)) {
+            defer value.deref(gpa);
+            return i;
+        }
+    }
     try chunk.constants.append(gpa, value);
     return chunk.constants.items.len - 1;
 }

@@ -319,6 +319,34 @@ pub fn format(self: Value, w: *Io.Writer) !void {
     }
 }
 
+pub fn match(a: *Value, b: *Value) bool {
+    if (@as(Type, a.as) != b.as) return false;
+
+    return switch (a.as) {
+        .boolean => |v| v == b.as.boolean,
+        .boolean_list => |v| std.mem.eql(bool, v, b.as.boolean_list),
+        .byte => |v| v == b.as.byte,
+        .byte_list => |v| std.mem.eql(u8, v, b.as.byte_list),
+        .short => |v| v == b.as.short,
+        .short_list => |v| std.mem.eql(i16, v, b.as.short_list),
+        .int => |v| v == b.as.int,
+        .int_list => |v| std.mem.eql(i32, v, b.as.int_list),
+        .long => |v| v == b.as.long,
+        .long_list => |v| std.mem.eql(i64, v, b.as.long_list),
+        .real => |v| v == b.as.real,
+        .real_list => |v| std.mem.eql(f32, v, b.as.real_list),
+        .float => |v| v == b.as.float,
+        .float_list => |v| std.mem.eql(f64, v, b.as.float_list),
+        .char => |v| v == b.as.char,
+        .char_list => |v| std.mem.eql(u8, v, b.as.char_list),
+        .symbol => |v| v == b.as.symbol,
+        .symbol_list => |v| std.mem.eql([*:0]const u8, v, b.as.symbol_list),
+        .lambda => |v| v.source == b.as.lambda.source,
+        .unary_primitive => |v| v == b.as.unary_primitive,
+        .operator => |v| v == b.as.operator,
+    };
+}
+
 pub fn boolean(gpa: Allocator, value: bool) !*Value {
     const self = try gpa.create(Value);
     errdefer comptime unreachable;

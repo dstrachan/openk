@@ -688,6 +688,8 @@ fn parseLambda(p: *Parse) !Node.Index {
                 try p.scratch.append(p.gpa, expr);
                 _ = p.eatToken(.semicolon) orelse break;
             }
+        } else {
+            try p.scratch.append(p.gpa, try p.noOp());
         }
         _ = try p.expectToken(.r_bracket);
     }
