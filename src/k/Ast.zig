@@ -69,6 +69,16 @@ pub fn nodeData(tree: *const Ast, node_index: Node.Index) Node.Data {
     return tree.nodes.items(.data)[@intFromEnum(node_index)];
 }
 
+pub fn unwrap(tree: *const Ast, node_index: Node.Index) Node.Index {
+    var n = node_index;
+    while (true) {
+        switch (tree.nodeTag(n)) {
+            .grouped_expression => n = tree.nodeData(n).node_and_token[0],
+            else => return n,
+        }
+    }
+}
+
 pub const Location = std.zig.Ast.Location;
 pub const Span = std.zig.Ast.Span;
 

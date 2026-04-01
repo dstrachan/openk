@@ -134,6 +134,7 @@ pub fn intern(vm: *Vm, bytes: []const u8) ![*:0]const u8 {
 pub fn interpret(vm: *Vm, tree: Ast) Error!void {
     var compiler: Compiler = undefined;
     try compiler.init(vm, tree);
+    errdefer compiler.lambda.deref(vm.gpa);
     defer compiler.deinit();
 
     const lambda = try compiler.compile();

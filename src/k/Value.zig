@@ -61,7 +61,7 @@ const Union = union(Type) {
 
 pub const Lambda = struct {
     source: [*:0]const u8,
-    arity: u8,
+    arity: usize,
     chunk: Chunk,
 
     pub fn deinit(self: Lambda, gpa: Allocator) void {
