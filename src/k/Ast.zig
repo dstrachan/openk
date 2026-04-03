@@ -51,12 +51,6 @@ pub fn tokenStart(tree: *const Ast, token_index: TokenIndex) ByteOffset {
     return tree.tokens.items(.start)[token_index];
 }
 
-pub fn tokenLine(tree: *const Ast, token_index: TokenIndex) u32 {
-    const start = tree.tokenStart(token_index);
-    const loc = std.zig.findLineColumn(tree.source, start);
-    return @intCast(loc.line);
-}
-
 pub fn nodeTag(tree: *const Ast, node_index: Node.Index) Node.Tag {
     return tree.nodes.items(.tag)[@intFromEnum(node_index)];
 }
@@ -159,6 +153,10 @@ pub fn tokenSlice(tree: Ast, token_index: TokenIndex) []const u8 {
     const token = tokenizer.next();
     assert(token.tag == token_tag);
     return tree.source[token.loc.start..token.loc.end];
+}
+
+pub fn tokenLen(tree: Ast, token_index: TokenIndex) u32 {
+    return @intCast(tree.tokenSlice(token_index).len);
 }
 
 pub fn extraDataSlice(tree: Ast, range: Node.SubRange, comptime T: type) []const T {
@@ -801,6 +799,42 @@ pub const Node = struct {
         trailing_semicolon: bool,
     };
 };
+
+pub fn nodeToSpan(tree: *const Ast, node: Node.Index) Span {
+    const main = switch (tree.nodeTag(node)) {
+        .apply_unary => tree.firstToken(node),
+        .apply_binary => tree.firstToken(@enumFromInt(tree.nodeMainToken(node))),
+        else => tree.nodeMainToken(node),
+    };
+    return tree.tokensToSpan(tree.firstToken(node), tree.lastToken(node), main);
+}
+
+pub fn tokensToSpan(tree: *const Ast, start: TokenIndex, end: TokenIndex, main: TokenIndex) Span {
+    var start_tok = start;
+    var end_tok = end;
+
+    if (tree.tokensOnSameLine(start, end)) {
+        // do nothing
+    } else if (tree.tokensOnSameLine(start, main)) {
+        end_tok = main;
+    } else if (tree.tokensOnSameLine(main, end)) {
+        start_tok = main;
+    } else {
+        start_tok = main;
+        end_tok = main;
+    }
+
+    return .{
+        .start = tree.tokenStart(start_tok),
+        .end = tree.tokenStart(end_tok) + tree.tokenLen(end_tok),
+        .main = tree.tokenStart(main),
+    };
+}
+
+pub fn tokensOnSameLine(tree: *const Ast, token1: TokenIndex, token2: TokenIndex) bool {
+    const source = tree.source[tree.tokenStart(token1)..tree.tokenStart(token2)];
+    return std.mem.findScalar(u8, source, '\n') == null;
+}
 
 test {
     std.testing.refAllDecls(@This());

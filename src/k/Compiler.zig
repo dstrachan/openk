@@ -525,9 +525,15 @@ fn compileColonColon(c: *Compiler, lhs: Node.Index, rhs: Node.Index) !void {
     try c.compileNode(rhs);
 
     if (c.lambda.as.lambda.arity > 0) {
-        const constant = try c.identifierConstant(identifier);
-        try c.emitOpCode(.set_global);
-        try c.emitByte(constant);
+        const name = tree.tokenSlice(tree.nodeMainToken(identifier));
+        if (c.getLocal(name)) |local| {
+            try c.emitOpCode(.set_local);
+            try c.emitByte(local);
+        } else {
+            const constant = try c.identifierConstant(identifier);
+            try c.emitOpCode(.set_global);
+            try c.emitByte(constant);
+        }
     } else {
         @panic("NYI: set_view");
     }
@@ -817,6 +823,54 @@ test {
         \\0014    | return
         \\== <script> ==
         \\0000    0 constant            0 '{[]x;x+1;x}'
+        \\0002    | print
+        \\0003    | return
+    );
+    try testCompiler("{x;x:1}",
+        \\== {x;x:1} ==
+        \\0000    0 get_local           0
+        \\0002    | pop
+        \\0003    | constant            0 '1f'
+        \\0005    | set_local           0
+        \\0007    | return
+        \\== <script> ==
+        \\0000    0 constant            0 '{x;x:1}'
+        \\0002    | print
+        \\0003    | return
+    );
+    try testCompiler("{x;x::1}",
+        \\== {x;x::1} ==
+        \\0000    0 get_local           0
+        \\0002    | pop
+        \\0003    | constant            0 '1f'
+        \\0005    | set_local           0
+        \\0007    | return
+        \\== <script> ==
+        \\0000    0 constant            0 '{x;x::1}'
+        \\0002    | print
+        \\0003    | return
+    );
+    // try testCompiler("{[]x;x:1}",
+    //     \\== {[]x;x:1} ==
+    //     \\0000    0 get_local           0
+    //     \\0002    | pop
+    //     \\0003    | constant            0 '1f'
+    //     \\0005    | set_local           0
+    //     \\0007    | return
+    //     \\== <script> ==
+    //     \\0000    0 constant            0 '{[]x;x:1}'
+    //     \\0002    | print
+    //     \\0003    | return
+    // );
+    try testCompiler("{[]x;x::1}",
+        \\== {[]x;x::1} ==
+        \\0000    0 get_global          0 '`x'
+        \\0002    | pop
+        \\0003    | constant            1 '1f'
+        \\0005    | set_global          0 '`x'
+        \\0007    | return
+        \\== <script> ==
+        \\0000    0 constant            0 '{[]x;x::1}'
         \\0002    | print
         \\0003    | return
     );
