@@ -134,7 +134,7 @@ fn cmdRepl(io: Io, gpa: Allocator, args: []const []const u8) !void {
     const stderr = &stderr_writer.interface;
 
     var vm: Vm = undefined;
-    try vm.init(gpa, stdout, stderr);
+    try vm.init(io, gpa, stdout, color);
     defer vm.deinit();
 
     if (try Io.File.stdin().isTty(io)) {
@@ -160,7 +160,10 @@ fn cmdRepl(io: Io, gpa: Allocator, args: []const []const u8) !void {
                 continue;
             }
 
-            try vm.interpret(tree);
+            vm.interpret(tree, "<stdin>") catch |err| switch (err) {
+                error.CompilerError => {},
+                else => return err,
+            };
         }
     } else {
         var buffer: Io.Writer.Allocating = .init(gpa);
@@ -179,7 +182,7 @@ fn cmdRepl(io: Io, gpa: Allocator, args: []const []const u8) !void {
             std.process.exit(1);
         }
 
-        try vm.interpret(tree);
+        try vm.interpret(tree, "<stdin>");
     }
 
     return cleanExit(io);

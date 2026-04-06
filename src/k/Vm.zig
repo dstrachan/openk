@@ -16,11 +16,14 @@ const trace_execution = k.trace_execution;
 
 const Vm = @This();
 
+io: Io,
 gpa: Allocator,
 frames: std.ArrayList(CallFrame),
 stack: std.ArrayList(*Value),
 stdout: *Io.Writer,
-stderr: *Io.Writer,
+color: std.zig.Color,
+unary_primitives: [std.meta.fields(UnaryPrimitive).len]*Value = undefined,
+operators: [std.meta.fields(Operator).len]*Value = undefined,
 string_bytes: std.ArrayList(u8) = .empty,
 string_table: std.HashMapUnmanaged(
     u32,
@@ -30,9 +33,7 @@ string_table: std.HashMapUnmanaged(
 ) = .empty,
 globals: std.AutoHashMapUnmanaged([*:0]const u8, *Value) = .empty,
 
-pub const Error = Compiler.Error || error{
-    RuntimeError,
-};
+pub const Error = Allocator.Error || Io.Writer.Error || Io.Cancelable || error{ RuntimeError, CompilerError };
 
 pub const frames_max = 64;
 pub const stack_max = frames_max * (std.math.maxInt(u8) + 1);
@@ -43,28 +44,46 @@ const CallFrame = struct {
     slots: [*]*Value,
 };
 
-pub fn init(vm: *Vm, gpa: Allocator, stdout: *Io.Writer, stderr: *Io.Writer) !void {
+pub fn init(vm: *Vm, io: Io, gpa: Allocator, stdout: *Io.Writer, color: std.zig.Color) !void {
     var frames: std.ArrayList(CallFrame) = try .initCapacity(gpa, frames_max);
     errdefer frames.deinit(gpa);
-    const stack: std.ArrayList(*Value) = try .initCapacity(gpa, stack_max);
-    errdefer comptime unreachable;
+    var stack: std.ArrayList(*Value) = try .initCapacity(gpa, stack_max);
+    errdefer stack.deinit(gpa);
+
     vm.* = .{
+        .io = io,
         .gpa = gpa,
         .frames = frames,
         .stack = stack,
         .stdout = stdout,
-        .stderr = stderr,
+        .color = color,
     };
+
+    var unary_primitives: usize = 0;
+    errdefer for (0..unary_primitives) |i| vm.unary_primitives[i].deref(gpa);
+    for (&vm.unary_primitives, 0..) |*v, i| {
+        v.* = try .unaryPrimitive(gpa, @enumFromInt(i));
+        unary_primitives += 1;
+    }
+    var operators: usize = 0;
+    errdefer for (0..operators) |i| vm.operators[i].deref(gpa);
+    for (&vm.operators, 0..) |*v, i| {
+        v.* = try .operator(gpa, @enumFromInt(i));
+        operators += 1;
+    }
 }
 
 pub fn deinit(vm: *Vm) void {
     assert(vm.frames.items.len == 0);
     assert(vm.stack.items.len == 0);
-    vm.string_bytes.deinit(vm.gpa);
-    vm.string_table.deinit(vm.gpa);
+
     var it = vm.globals.valueIterator();
     while (it.next()) |value| value.*.deref(vm.gpa);
     vm.globals.deinit(vm.gpa);
+    vm.string_table.deinit(vm.gpa);
+    vm.string_bytes.deinit(vm.gpa);
+    for (vm.operators) |v| v.deref(vm.gpa);
+    for (vm.unary_primitives) |v| v.deref(vm.gpa);
     vm.stack.deinit(vm.gpa);
     vm.frames.deinit(vm.gpa);
 }
@@ -82,20 +101,26 @@ fn pop(vm: *Vm) *Value {
 }
 
 fn runtimeError(vm: *Vm, comptime fmt: []const u8, args: anytype) Error {
-    try vm.stderr.print(fmt ++ "\n", args);
+    var buffer: [256]u8 = undefined;
+    const locked_stderr = try vm.io.lockStderr(&buffer, vm.color.terminalMode());
+    defer vm.io.unlockStderr();
+
+    const stderr = &locked_stderr.file_writer.interface;
+
+    try stderr.print(fmt ++ "\n", args);
 
     var it = std.mem.reverseIterator(vm.frames.items);
     while (it.next()) |frame| {
         const instruction = frame.ip - frame.lambda.chunk.data.items(.code).ptr - 1;
-        try vm.stderr.print("[line {d}] in ", .{frame.lambda.chunk.data.items(.line)[instruction]});
+        try stderr.print("[line {d}] in ", .{frame.lambda.chunk.data.items(.line)[instruction]});
         if (std.mem.span(frame.lambda.source).len > 0) {
-            try vm.stderr.print("{s}()\n", .{frame.lambda.source});
+            try stderr.print("{s}()\n", .{frame.lambda.source});
         } else {
-            try vm.stderr.writeAll("script\n");
+            try stderr.writeAll("script\n");
         }
     }
 
-    try vm.stderr.flush();
+    try stderr.flush();
     vm.stack.shrinkRetainingCapacity(0);
     return error.RuntimeError;
 }
@@ -131,14 +156,26 @@ pub fn intern(vm: *Vm, bytes: []const u8) ![*:0]const u8 {
     return slice[0..std.mem.findScalar(u8, slice, 0).? :0];
 }
 
-pub fn interpret(vm: *Vm, tree: Ast) Error!void {
+pub fn interpret(vm: *Vm, tree: Ast, src_path: []const u8) Error!void {
     var compiler: Compiler = undefined;
-    try compiler.init(vm, tree);
-    errdefer compiler.lambda.deref(vm.gpa);
+    try compiler.init(vm, tree, src_path);
     defer compiler.deinit();
 
-    const lambda = try compiler.compile();
+    const lambda: *Value = lambda: {
+        errdefer compiler.lambda.deref(vm.gpa);
+        break :lambda compiler.compile() catch |err| switch (err) {
+            error.OutOfMemory => return error.OutOfMemory,
+            else => return error.CompilerError,
+        };
+    };
     errdefer lambda.deref(vm.gpa);
+
+    if (compiler.hasErrors()) {
+        var eb = try compiler.eb.toOwnedBundle("");
+        defer eb.deinit(compiler.gpa);
+        eb.renderToStderr(vm.io, .{}, vm.color) catch return error.CompilerError;
+        return error.CompilerError;
+    }
 
     try vm.applyLambda(lambda, 0);
     vm.run() catch return error.RuntimeError;
@@ -174,6 +211,9 @@ fn run(vm: *Vm) Error!void {
                 }
                 gop.value_ptr.* = vm.peek().ref();
             },
+
+            .unary_primitive => vm.push(vm.readUnaryPrimitive().ref()),
+            .operator => vm.push(vm.readOperator().ref()),
 
             .get_local => vm.push(frame.slots[vm.readByte()].ref()),
             .set_local => frame.slots[vm.readByte()] = vm.peek().ref(),
@@ -225,6 +265,14 @@ inline fn readByte(vm: *Vm) u8 {
 inline fn readConstant(vm: *Vm) *Value {
     const frame = &vm.frames.items[vm.frames.items.len - 1];
     return frame.lambda.chunk.constants.items[vm.readByte()];
+}
+
+inline fn readUnaryPrimitive(vm: *Vm) *Value {
+    return vm.unary_primitives[vm.readByte()];
+}
+
+inline fn readOperator(vm: *Vm) *Value {
+    return vm.operators[vm.readByte()];
 }
 
 fn apply(vm: *Vm, arg_count: u8) !*Value {

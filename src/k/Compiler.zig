@@ -2,6 +2,7 @@ const std = @import("std");
 const Io = std.Io;
 const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
+const ErrorBundle = std.zig.ErrorBundle;
 
 const k = @import("../root.zig");
 const Ast = k.Ast;
@@ -13,26 +14,28 @@ const OpCode = k.OpCode;
 
 const Compiler = @This();
 
-pub const Error = Allocator.Error || std.fmt.ParseFloatError || Io.Writer.Error || error{
-    TooManyConstants,
-    TooManyLocalVariables,
-    TooManyGlobalVariables,
-    LocalAssignToGlobal,
-};
+const InnerError = Allocator.Error || error{CompilerError};
+pub const Error = std.fmt.ParseFloatError || Io.Terminal.SetColorError || InnerError;
 
 gpa: Allocator,
 vm: *Vm,
 tree: Ast,
 lambda: *Value,
+src_path: []const u8,
 line: u32 = 0,
 locals: std.ArrayList([]const u8),
-globals: std.ArrayList([]const u8),
+globals: std.ArrayList(Ast.TokenIndex),
+eb: ErrorBundle.Wip,
 
-pub fn init(c: *Compiler, vm: *Vm, tree: Ast) !void {
+pub fn init(c: *Compiler, vm: *Vm, tree: Ast, src_path: []const u8) !void {
     var locals: std.ArrayList([]const u8) = try .initCapacity(vm.gpa, std.math.maxInt(u8));
     errdefer locals.deinit(vm.gpa);
-    var globals: std.ArrayList([]const u8) = try .initCapacity(vm.gpa, std.math.maxInt(u8));
+    var globals: std.ArrayList(Ast.TokenIndex) = try .initCapacity(vm.gpa, std.math.maxInt(u8));
     errdefer globals.deinit(vm.gpa);
+
+    var eb: ErrorBundle.Wip = undefined;
+    try eb.init(vm.gpa);
+    errdefer eb.deinit();
 
     const lambda: *Value = try .lambda(vm.gpa, .{
         .source = try vm.intern(""),
@@ -46,14 +49,17 @@ pub fn init(c: *Compiler, vm: *Vm, tree: Ast) !void {
         .vm = vm,
         .tree = tree,
         .lambda = lambda,
+        .src_path = src_path,
         .locals = locals,
         .globals = globals,
+        .eb = eb,
     };
 }
 
 pub fn deinit(c: *Compiler) void {
     c.locals.deinit(c.gpa);
     c.globals.deinit(c.gpa);
+    c.eb.deinit();
 }
 
 pub fn compile(c: *Compiler) !*Value {
@@ -92,7 +98,7 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             }, Node.Index);
 
             var compiler: Compiler = undefined;
-            try compiler.init(c.vm, tree);
+            try compiler.init(c.vm, tree, c.src_path);
             errdefer compiler.lambda.deref(c.gpa);
             defer compiler.deinit();
 
@@ -101,7 +107,7 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
                     assert(tree.nodeTag(n) == .identifier);
                     const identifier = tree.nodeMainToken(n);
                     const slice = tree.tokenSlice(identifier);
-                    _ = try compiler.addLocal(slice);
+                    _ = try compiler.addLocal(slice, n);
                 }
             }
             for (body) |n| try compiler.findLocals(n);
@@ -110,7 +116,8 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
                 // Implicit params which are never assigned are incorrectly identified as globals, move them to locals.
                 var i: usize = 0;
                 while (i < compiler.globals.items.len) {
-                    const slice = compiler.globals.items[i];
+                    const token_index = compiler.globals.items[i];
+                    const slice = tree.tokenSlice(token_index);
                     if (slice.len == 1) {
                         switch (slice[0]) {
                             'x', 'y', 'z' => {
@@ -140,16 +147,16 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             compiler.lambda.as.lambda.arity = arity;
 
             for (body) |n| try compiler.compileNode(n);
-            const value: ?*Value = if (data.trailing_semicolon) blk: {
-                const value: *Value = try .unaryPrimitive(c.gpa, .identity);
-                errdefer value.deref(c.gpa);
-                try compiler.emitConstant(value);
-                break :blk value;
-            } else null;
-            errdefer if (value) |v| v.deref(c.gpa);
+            if (data.trailing_semicolon) try compiler.emitUnaryPrimitive(.identity);
 
             const lambda = try compiler.endCompiler();
-            try c.emitConstant(lambda);
+            try c.emitConstant(lambda, node);
+
+            if (compiler.hasErrors()) {
+                var eb = try compiler.eb.toOwnedBundle("");
+                defer eb.deinit(c.gpa);
+                try c.eb.addBundleAsRoots(eb);
+            }
         },
 
         .negation => {
@@ -160,128 +167,126 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             const number = try std.fmt.parseFloat(f64, slice);
             const value: *Value = try .float(c.gpa, -number);
             errdefer value.deref(c.gpa);
-            try c.emitConstant(value);
+            try c.emitConstant(value, number_literal);
         },
 
         .colon, .colon_colon => unreachable,
         .plus => {
             const v: *Value = try .operator(c.gpa, .add);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .minus => {
             const v: *Value = try .operator(c.gpa, .subtract);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .asterisk => {
             const v: *Value = try .operator(c.gpa, .multiply);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .percent => {
             const v: *Value = try .operator(c.gpa, .divide);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .ampersand => {
             const v: *Value = try .operator(c.gpa, .@"and");
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .pipe => {
             const v: *Value = try .operator(c.gpa, .@"or");
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .caret => {
             const v: *Value = try .operator(c.gpa, .fill);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .equal => {
             const v: *Value = try .operator(c.gpa, .equals);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .l_angle_bracket => {
             const v: *Value = try .operator(c.gpa, .less_than);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .r_angle_bracket => {
             const v: *Value = try .operator(c.gpa, .greater_than);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .dollar => {
             const v: *Value = try .operator(c.gpa, .cast);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .comma => {
             const v: *Value = try .operator(c.gpa, .join);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .hash => {
             const v: *Value = try .operator(c.gpa, .take);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .underscore => {
             const v: *Value = try .operator(c.gpa, .drop);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .tilde => {
             const v: *Value = try .operator(c.gpa, .match);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .bang => {
             const v: *Value = try .operator(c.gpa, .dict);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .question_mark => {
             const v: *Value = try .operator(c.gpa, .find);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .at => {
             const v: *Value = try .operator(c.gpa, .apply_at);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .dot => {
             const v: *Value = try .operator(c.gpa, .apply);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .zero_colon => {
             const v: *Value = try .operator(c.gpa, .file_text);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .one_colon => {
             const v: *Value = try .operator(c.gpa, .file_binary);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .two_colon => {
             const v: *Value = try .operator(c.gpa, .dynamic_load);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
 
         .call => {
             const nodes = tree.extraDataSlice(tree.nodeData(node).extra_range, Node.Index);
             assert(nodes.len > 0);
             if (nodes.len == 1) {
-                const identity: *Value = try .unaryPrimitive(c.gpa, .identity);
-                errdefer identity.deref(c.gpa);
-                try c.emitConstant(identity);
+                try c.emitUnaryPrimitive(.identity);
             } else if (nodes.len == 3) {
                 switch (tree.nodeTag(tree.unwrap(nodes[0]))) {
                     .colon => return c.compileColon(nodes[1], nodes[2]),
@@ -328,7 +333,7 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             const number = try std.fmt.parseFloat(f64, slice);
             const value: *Value = try .float(c.gpa, number);
             errdefer value.deref(c.gpa);
-            try c.emitConstant(value);
+            try c.emitConstant(value, node);
         },
         .number_list_literal => unreachable,
         .string_literal => {
@@ -336,14 +341,14 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             const slice = tree.tokenSlice(token);
             const value: *Value = try .copyCharList(c.gpa, slice[1 .. slice.len - 1]);
             errdefer value.deref(c.gpa);
-            try c.emitConstant(value);
+            try c.emitConstant(value, node);
         },
         .symbol_literal => {
             const token = tree.nodeMainToken(node);
             const slice = tree.tokenSlice(token);
             const value: *Value = try .symbol(c.gpa, try c.vm.intern(slice[1..]));
             errdefer value.deref(c.gpa);
-            try c.emitConstant(value);
+            try c.emitConstant(value, node);
         },
         .symbol_list_literal => {
             const first_token = tree.nodeMainToken(node);
@@ -357,7 +362,7 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             }
             const value: *Value = try .symbolList(c.gpa, symbols);
             errdefer value.deref(c.gpa);
-            try c.emitConstant(value);
+            try c.emitConstant(value, node);
         },
         .identifier => {
             if (c.lambda.as.lambda.arity > 0) {
@@ -388,107 +393,107 @@ fn compileUnaryNode(c: *Compiler, node: Node.Index) !void {
         .plus, .plus_colon => {
             const v: *Value = try .unaryPrimitive(c.gpa, .flip);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .minus, .minus_colon => {
             const v: *Value = try .unaryPrimitive(c.gpa, .neg);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .asterisk, .asterisk_colon => {
             const v: *Value = try .unaryPrimitive(c.gpa, .first);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .percent, .percent_colon => {
             const v: *Value = try .unaryPrimitive(c.gpa, .reciprocal);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .ampersand, .ampersand_colon => {
             const v: *Value = try .unaryPrimitive(c.gpa, .where);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .pipe, .pipe_colon => {
             const v: *Value = try .unaryPrimitive(c.gpa, .reverse);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .caret, .caret_colon => {
             const v: *Value = try .unaryPrimitive(c.gpa, .null);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .equal, .equal_colon => {
             const v: *Value = try .unaryPrimitive(c.gpa, .group);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .l_angle_bracket, .l_angle_bracket_colon => {
             const v: *Value = try .unaryPrimitive(c.gpa, .asc);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .r_angle_bracket, .r_angle_bracket_colon => {
             const v: *Value = try .unaryPrimitive(c.gpa, .desc);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .dollar, .dollar_colon => {
             const v: *Value = try .unaryPrimitive(c.gpa, .string);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .comma, .comma_colon => {
             const v: *Value = try .unaryPrimitive(c.gpa, .list);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .hash, .hash_colon => {
             const v: *Value = try .unaryPrimitive(c.gpa, .count);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .underscore, .underscore_colon => {
             const v: *Value = try .unaryPrimitive(c.gpa, .lower);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .tilde, .tilde_colon => {
             const v: *Value = try .unaryPrimitive(c.gpa, .not);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .bang, .bang_colon => {
             const v: *Value = try .unaryPrimitive(c.gpa, .key);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .question_mark, .question_mark_colon => {
             const v: *Value = try .unaryPrimitive(c.gpa, .distinct);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .at, .at_colon => {
             const v: *Value = try .unaryPrimitive(c.gpa, .type);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .dot, .dot_colon => {
             const v: *Value = try .unaryPrimitive(c.gpa, .value);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .zero_colon, .zero_colon_colon => {
             const v: *Value = try .unaryPrimitive(c.gpa, .read_text);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
         .one_colon, .one_colon_colon => {
             const v: *Value = try .unaryPrimitive(c.gpa, .read_binary);
             errdefer v.deref(c.gpa);
-            try c.emitConstant(v);
+            try c.emitConstant(v, node);
         },
 
         else => try c.compileNode(node),
@@ -508,7 +513,20 @@ fn compileColon(c: *Compiler, lhs: Node.Index, rhs: Node.Index) !void {
         if (c.getLocal(name)) |local| {
             try c.emitOpCode(.set_local);
             try c.emitByte(local);
-        } else return error.LocalAssignToGlobal;
+        } else {
+            try c.appendErrorNodeNotes(
+                identifier,
+                "Cannot assign to global variable '{s}'",
+                .{name},
+                &.{
+                    try c.errNoteTok(
+                        c.getGlobal(name).?,
+                        "Variable promoted to global here",
+                        .{},
+                    ),
+                },
+            );
+        }
     } else {
         const constant = try c.identifierConstant(identifier);
         try c.emitOpCode(.set_global);
@@ -539,13 +557,17 @@ fn compileColonColon(c: *Compiler, lhs: Node.Index, rhs: Node.Index) !void {
     }
 }
 
+pub fn hasErrors(c: *Compiler) bool {
+    return c.eb.root_list.items.len > 0;
+}
+
 fn identifierConstant(c: *Compiler, node: Node.Index) !u8 {
     assert(c.tree.nodeTag(node) == .identifier);
     const token = c.tree.nodeMainToken(node);
     const slice = c.tree.tokenSlice(token);
     const value: *Value = try .symbol(c.gpa, try c.vm.intern(slice));
     errdefer value.deref(c.gpa);
-    const constant = try c.makeConstant(value);
+    const constant = try c.makeConstant(value, node);
     return constant;
 }
 
@@ -555,21 +577,35 @@ fn currentChunk(c: *Compiler) *Chunk {
 
 fn endCompiler(c: *Compiler) !*Value {
     try c.emitReturn();
-    const slice: [:0]const u8 = std.mem.span(c.lambda.as.lambda.source);
-    try c.currentChunk().disassemble(c.vm.stderr, if (slice.len > 0) slice else "<script>");
+
+    if (!c.hasErrors()) {
+        const slice: [:0]const u8 = std.mem.span(c.lambda.as.lambda.source);
+        try c.currentChunk().disassemble(c.vm.stdout, if (slice.len > 0) slice else c.src_path);
+    }
+
     return c.lambda;
 }
 
-fn emitConstant(c: *Compiler, value: *Value) !void {
-    const constant = try c.makeConstant(value);
+fn emitUnaryPrimitive(c: *Compiler, unary_primitive: Value.UnaryPrimitive) !void {
+    try c.emitOpCode(.unary_primitive);
+    try c.emitByte(@intFromEnum(unary_primitive));
+}
+
+fn emitOperator(c: *Compiler, operator: Value.Operator) !void {
+    try c.emitOpCode(.operator);
+    try c.emitByte(@intFromEnum(operator));
+}
+
+fn emitConstant(c: *Compiler, value: *Value, node: Node.Index) !void {
+    const constant = try c.makeConstant(value, node);
     try c.emitOpCode(.constant);
     try c.emitByte(constant);
 }
 
-fn makeConstant(c: *Compiler, value: *Value) !u8 {
+fn makeConstant(c: *Compiler, value: *Value, node: Node.Index) !u8 {
     const constant = try c.currentChunk().addConstant(c.gpa, value);
     if (constant > std.math.maxInt(u8)) {
-        return error.TooManyConstants;
+        return c.failNode(node, "Too many constants", .{});
     }
     return @intCast(constant);
 }
@@ -586,6 +622,56 @@ fn emitByte(c: *Compiler, byte: anytype) !void {
     try c.currentChunk().write(c.gpa, byte, c.line);
 }
 
+fn errNoteTok(c: *Compiler, token_index: Ast.TokenIndex, comptime fmt: []const u8, args: anytype) !ErrorBundle.ErrorMessage {
+    const byte_offset = c.tree.tokenStart(token_index);
+    const loc = std.zig.findLineColumn(c.tree.source, byte_offset);
+    return .{
+        .msg = try c.eb.printString(fmt, args),
+        .src_loc = try c.eb.addSourceLocation(.{
+            .src_path = try c.eb.addString(c.src_path),
+            .line = @intCast(loc.line),
+            .column = @intCast(loc.column),
+            .span_start = byte_offset,
+            .span_main = byte_offset,
+            .span_end = byte_offset,
+            .source_line = try c.eb.addString(loc.source_line),
+        }),
+    };
+}
+
+fn failNode(c: *Compiler, node: Node.Index, comptime fmt: []const u8, args: anytype) InnerError {
+    try c.appendErrorNodeNotes(node, fmt, args, &.{});
+    return error.CompilerError;
+}
+
+fn appendErrorNode(c: *Compiler, node: Node.Index, comptime fmt: []const u8, args: anytype) !void {
+    try c.appendErrorNodeNotes(node, fmt, args, &.{});
+}
+
+fn appendErrorNodeNotes(
+    c: *Compiler,
+    node: Node.Index,
+    comptime fmt: []const u8,
+    args: anytype,
+    notes: []const ErrorBundle.ErrorMessage,
+) Allocator.Error!void {
+    const span = c.tree.nodeToSpan(node);
+    const loc = std.zig.findLineColumn(c.tree.source, span.main);
+    try c.eb.addRootErrorMessageWithNotes(.{
+        .msg = try c.eb.printString(fmt, args),
+        .src_loc = try c.eb.addSourceLocation(.{
+            .src_path = try c.eb.addString(c.src_path),
+            .line = @intCast(loc.line),
+            .column = @intCast(loc.column),
+            .span_start = span.start,
+            .span_main = span.main,
+            .span_end = span.end,
+            .source_line = try c.eb.addString(loc.source_line),
+        }),
+        .notes_len = @intCast(notes.len),
+    }, notes);
+}
+
 fn getLocal(c: *Compiler, name: []const u8) ?u32 {
     for (c.locals.items, 0..) |local, i| {
         if (std.mem.eql(u8, local, name)) return @intCast(i);
@@ -593,37 +679,40 @@ fn getLocal(c: *Compiler, name: []const u8) ?u32 {
     return null;
 }
 
-fn getGlobal(c: *Compiler, name: []const u8) ?u32 {
-    for (c.globals.items, 0..) |global, i| {
-        if (std.mem.eql(u8, global, name)) return @intCast(i);
+fn getGlobal(c: *Compiler, name: []const u8) ?Ast.TokenIndex {
+    for (c.globals.items) |global| {
+        if (std.mem.eql(u8, c.tree.tokenSlice(global), name)) return global;
     }
     return null;
 }
 
-fn addLocal(c: *Compiler, name: []const u8) !u32 {
+fn addLocal(c: *Compiler, name: []const u8, node: Node.Index) !u32 {
     assert(name.len > 0);
     assert(c.getGlobal(name) == null);
     for (c.locals.items, 0..) |local, i| {
         if (std.mem.eql(u8, local, name)) return @intCast(i);
     }
 
-    if (c.locals.items.len == std.math.maxInt(u8)) return error.TooManyLocalVariables;
+    if (c.locals.items.len == std.math.maxInt(u8)) {
+        try c.appendErrorNode(node, "Too many local variables", .{});
+    }
 
     c.locals.appendAssumeCapacity(name);
     return @intCast(c.locals.items.len - 1);
 }
 
-fn addGlobal(c: *Compiler, name: []const u8) !u32 {
+fn addGlobal(c: *Compiler, token_index: Ast.TokenIndex, node: Node.Index) !u32 {
+    const name = c.tree.tokenSlice(token_index);
     assert(name.len > 0);
     assert(c.getLocal(name) == null);
-    for (c.globals.items, 0..) |global, i| {
-        if (std.mem.eql(u8, global, name)) return @intCast(i);
+    if (c.getGlobal(name)) |global| return global;
+
+    if (c.globals.items.len == std.math.maxInt(u8)) {
+        try c.appendErrorNode(node, "Too many global variables", .{});
     }
 
-    if (c.globals.items.len == std.math.maxInt(u8)) return error.TooManyGlobalVariables;
-
-    c.globals.appendAssumeCapacity(name);
-    return @intCast(c.globals.items.len - 1);
+    c.globals.appendAssumeCapacity(token_index);
+    return token_index;
 }
 
 fn findLocals(c: *Compiler, node: Node.Index) !void {
@@ -716,7 +805,7 @@ fn findLocals(c: *Compiler, node: Node.Index) !void {
                     assert(tree.nodeTag(identifier) == .identifier);
                     const name = tree.tokenSlice(tree.nodeMainToken(identifier));
                     if (c.getGlobal(name) == null) {
-                        _ = try c.addLocal(name);
+                        _ = try c.addLocal(name, identifier);
                     }
                 }
                 try c.findLocals(nodes[1]);
@@ -740,7 +829,7 @@ fn findLocals(c: *Compiler, node: Node.Index) !void {
                     assert(tree.nodeTag(identifier) == .identifier);
                     const name = tree.tokenSlice(tree.nodeMainToken(identifier));
                     if (c.getGlobal(name) == null) {
-                        _ = try c.addLocal(name);
+                        _ = try c.addLocal(name, identifier);
                     }
                 }
             }
@@ -754,9 +843,10 @@ fn findLocals(c: *Compiler, node: Node.Index) !void {
         .symbol_list_literal,
         => {},
         .identifier => {
-            const name = tree.tokenSlice(tree.nodeMainToken(node));
+            const identifier = tree.nodeMainToken(node);
+            const name = tree.tokenSlice(identifier);
             if (c.getLocal(name) == null) {
-                _ = try c.addGlobal(name);
+                _ = try c.addGlobal(identifier, node);
             }
         },
 
@@ -769,27 +859,31 @@ fn testCompiler(source: [:0]const u8, expected: []const u8) !void {
     defer stdout_writer.deinit();
     const stdout = &stdout_writer.writer;
 
-    var stderr_writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
-    defer stderr_writer.deinit();
-    const stderr = &stderr_writer.writer;
-
     var vm: Vm = undefined;
-    try vm.init(std.testing.allocator, stdout, stderr);
+    try vm.init(std.testing.io, std.testing.allocator, stdout, .off);
     defer vm.deinit();
 
     var tree: Ast = try .parse(std.testing.allocator, source);
     defer tree.deinit(std.testing.allocator);
 
     var compiler: Compiler = undefined;
-    try compiler.init(&vm, tree);
+    try compiler.init(&vm, tree, "<test>");
     defer compiler.deinit();
 
-    const lambda = try compiler.compile();
+    const lambda = compiler.compile() catch |err| switch (err) {
+        error.CompilerError => {
+            std.testing.expect(compiler.hasErrors());
+            var eb = try compiler.eb.toOwnedBundle("");
+            defer eb.deinit(compiler.gpa);
+            try eb.renderToWriter(.{}, stdout);
+        },
+        else => return err,
+    };
     defer lambda.deref(std.testing.allocator);
 
     try std.testing.expectEqualStrings(
         std.mem.trim(u8, expected, &std.ascii.whitespace),
-        std.mem.trim(u8, stderr_writer.written(), &std.ascii.whitespace),
+        std.mem.trim(u8, stdout_writer.written(), &std.ascii.whitespace),
     );
 }
 
@@ -805,7 +899,7 @@ test {
         \\0011    | pop
         \\0012    | get_local           0
         \\0014    | return
-        \\== <script> ==
+        \\== <test> ==
         \\0000    0 constant            0 '{x;x+1;x}'
         \\0002    | print
         \\0003    | return
@@ -821,7 +915,7 @@ test {
         \\0011    | pop
         \\0012    | get_global          0 '`x'
         \\0014    | return
-        \\== <script> ==
+        \\== <test> ==
         \\0000    0 constant            0 '{[]x;x+1;x}'
         \\0002    | print
         \\0003    | return
@@ -833,7 +927,7 @@ test {
         \\0003    | constant            0 '1f'
         \\0005    | set_local           0
         \\0007    | return
-        \\== <script> ==
+        \\== <test> ==
         \\0000    0 constant            0 '{x;x:1}'
         \\0002    | print
         \\0003    | return
@@ -845,23 +939,19 @@ test {
         \\0003    | constant            0 '1f'
         \\0005    | set_local           0
         \\0007    | return
-        \\== <script> ==
+        \\== <test> ==
         \\0000    0 constant            0 '{x;x::1}'
         \\0002    | print
         \\0003    | return
     );
-    // try testCompiler("{[]x;x:1}",
-    //     \\== {[]x;x:1} ==
-    //     \\0000    0 get_local           0
-    //     \\0002    | pop
-    //     \\0003    | constant            0 '1f'
-    //     \\0005    | set_local           0
-    //     \\0007    | return
-    //     \\== <script> ==
-    //     \\0000    0 constant            0 '{[]x;x:1}'
-    //     \\0002    | print
-    //     \\0003    | return
-    // );
+    try testCompiler("{[]x;x:1}",
+        \\<test>:1:6: error: Cannot assign to global variable 'x'
+        \\{[]x;x:1}
+        \\     ^
+        \\<test>:1:4: note: Variable promoted to global here
+        \\{[]x;x:1}
+        \\   ^
+    );
     try testCompiler("{[]x;x::1}",
         \\== {[]x;x::1} ==
         \\0000    0 get_global          0 '`x'
@@ -869,7 +959,7 @@ test {
         \\0003    | constant            1 '1f'
         \\0005    | set_global          0 '`x'
         \\0007    | return
-        \\== <script> ==
+        \\== <test> ==
         \\0000    0 constant            0 '{[]x;x::1}'
         \\0002    | print
         \\0003    | return

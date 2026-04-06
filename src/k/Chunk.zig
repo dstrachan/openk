@@ -14,6 +14,8 @@ pub const empty: Chunk = .{};
 
 pub const OpCode = enum(u8) {
     constant,
+    unary_primitive,
+    operator,
     get_global,
     set_global,
     get_local,
@@ -82,6 +84,8 @@ pub fn disassembleInstruction(chunk: Chunk, writer: *Io.Writer, offset: usize) !
         .set_global,
         => |t| return chunk.constantInstruction(writer, t, offset),
 
+        .unary_primitive,
+        .operator,
         .get_local,
         .set_local,
         .apply,
