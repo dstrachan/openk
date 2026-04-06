@@ -84,8 +84,9 @@ pub fn disassembleInstruction(chunk: Chunk, writer: *Io.Writer, offset: usize) !
         .set_global,
         => |t| return chunk.constantInstruction(writer, t, offset),
 
-        .unary_primitive,
-        .operator,
+        .unary_primitive => return chunk.unaryPrimitiveInstruction(writer, offset),
+        .operator => return chunk.operatorInstruction(writer, offset),
+
         .get_local,
         .set_local,
         .apply,
@@ -106,6 +107,18 @@ fn simpleInstruction(writer: *Io.Writer, op_code: OpCode, offset: usize) !usize 
 fn constantInstruction(chunk: Chunk, writer: *Io.Writer, op_code: OpCode, offset: usize) !usize {
     const constant = chunk.data.items(.code)[offset + 1];
     try writer.print("{t: <16} {d:4} '{f}'\n", .{ op_code, constant, chunk.constants.items[constant] });
+    return offset + 2;
+}
+
+fn unaryPrimitiveInstruction(chunk: Chunk, writer: *Io.Writer, offset: usize) !usize {
+    const unary_primitive: Value.UnaryPrimitive = @enumFromInt(chunk.data.items(.code)[offset + 1]);
+    try writer.print("{t: <16} {d:4} '{f}'\n", .{ OpCode.unary_primitive, unary_primitive, unary_primitive });
+    return offset + 2;
+}
+
+fn operatorInstruction(chunk: Chunk, writer: *Io.Writer, offset: usize) !usize {
+    const operator: Value.Operator = @enumFromInt(chunk.data.items(.code)[offset + 1]);
+    try writer.print("{t: <16} {d:4} '{f}'\n", .{ OpCode.operator, operator, operator });
     return offset + 2;
 }
 
