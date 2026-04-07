@@ -683,31 +683,37 @@ fn findLocals(c: *Compiler, node: Node.Index) !void {
 }
 
 fn testCompiler(source: [:0]const u8, expected: []const u8) !void {
-    var stdout_writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    const gpa = std.testing.allocator;
+
+    var stdout_writer: std.Io.Writer.Allocating = .init(gpa);
     defer stdout_writer.deinit();
     const stdout = &stdout_writer.writer;
 
     var vm: Vm = undefined;
-    try vm.init(std.testing.io, std.testing.allocator, stdout, .off);
+    try vm.init(std.testing.io, gpa, stdout, .off);
     defer vm.deinit();
 
-    var tree: Ast = try .parse(std.testing.allocator, source);
-    defer tree.deinit(std.testing.allocator);
+    var tree: Ast = try .parse(gpa, source);
+    defer tree.deinit(gpa);
 
     var compiler: Compiler = undefined;
     try compiler.init(&vm, tree, "<test>");
     defer compiler.deinit();
 
-    const lambda = compiler.compile() catch |err| switch (err) {
-        error.CompilerError => {
-            std.testing.expect(compiler.hasErrors());
-            var eb = try compiler.eb.toOwnedBundle("");
-            defer eb.deinit(compiler.gpa);
-            try eb.renderToWriter(.{}, stdout);
+    const lambda: *Value = compiler.compile() catch |err| switch (err) {
+        error.CompilerError => blk: {
+            try std.testing.expect(compiler.hasErrors());
+            break :blk try .long(gpa, 0);
         },
         else => return err,
     };
-    defer lambda.deref(std.testing.allocator);
+    defer lambda.deref(gpa);
+
+    if (compiler.hasErrors()) {
+        var eb = try compiler.eb.toOwnedBundle("");
+        defer eb.deinit(gpa);
+        try eb.renderToWriter(.{}, stdout);
+    }
 
     try std.testing.expectEqualStrings(
         std.mem.trim(u8, expected, &std.ascii.whitespace),
@@ -722,7 +728,7 @@ test {
         \\0002    | pop
         \\0003    | constant            0 '1f'
         \\0005    | get_local           0
-        \\0007    | constant            1 '+'
+        \\0007    | operator            1 '+'
         \\0009    | apply               2
         \\0011    | pop
         \\0012    | get_local           0
@@ -738,7 +744,7 @@ test {
         \\0002    | pop
         \\0003    | constant            1 '1f'
         \\0005    | get_global          0 '`x'
-        \\0007    | constant            2 '+'
+        \\0007    | operator            1 '+'
         \\0009    | apply               2
         \\0011    | pop
         \\0012    | get_global          0 '`x'

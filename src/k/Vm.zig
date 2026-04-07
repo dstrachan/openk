@@ -215,8 +215,12 @@ fn run(vm: *Vm) Error!void {
             .unary_primitive => vm.push(vm.readUnaryPrimitive().ref()),
             .operator => vm.push(vm.readOperator().ref()),
 
-            .get_local => vm.push(frame.slots[vm.readByte()].ref()),
-            .set_local => frame.slots[vm.readByte()] = vm.peek().ref(),
+            .get_local => vm.push(frame.slots[vm.readByte() + 2].ref()),
+            .set_local => {
+                const index = vm.readByte() + 2;
+                frame.slots[index].deref(vm.gpa);
+                frame.slots[index] = vm.peek().ref();
+            },
 
             .@"return" => {
                 const result = vm.pop();
@@ -374,6 +378,23 @@ fn match(vm: *Vm, x: *Value, y: *Value) !*Value {
     return .boolean(vm.gpa, x.match(y));
 }
 
+fn testVm(source: [:0]const u8) !void {
+    const gpa = std.testing.allocator;
+
+    var stdout_writer: std.Io.Writer.Allocating = .init(gpa);
+    defer stdout_writer.deinit();
+    const stdout = &stdout_writer.writer;
+
+    var vm: Vm = undefined;
+    try vm.init(std.testing.io, gpa, stdout, .on);
+    defer vm.deinit();
+
+    var tree: Ast = try .parse(gpa, source);
+    defer tree.deinit(gpa);
+
+    try vm.interpret(tree, "<test>");
+}
+
 test {
-    std.testing.refAllDecls(@This());
+    try testVm("{[]x:1}");
 }
