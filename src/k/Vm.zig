@@ -20,6 +20,7 @@ io: Io,
 gpa: Allocator,
 frames: std.ArrayList(CallFrame),
 stack: std.ArrayList(*Value),
+stack_lens: std.ArrayList(usize),
 stdout: *Io.Writer,
 color: std.zig.Color,
 constants: [1]*Value = undefined,
@@ -50,19 +51,22 @@ pub fn init(vm: *Vm, io: Io, gpa: Allocator, stdout: *Io.Writer, color: std.zig.
     errdefer frames.deinit(gpa);
     var stack: std.ArrayList(*Value) = try .initCapacity(gpa, stack_max);
     errdefer stack.deinit(gpa);
+    var stack_lens: std.ArrayList(usize) = try .initCapacity(gpa, stack_max);
+    errdefer stack_lens.deinit(gpa);
 
     vm.* = .{
         .io = io,
         .gpa = gpa,
         .frames = frames,
         .stack = stack,
+        .stack_lens = stack_lens,
         .stdout = stdout,
         .color = color,
     };
 
     var constants: usize = 0;
     errdefer for (0..constants) |i| vm.constants[i].deref(gpa);
-    vm.constants[0] = try .list(gpa, &.{});
+    vm.constants[0] = try .list(gpa, 0);
     constants += 1;
 
     var unary_primitives: usize = 0;
@@ -94,6 +98,7 @@ pub fn deinit(vm: *Vm) void {
     for (vm.constants) |v| v.deref(vm.gpa);
     for (vm.operators) |v| v.deref(vm.gpa);
     for (vm.unary_primitives) |v| v.deref(vm.gpa);
+    vm.stack_lens.deinit(vm.gpa);
     vm.stack.deinit(vm.gpa);
     vm.frames.deinit(vm.gpa);
 }
@@ -261,9 +266,9 @@ fn run(vm: *Vm) Error!void {
                 try vm.stdout.flush();
             },
 
+            .store_stack_len => vm.stack_lens.appendAssumeCapacity(vm.stack.items.len),
             .apply => {
-                const arg_count = vm.readByte();
-                assert(arg_count > 0 and arg_count <= 8);
+                const arg_count = vm.stack.items.len - vm.stack_lens.pop().? - 1;
                 if (vm.peek().as == .lambda) {
                     const lambda = vm.pop();
                     errdefer lambda.deref(vm.gpa);
@@ -296,7 +301,7 @@ inline fn readOperator(vm: *Vm) *Value {
     return vm.operators[vm.readByte()];
 }
 
-fn apply(vm: *Vm, arg_count: u8) !*Value {
+fn apply(vm: *Vm, arg_count: usize) !*Value {
     const callee = vm.pop();
     defer callee.deref(vm.gpa);
 
@@ -321,7 +326,7 @@ fn apply(vm: *Vm, arg_count: u8) !*Value {
     };
 }
 
-fn applyLambda(vm: *Vm, lambda: *Value, arg_count: u8) !void {
+fn applyLambda(vm: *Vm, lambda: *Value, arg_count: usize) !void {
     const args = args: {
         var args: [8]*Value = undefined;
         for (0..arg_count) |i| args[i] = vm.pop();

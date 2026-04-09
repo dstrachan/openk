@@ -25,6 +25,7 @@ pub const OpCode = enum(u8) {
     @"return",
     pop,
     print,
+    store_stack_len,
     apply,
 
     pub const Index = enum(u32) { _ };
@@ -90,12 +91,13 @@ pub fn disassembleInstruction(chunk: Chunk, vm: *Vm, writer: *Io.Writer, offset:
 
         .get_local,
         .set_local,
-        .apply,
         => |t| return chunk.byteInstruction(writer, t, offset),
 
         .@"return",
         .pop,
         .print,
+        .store_stack_len,
+        .apply,
         => |t| return simpleInstruction(writer, t, offset),
     }
 }

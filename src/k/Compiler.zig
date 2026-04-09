@@ -3,6 +3,7 @@ const Io = std.Io;
 const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
 const ErrorBundle = std.zig.ErrorBundle;
+const ErrorMessage = ErrorBundle.ErrorMessage;
 
 const k = @import("../root.zig");
 const Ast = k.Ast;
@@ -69,7 +70,7 @@ pub fn compile(c: *Compiler) !*Value {
 fn compileNode(c: *Compiler, node: Node.Index) Error!void {
     const tree = c.tree;
 
-    switch (tree.nodeTag(node)) {
+    switch (tree.nodeTag(tree.unwrap(node))) {
         .root => unreachable,
 
         .pop => {
@@ -81,7 +82,13 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             try c.emitOpCode(.print);
         },
 
-        .grouped_expression => try c.compileNode(tree.nodeData(node).node_and_token[0]),
+        .grouped_expression => unreachable,
+
+        .empty_list => {
+            const value: *Value = try .list(c.gpa, 0);
+            errdefer value.deref(c.gpa);
+            try c.emitConstant(value, node);
+        },
 
         .lambda => {
             const data = tree.extraData(tree.nodeData(node).extra_and_token[0], Node.Lambda);
@@ -103,15 +110,17 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
                 for (params) |identifier| {
                     assert(tree.nodeTag(identifier) == .identifier);
                     const name = tree.tokenSlice(tree.nodeMainToken(identifier));
-                    _ = try compiler.addLocal(name, identifier, .append);
+                    try compiler.addLocal(name, identifier, .append);
                 }
             }
             for (body) |n| compiler.findLocals(n, params.len == 0) catch |err| switch (err) {
                 error.OutOfMemory => return error.OutOfMemory,
                 else => {
-                    var eb = try compiler.eb.toOwnedBundle("");
-                    defer eb.deinit(c.gpa);
-                    try eb.renderToStderr(c.vm.io, .{}, c.vm.color);
+                    if (compiler.hasErrors()) {
+                        var eb = try compiler.eb.toOwnedBundle("");
+                        defer eb.deinit(c.gpa);
+                        try c.eb.addBundleAsRoots(eb);
+                    }
                     return err;
                 },
             };
@@ -177,27 +186,29 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
         .call => {
             const nodes = tree.extraDataSlice(tree.nodeData(node).extra_range, Node.Index);
             assert(nodes.len > 0);
+
+            if (nodes.len == 3) switch (tree.nodeTag(tree.unwrap(nodes[0]))) {
+                .colon => return c.compileColon(nodes[1], nodes[2]),
+                .colon_colon => return c.compileColonColon(nodes[1], nodes[2]),
+                else => {},
+            };
+
+            try c.emitOpCode(.store_stack_len);
             if (nodes.len == 1) {
                 try c.emitUnaryPrimitive(.identity);
-            } else if (nodes.len == 3) {
-                switch (tree.nodeTag(tree.unwrap(nodes[0]))) {
-                    .colon => return c.compileColon(nodes[1], nodes[2]),
-                    .colon_colon => return c.compileColonColon(nodes[1], nodes[2]),
-                    else => {},
-                }
             }
             var it = std.mem.reverseIterator(nodes);
             while (it.next()) |n| try c.compileNode(n);
             try c.emitOpCode(.apply);
-            try c.emitByte(@max(1, nodes.len - 1));
         },
 
         .apply_unary => {
             const lhs, const rhs = tree.nodeData(node).node_and_node;
+
+            try c.emitOpCode(.store_stack_len);
             try c.compileNode(rhs);
             try c.compileUnaryNode(lhs);
             try c.emitOpCode(.apply);
-            try c.emitByte(1);
         },
 
         .apply_binary => {
@@ -210,13 +221,13 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
                 else => {},
             }
 
+            try c.emitOpCode(.store_stack_len);
             if (maybe_rhs.unwrap()) |rhs| {
                 try c.compileNode(rhs);
             } else unreachable;
             try c.compileNode(lhs);
             try c.compileNode(op);
             try c.emitOpCode(.apply);
-            try c.emitByte(2);
         },
 
         .number_literal => {
@@ -278,8 +289,8 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
 fn compileUnaryNode(c: *Compiler, node: Node.Index) !void {
     const tree = c.tree;
 
-    switch (tree.nodeTag(node)) {
-        .grouped_expression => try c.compileUnaryNode(tree.nodeData(node).node_and_token[0]),
+    switch (tree.nodeTag(tree.unwrap(node))) {
+        .grouped_expression => unreachable,
 
         .colon, .colon_colon => unreachable,
         .plus, .plus_colon => try c.emitUnaryPrimitive(.flip),
@@ -429,7 +440,7 @@ fn emitByte(c: *Compiler, byte: anytype) !void {
     try c.currentChunk().write(c.gpa, byte, c.line);
 }
 
-fn errNoteTok(c: *Compiler, token_index: Ast.TokenIndex, comptime fmt: []const u8, args: anytype) !ErrorBundle.ErrorMessage {
+fn errNoteTok(c: *Compiler, token_index: Ast.TokenIndex, comptime fmt: []const u8, args: anytype) !ErrorMessage {
     const byte_offset = c.tree.tokenStart(token_index);
     const loc = std.zig.findLineColumn(c.tree.source, byte_offset);
     return .{
@@ -451,6 +462,17 @@ fn failNode(c: *Compiler, node: Node.Index, comptime fmt: []const u8, args: anyt
     return error.CompilerError;
 }
 
+fn failNodeNotes(
+    c: *Compiler,
+    node: Node.Index,
+    comptime fmt: []const u8,
+    args: anytype,
+    notes: []const ErrorMessage,
+) InnerError {
+    try c.appendErrorNodeNotes(node, fmt, args, notes);
+    return error.CompilerError;
+}
+
 fn appendErrorNode(c: *Compiler, node: Node.Index, comptime fmt: []const u8, args: anytype) !void {
     try c.appendErrorNodeNotes(node, fmt, args, &.{});
 }
@@ -460,7 +482,7 @@ fn appendErrorNodeNotes(
     node: Node.Index,
     comptime fmt: []const u8,
     args: anytype,
-    notes: []const ErrorBundle.ErrorMessage,
+    notes: []const ErrorMessage,
 ) Allocator.Error!void {
     const span = c.tree.nodeToSpan(node);
     const loc = std.zig.findLineColumn(c.tree.source, span.main);
@@ -493,44 +515,34 @@ fn getGlobal(c: *Compiler, name: []const u8) ?Ast.TokenIndex {
     return null;
 }
 
-fn addLocal(c: *Compiler, name: []const u8, node: Node.Index, index: enum { zero, one, two, append }) !u32 {
+fn addLocal(c: *Compiler, name: []const u8, node: Node.Index, index: enum { zero, one, two, append }) !void {
     assert(name.len > 0);
-    assert(c.getGlobal(name) == null);
 
-    return c.getLocal(name) orelse blk: {
-        if (c.locals.items.len >= std.math.maxInt(u8)) {
-            return c.failNode(node, "Too many local variables", .{});
-        }
+    if (c.getGlobal(name)) |_| return;
+    if (c.getLocal(name)) |_| return;
 
-        switch (index) {
-            .zero,
-            .one,
-            .two,
-            => {
-                c.locals.insertAssumeCapacity(@intFromEnum(index), name);
-                break :blk @intFromEnum(index);
-            },
-            .append => {
-                c.locals.appendAssumeCapacity(name);
-                break :blk @intCast(c.locals.items.len - 1);
-            },
-        }
-    };
+    if (c.locals.items.len >= std.math.maxInt(u8)) {
+        return c.failNode(node, "Too many local variables", .{});
+    }
+
+    switch (index) {
+        .zero, .one, .two => c.locals.insertAssumeCapacity(@intFromEnum(index), name),
+        .append => c.locals.appendAssumeCapacity(name),
+    }
 }
 
-fn addGlobal(c: *Compiler, token_index: Ast.TokenIndex, node: Node.Index) !u32 {
+fn addGlobal(c: *Compiler, token_index: Ast.TokenIndex, node: Node.Index) !void {
     const name = c.tree.tokenSlice(token_index);
     assert(name.len > 0);
     assert(c.getLocal(name) == null);
 
-    return c.getGlobal(name) orelse blk: {
-        if (c.globals.items.len >= std.math.maxInt(u8)) {
-            return c.failNode(node, "Too many global variables", .{});
-        }
+    if (c.getGlobal(name)) |_| return;
 
-        c.globals.appendAssumeCapacity(token_index);
-        break :blk token_index;
-    };
+    if (c.globals.items.len >= std.math.maxInt(u8)) {
+        return c.failNode(node, "Too many global variables", .{});
+    }
+
+    c.globals.appendAssumeCapacity(token_index);
 }
 
 fn addIdentifier(c: *Compiler, node: Node.Index, implicit_args: bool, scope: enum { local, global }) !void {
@@ -541,18 +553,18 @@ fn addIdentifier(c: *Compiler, node: Node.Index, implicit_args: bool, scope: enu
     if (implicit_args and name.len == 1) {
         switch (name[0]) {
             'x' => {
-                _ = try c.addLocal("x", node, .zero);
+                try c.addLocal("x", node, .zero);
                 return;
             },
             'y' => {
-                _ = try c.addLocal("x", node, .zero);
-                _ = try c.addLocal("y", node, .one);
+                try c.addLocal("x", node, .zero);
+                try c.addLocal("y", node, .one);
                 return;
             },
             'z' => {
-                _ = try c.addLocal("x", node, .zero);
-                _ = try c.addLocal("y", node, .one);
-                _ = try c.addLocal("z", node, .two);
+                try c.addLocal("x", node, .zero);
+                try c.addLocal("y", node, .one);
+                try c.addLocal("z", node, .two);
                 return;
             },
             else => {},
@@ -560,10 +572,8 @@ fn addIdentifier(c: *Compiler, node: Node.Index, implicit_args: bool, scope: enu
     }
 
     switch (scope) {
-        .local => _ = try c.addLocal(name, node, .append),
-        .global => if (c.getLocal(name) == null) {
-            _ = try c.addGlobal(identifier, node);
-        },
+        .local => try c.addLocal(name, node, .append),
+        .global => if (c.getLocal(name) == null) try c.addGlobal(identifier, node),
     }
 }
 
@@ -711,7 +721,7 @@ fn testCompiler(source: [:0]const u8, expected: []const u8) !void {
     const lambda: *Value = compiler.compile() catch |err| switch (err) {
         error.CompilerError => blk: {
             try std.testing.expect(compiler.hasErrors());
-            break :blk try .long(gpa, 0);
+            break :blk compiler.lambda;
         },
         else => return err,
     };
@@ -734,10 +744,11 @@ test {
         \\== {x;x+1;x} ==
         \\0000    0 get_local           0
         \\0002    | pop
-        \\0003    | constant            0 '1f'
-        \\0005    | get_local           0
-        \\0007    | operator            1 '+'
-        \\0009    | apply               2
+        \\0003    | store_stack_len
+        \\0004    | constant            0 '1f'
+        \\0006    | get_local           0
+        \\0008    | operator            1 '+'
+        \\0010    | apply
         \\0011    | pop
         \\0012    | get_local           0
         \\0014    | return
@@ -750,10 +761,11 @@ test {
         \\== {[]x;x+1;x} ==
         \\0000    0 get_global          0 '`x'
         \\0002    | pop
-        \\0003    | constant            1 '1f'
-        \\0005    | get_global          0 '`x'
-        \\0007    | operator            1 '+'
-        \\0009    | apply               2
+        \\0003    | store_stack_len
+        \\0004    | constant            1 '1f'
+        \\0006    | get_global          0 '`x'
+        \\0008    | operator            1 '+'
+        \\0010    | apply
         \\0011    | pop
         \\0012    | get_global          0 '`x'
         \\0014    | return

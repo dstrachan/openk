@@ -39,7 +39,7 @@ const Type = enum(i8) {
 };
 
 const Union = union(Type) {
-    list: []const *Value,
+    list: []*Value,
     boolean: bool,
     boolean_list: []const bool,
     byte: u8,
@@ -384,11 +384,12 @@ pub fn match(a: *Value, b: *Value) bool {
     };
 }
 
-pub fn list(gpa: Allocator, value: []const *Value) !*Value {
+pub fn list(gpa: Allocator, len: usize) !*Value {
+    const items = try gpa.alloc(*Value, len);
+    errdefer gpa.free(items);
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
-    for (value) |v| _ = v.ref();
-    self.* = .{ .as = .{ .list = value } };
+    self.* = .{ .as = .{ .list = items } };
     return self;
 }
 
@@ -590,8 +591,8 @@ pub fn symbolList(gpa: Allocator, value: []const NullTerminatedString) !*Value {
     return self;
 }
 
-pub fn copySymbolList(gpa: Allocator, value: []const [*:0]const u8) !*Value {
-    const items = try gpa.dupe([*:0]const u8, value);
+pub fn copySymbolList(gpa: Allocator, value: []const NullTerminatedString) !*Value {
+    const items = try gpa.dupe(NullTerminatedString, value);
     errdefer gpa.free(items);
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
