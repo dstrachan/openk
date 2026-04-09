@@ -22,6 +22,7 @@ frames: std.ArrayList(CallFrame),
 stack: std.ArrayList(*Value),
 stdout: *Io.Writer,
 color: std.zig.Color,
+constants: [1]*Value = undefined,
 unary_primitives: [std.meta.fields(UnaryPrimitive).len]*Value = undefined,
 operators: [std.meta.fields(Operator).len]*Value = undefined,
 string_bytes: std.ArrayList(u8) = .empty,
@@ -31,7 +32,7 @@ string_table: std.HashMapUnmanaged(
     std.hash_map.StringIndexContext,
     std.hash_map.default_max_load_percentage,
 ) = .empty,
-globals: std.AutoHashMapUnmanaged([*:0]const u8, *Value) = .empty,
+globals: std.AutoHashMapUnmanaged(NullTerminatedString, *Value) = .empty,
 
 pub const Error = Allocator.Error || Io.Writer.Error || Io.Cancelable || error{ RuntimeError, CompilerError };
 
@@ -59,18 +60,26 @@ pub fn init(vm: *Vm, io: Io, gpa: Allocator, stdout: *Io.Writer, color: std.zig.
         .color = color,
     };
 
+    var constants: usize = 0;
+    errdefer for (0..constants) |i| vm.constants[i].deref(gpa);
+    vm.constants[0] = try .list(gpa, &.{});
+    constants += 1;
+
     var unary_primitives: usize = 0;
     errdefer for (0..unary_primitives) |i| vm.unary_primitives[i].deref(gpa);
     for (&vm.unary_primitives, 0..) |*v, i| {
         v.* = try .unaryPrimitive(gpa, @enumFromInt(i));
         unary_primitives += 1;
     }
+
     var operators: usize = 0;
     errdefer for (0..operators) |i| vm.operators[i].deref(gpa);
     for (&vm.operators, 0..) |*v, i| {
         v.* = try .operator(gpa, @enumFromInt(i));
         operators += 1;
     }
+
+    _ = try vm.intern("");
 }
 
 pub fn deinit(vm: *Vm) void {
@@ -82,6 +91,7 @@ pub fn deinit(vm: *Vm) void {
     vm.globals.deinit(vm.gpa);
     vm.string_table.deinit(vm.gpa);
     vm.string_bytes.deinit(vm.gpa);
+    for (vm.constants) |v| v.deref(vm.gpa);
     for (vm.operators) |v| v.deref(vm.gpa);
     for (vm.unary_primitives) |v| v.deref(vm.gpa);
     vm.stack.deinit(vm.gpa);
@@ -113,16 +123,24 @@ fn runtimeError(vm: *Vm, comptime fmt: []const u8, args: anytype) Error {
     while (it.next()) |frame| {
         const instruction = frame.ip - frame.lambda.chunk.data.items(.code).ptr - 1;
         try stderr.print("[line {d}] in ", .{frame.lambda.chunk.data.items(.line)[instruction]});
-        if (std.mem.span(frame.lambda.source).len > 0) {
-            try stderr.print("{s}()\n", .{frame.lambda.source});
-        } else {
-            try stderr.writeAll("script\n");
-        }
+        try stderr.writeAll(vm.nullTerminatedString(frame.lambda.source));
+        try stderr.writeByte('\n');
     }
 
     try stderr.flush();
     vm.stack.shrinkRetainingCapacity(0);
     return error.RuntimeError;
+}
+
+pub const NullTerminatedString = enum(u32) {
+    empty = 0,
+    _,
+};
+
+/// Given an index into `string_bytes` returns the null-terminated string found there.
+pub fn nullTerminatedString(vm: *Vm, index: NullTerminatedString) [:0]const u8 {
+    const slice = vm.string_bytes.items[@intFromEnum(index)..];
+    return slice[0..std.mem.findScalar(u8, slice, 0).? :0];
 }
 
 pub fn internSymbol(vm: *Vm, value: []const u8) !*Value {
@@ -136,7 +154,7 @@ pub fn internSymbolList(vm: *Vm, value: []const []const u8) !*Value {
     return .symbolList(vm.gpa, list);
 }
 
-pub fn intern(vm: *Vm, bytes: []const u8) ![*:0]const u8 {
+pub fn intern(vm: *Vm, bytes: []const u8) !NullTerminatedString {
     const str_index: u32 = @intCast(vm.string_bytes.items.len);
     try vm.string_bytes.appendSlice(vm.gpa, bytes);
     const gop = try vm.string_table.getOrPutContextAdapted(
@@ -147,13 +165,12 @@ pub fn intern(vm: *Vm, bytes: []const u8) ![*:0]const u8 {
     );
     if (gop.found_existing) {
         vm.string_bytes.shrinkRetainingCapacity(str_index);
+        return @enumFromInt(gop.key_ptr.*);
     } else {
         gop.key_ptr.* = str_index;
         try vm.string_bytes.append(vm.gpa, 0);
+        return @enumFromInt(str_index);
     }
-
-    const slice = vm.string_bytes.items[gop.key_ptr.*..];
-    return slice[0..std.mem.findScalar(u8, slice, 0).? :0];
 }
 
 pub fn interpret(vm: *Vm, tree: Ast, src_path: []const u8) Error!void {
@@ -187,10 +204,10 @@ fn run(vm: *Vm) Error!void {
         if (trace_execution) {
             try vm.stdout.writeAll("          ");
             for (vm.stack.items) |slot| {
-                try vm.stdout.print("[ {f} ]", .{slot});
+                try vm.stdout.print("[ {f} ]", .{slot.alt(vm)});
             }
             try vm.stdout.writeByte('\n');
-            _ = try frame.lambda.chunk.disassembleInstruction(vm.stdout, frame.ip - frame.lambda.chunk.data.items(.code).ptr);
+            _ = try frame.lambda.chunk.disassembleInstruction(vm, vm.stdout, frame.ip - frame.lambda.chunk.data.items(.code).ptr);
             try vm.stdout.flush();
         }
 
@@ -201,7 +218,7 @@ fn run(vm: *Vm) Error!void {
                 const name = vm.readConstant();
                 if (vm.globals.get(name.as.symbol)) |global| {
                     vm.push(global.ref());
-                } else return vm.runtimeError("Undefined variable '{s}'.", .{name.as.symbol});
+                } else return vm.runtimeError("Undefined variable '{s}'.", .{vm.nullTerminatedString(name.as.symbol)});
             },
             .set_global => {
                 const name = vm.readConstant();
@@ -215,9 +232,9 @@ fn run(vm: *Vm) Error!void {
             .unary_primitive => vm.push(vm.readUnaryPrimitive().ref()),
             .operator => vm.push(vm.readOperator().ref()),
 
-            .get_local => vm.push(frame.slots[vm.readByte() + 2].ref()),
+            .get_local => vm.push(frame.slots[vm.readByte() + frame.lambda.arity].ref()),
             .set_local => {
-                const index = vm.readByte() + 2;
+                const index = vm.readByte() + frame.lambda.arity;
                 frame.slots[index].deref(vm.gpa);
                 frame.slots[index] = vm.peek().ref();
             },
@@ -240,7 +257,7 @@ fn run(vm: *Vm) Error!void {
             },
             .pop => vm.pop().deref(vm.gpa),
             .print => {
-                try vm.stdout.print("{f}\n", .{vm.peek()});
+                try vm.stdout.print("{f}\n", .{vm.peek().alt(vm)});
                 try vm.stdout.flush();
             },
 
@@ -326,6 +343,7 @@ fn applyLambda(vm: *Vm, lambda: *Value, arg_count: u8) !void {
 
     vm.push(lambda);
     for (args) |v| vm.push(v);
+    for (0..lambda.as.lambda.locals) |_| vm.push(vm.constants[0].ref());
 
     vm.frames.appendAssumeCapacity(.{
         .lambda = lambda.as.lambda,

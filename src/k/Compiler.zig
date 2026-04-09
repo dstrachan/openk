@@ -11,11 +11,12 @@ const Node = k.Node;
 const Value = k.Value;
 const Vm = k.Vm;
 const OpCode = k.OpCode;
+const NullTerminatedString = k.NullTerminatedString;
 
 const Compiler = @This();
 
 const InnerError = Allocator.Error || error{CompilerError};
-pub const Error = std.fmt.ParseFloatError || Io.Terminal.SetColorError || InnerError;
+pub const Error = std.fmt.ParseFloatError || Io.Terminal.SetColorError || ErrorBundle.RenderToStderrError || InnerError;
 
 gpa: Allocator,
 vm: *Vm,
@@ -37,11 +38,7 @@ pub fn init(c: *Compiler, vm: *Vm, tree: Ast, src_path: []const u8) !void {
     try eb.init(vm.gpa);
     errdefer eb.deinit();
 
-    const lambda: *Value = try .lambda(vm.gpa, .{
-        .source = try vm.intern(""),
-        .arity = 0,
-        .chunk = .empty,
-    });
+    const lambda: *Value = try .lambda(vm.gpa, .{ .source = try vm.intern(src_path) });
     errdefer comptime unreachable;
 
     c.* = .{
@@ -103,48 +100,31 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             defer compiler.deinit();
 
             if (params.len > 0 and tree.nodeTag(params[0]) != .no_op) {
-                for (params) |n| {
-                    assert(tree.nodeTag(n) == .identifier);
-                    const identifier = tree.nodeMainToken(n);
-                    const slice = tree.tokenSlice(identifier);
-                    _ = try compiler.addLocal(slice, n);
+                for (params) |identifier| {
+                    assert(tree.nodeTag(identifier) == .identifier);
+                    const name = tree.tokenSlice(tree.nodeMainToken(identifier));
+                    _ = try compiler.addLocal(name, identifier, .append);
                 }
             }
-            for (body) |n| try compiler.findLocals(n);
+            for (body) |n| compiler.findLocals(n, params.len == 0) catch |err| switch (err) {
+                error.OutOfMemory => return error.OutOfMemory,
+                else => {
+                    var eb = try compiler.eb.toOwnedBundle("");
+                    defer eb.deinit(c.gpa);
+                    try eb.renderToStderr(c.vm.io, .{}, c.vm.color);
+                    return err;
+                },
+            };
 
             const arity: usize = if (params.len == 0) arity: {
-                // Implicit params which are never assigned are incorrectly identified as globals, move them to locals.
-                var i: usize = 0;
-                while (i < compiler.globals.items.len) {
-                    const token_index = compiler.globals.items[i];
-                    const slice = tree.tokenSlice(token_index);
-                    if (slice.len == 1) {
-                        switch (slice[0]) {
-                            'x', 'y', 'z' => {
-                                compiler.locals.appendAssumeCapacity(slice);
-                                _ = compiler.globals.swapRemove(i);
-                                continue;
-                            },
-                            else => {},
-                        }
-                    }
-                    i += 1;
-                }
-
-                var has_y = false;
-                var has_z = false;
-                for (compiler.locals.items) |name| {
-                    if (!has_z and std.mem.eql(u8, name, "z")) {
-                        has_z = true;
-                        break;
-                    }
-                    if (!has_y and std.mem.eql(u8, name, "y")) has_y = true;
-                }
-                break :arity if (has_z) 3 else if (has_y) 2 else 1;
+                if (compiler.locals.items.len > 2 and std.mem.eql(u8, compiler.locals.items[2], "z")) break :arity 3;
+                if (compiler.locals.items.len > 1 and std.mem.eql(u8, compiler.locals.items[1], "y")) break :arity 2;
+                break :arity 1;
             } else params.len;
 
             compiler.lambda.as.lambda.source = try c.vm.intern(tree.nodeSlice(node));
             compiler.lambda.as.lambda.arity = arity;
+            compiler.lambda.as.lambda.locals = compiler.locals.items.len -| arity;
 
             for (body) |n| try compiler.compileNode(n);
             if (data.trailing_semicolon) try compiler.emitUnaryPrimitive(.identity);
@@ -266,7 +246,7 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             const first_token = tree.nodeMainToken(node);
             const last_token = tree.nodeData(node).token;
             const len = last_token - first_token + 1;
-            const symbols = try c.gpa.alloc([*:0]const u8, len);
+            const symbols = try c.gpa.alloc(NullTerminatedString, len);
             errdefer c.gpa.free(symbols);
             for (symbols, first_token..) |*symbol, token| {
                 const slice = tree.tokenSlice(@intCast(token));
@@ -407,8 +387,7 @@ fn endCompiler(c: *Compiler) !*Value {
     try c.emitReturn();
 
     if (!c.hasErrors()) {
-        const slice: [:0]const u8 = std.mem.span(c.lambda.as.lambda.source);
-        try c.currentChunk().disassemble(c.vm.stdout, if (slice.len > 0) slice else c.src_path);
+        try c.currentChunk().disassemble(c.vm, c.vm.stdout, c.vm.nullTerminatedString(c.lambda.as.lambda.source));
     }
 
     return c.lambda;
@@ -514,36 +493,81 @@ fn getGlobal(c: *Compiler, name: []const u8) ?Ast.TokenIndex {
     return null;
 }
 
-fn addLocal(c: *Compiler, name: []const u8, node: Node.Index) !u32 {
+fn addLocal(c: *Compiler, name: []const u8, node: Node.Index, index: enum { zero, one, two, append }) !u32 {
     assert(name.len > 0);
     assert(c.getGlobal(name) == null);
-    for (c.locals.items, 0..) |local, i| {
-        if (std.mem.eql(u8, local, name)) return @intCast(i);
-    }
 
-    if (c.locals.items.len == std.math.maxInt(u8)) {
-        try c.appendErrorNode(node, "Too many local variables", .{});
-    }
+    return c.getLocal(name) orelse blk: {
+        if (c.locals.items.len >= std.math.maxInt(u8)) {
+            return c.failNode(node, "Too many local variables", .{});
+        }
 
-    c.locals.appendAssumeCapacity(name);
-    return @intCast(c.locals.items.len - 1);
+        switch (index) {
+            .zero,
+            .one,
+            .two,
+            => {
+                c.locals.insertAssumeCapacity(@intFromEnum(index), name);
+                break :blk @intFromEnum(index);
+            },
+            .append => {
+                c.locals.appendAssumeCapacity(name);
+                break :blk @intCast(c.locals.items.len - 1);
+            },
+        }
+    };
 }
 
 fn addGlobal(c: *Compiler, token_index: Ast.TokenIndex, node: Node.Index) !u32 {
     const name = c.tree.tokenSlice(token_index);
     assert(name.len > 0);
     assert(c.getLocal(name) == null);
-    if (c.getGlobal(name)) |global| return global;
 
-    if (c.globals.items.len == std.math.maxInt(u8)) {
-        try c.appendErrorNode(node, "Too many global variables", .{});
-    }
+    return c.getGlobal(name) orelse blk: {
+        if (c.globals.items.len >= std.math.maxInt(u8)) {
+            return c.failNode(node, "Too many global variables", .{});
+        }
 
-    c.globals.appendAssumeCapacity(token_index);
-    return token_index;
+        c.globals.appendAssumeCapacity(token_index);
+        break :blk token_index;
+    };
 }
 
-fn findLocals(c: *Compiler, node: Node.Index) !void {
+fn addIdentifier(c: *Compiler, node: Node.Index, implicit_args: bool, scope: enum { local, global }) !void {
+    const tree = c.tree;
+    assert(tree.nodeTag(node) == .identifier);
+    const identifier = tree.nodeMainToken(node);
+    const name = tree.tokenSlice(identifier);
+    if (implicit_args and name.len == 1) {
+        switch (name[0]) {
+            'x' => {
+                _ = try c.addLocal("x", node, .zero);
+                return;
+            },
+            'y' => {
+                _ = try c.addLocal("x", node, .zero);
+                _ = try c.addLocal("y", node, .one);
+                return;
+            },
+            'z' => {
+                _ = try c.addLocal("x", node, .zero);
+                _ = try c.addLocal("y", node, .one);
+                _ = try c.addLocal("z", node, .two);
+                return;
+            },
+            else => {},
+        }
+    }
+
+    switch (scope) {
+        .local => _ = try c.addLocal(name, node, .append),
+        .global => if (c.getLocal(name) == null) {
+            _ = try c.addGlobal(identifier, node);
+        },
+    }
+}
+
+fn findLocals(c: *Compiler, node: Node.Index, implicit_args: bool) !void {
     const tree = c.tree;
     switch (tree.nodeTag(node)) {
         .root => unreachable,
@@ -551,22 +575,22 @@ fn findLocals(c: *Compiler, node: Node.Index) !void {
 
         .pop,
         .print,
-        => try c.findLocals(tree.nodeData(node).node),
+        => try c.findLocals(tree.nodeData(node).node, implicit_args),
 
-        .grouped_expression => try c.findLocals(tree.nodeData(node).node_and_token[0]),
+        .grouped_expression => try c.findLocals(tree.nodeData(node).node_and_token[0], implicit_args),
         .empty_list => {},
         .list => {
-            for (tree.extraDataSlice(tree.nodeData(node).extra_range, Node.Index)) |n| try c.findLocals(n);
+            for (tree.extraDataSlice(tree.nodeData(node).extra_range, Node.Index)) |n| try c.findLocals(n, implicit_args);
         },
         .table_literal => |t| std.debug.panic("NYI: findLocals({t})", .{t}),
 
         .lambda => {},
 
         .expr_block => {
-            for (tree.extraDataSlice(tree.nodeData(node).extra_range, Node.Index)) |n| try c.findLocals(n);
+            for (tree.extraDataSlice(tree.nodeData(node).extra_range, Node.Index)) |n| try c.findLocals(n, implicit_args);
         },
 
-        .negation => try c.findLocals(tree.nodeData(node).node),
+        .negation => try c.findLocals(tree.nodeData(node).node, implicit_args),
 
         .colon,
         .colon_colon,
@@ -621,47 +645,37 @@ fn findLocals(c: *Compiler, node: Node.Index) !void {
         .slash_colon,
         .backslash,
         .backslash_colon,
-        => if (tree.nodeData(node).opt_node.unwrap()) |n| try c.findLocals(n),
+        => if (tree.nodeData(node).opt_node.unwrap()) |n| try c.findLocals(n, implicit_args),
 
         .call => {
             const nodes = tree.extraDataSlice(tree.nodeData(node).extra_range, Node.Index);
             assert(nodes.len > 0);
             if (nodes.len == 3) {
-                try c.findLocals(nodes[2]);
+                try c.findLocals(nodes[2], implicit_args);
                 if (tree.nodeTag(tree.unwrap(nodes[0])) == .colon) {
-                    const identifier = tree.unwrap(nodes[1]);
-                    assert(tree.nodeTag(identifier) == .identifier);
-                    const name = tree.tokenSlice(tree.nodeMainToken(identifier));
-                    if (c.getGlobal(name) == null) {
-                        _ = try c.addLocal(name, identifier);
-                    }
+                    try c.addIdentifier(tree.unwrap(nodes[1]), implicit_args, .local);
                 }
-                try c.findLocals(nodes[1]);
+                try c.findLocals(nodes[1], implicit_args);
             } else {
                 var it = std.mem.reverseIterator(nodes);
-                while (it.next()) |n| try c.findLocals(n);
+                while (it.next()) |n| try c.findLocals(n, implicit_args);
             }
         },
         .apply_unary => {
             const lhs, const rhs = tree.nodeData(node).node_and_node;
-            try c.findLocals(rhs);
-            try c.findLocals(lhs);
+            try c.findLocals(rhs, implicit_args);
+            try c.findLocals(lhs, implicit_args);
         },
         .apply_binary => {
             const lhs, const maybe_rhs = tree.nodeData(node).node_and_opt_node;
             const op: Node.Index = @enumFromInt(tree.nodeMainToken(node));
             if (maybe_rhs.unwrap()) |rhs| {
-                try c.findLocals(rhs);
+                try c.findLocals(rhs, implicit_args);
                 if (tree.nodeTag(op) == .colon) {
-                    const identifier = tree.unwrap(lhs);
-                    assert(tree.nodeTag(identifier) == .identifier);
-                    const name = tree.tokenSlice(tree.nodeMainToken(identifier));
-                    if (c.getGlobal(name) == null) {
-                        _ = try c.addLocal(name, identifier);
-                    }
+                    try c.addIdentifier(tree.unwrap(lhs), implicit_args, .local);
                 }
             }
-            try c.findLocals(lhs);
+            try c.findLocals(lhs, implicit_args);
         },
 
         .number_literal,
@@ -670,13 +684,7 @@ fn findLocals(c: *Compiler, node: Node.Index) !void {
         .symbol_literal,
         .symbol_list_literal,
         => {},
-        .identifier => {
-            const identifier = tree.nodeMainToken(node);
-            const name = tree.tokenSlice(identifier);
-            if (c.getLocal(name) == null) {
-                _ = try c.addGlobal(identifier, node);
-            }
-        },
+        .identifier => try c.addIdentifier(node, implicit_args, .global),
 
         .system => {},
     }
@@ -795,6 +803,26 @@ test {
         \\0007    | return
         \\== <test> ==
         \\0000    0 constant            0 '{[]x;x::1}'
+        \\0002    | print
+        \\0003    | return
+    );
+    try testCompiler("{a:x}",
+        \\== {a:x} ==
+        \\0000    0 get_local           0
+        \\0002    | set_local           1
+        \\0004    | return
+        \\== <test> ==
+        \\0000    0 constant            0 '{a:x}'
+        \\0002    | print
+        \\0003    | return
+    );
+    try testCompiler("{[x]a:x}",
+        \\== {[x]a:x} ==
+        \\0000    0 get_local           0
+        \\0002    | set_local           1
+        \\0004    | return
+        \\== <test> ==
+        \\0000    0 constant            0 '{[x]a:x}'
         \\0002    | print
         \\0003    | return
     );

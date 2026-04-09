@@ -5,6 +5,8 @@ const assert = std.debug.assert;
 
 const k = @import("../root.zig");
 const Chunk = k.Chunk;
+const NullTerminatedString = k.NullTerminatedString;
+const Vm = k.Vm;
 
 const Value = @This();
 
@@ -12,6 +14,7 @@ ref_count: u32 = 0,
 as: Union,
 
 const Type = enum(i8) {
+    list = 0,
     boolean = -1,
     boolean_list = 1,
     byte = -4,
@@ -36,6 +39,7 @@ const Type = enum(i8) {
 };
 
 const Union = union(Type) {
+    list: []const *Value,
     boolean: bool,
     boolean_list: []const bool,
     byte: u8,
@@ -52,17 +56,18 @@ const Union = union(Type) {
     float_list: []const f64,
     char: u8,
     char_list: []const u8,
-    symbol: [*:0]const u8,
-    symbol_list: []const [*:0]const u8,
+    symbol: NullTerminatedString,
+    symbol_list: []const NullTerminatedString,
     lambda: Lambda,
     unary_primitive: UnaryPrimitive,
     operator: Operator,
 };
 
 pub const Lambda = struct {
-    source: [*:0]const u8,
-    arity: usize,
-    chunk: Chunk,
+    source: NullTerminatedString,
+    arity: usize = 0,
+    locals: usize = 0,
+    chunk: Chunk = .empty,
 
     pub fn deinit(self: Lambda, gpa: Allocator) void {
         var chunk = self.chunk;
@@ -229,6 +234,10 @@ pub fn deref(self: *Value, gpa: Allocator) void {
         self.ref_count -= 1;
     } else {
         switch (self.as) {
+            .list => |value| {
+                for (value) |v| v.deref(gpa);
+                gpa.free(value);
+            },
             .boolean => {},
             .boolean_list => |v| gpa.free(v),
             .byte => {},
@@ -255,8 +264,31 @@ pub fn deref(self: *Value, gpa: Allocator) void {
     }
 }
 
-pub fn format(self: Value, w: *Io.Writer) !void {
+pub const Alt = struct {
+    vm: *Vm,
+    value: *Value,
+
+    pub fn format(data: @This(), w: *Io.Writer) Io.Writer.Error!void {
+        try data.value.format(w, data.vm);
+    }
+};
+
+pub fn alt(value: *Value, vm: *Vm) std.fmt.Alt(Alt, Alt.format) {
+    return .{ .data = .{ .vm = vm, .value = value } };
+}
+
+pub fn format(self: Value, w: *Io.Writer, vm: *Vm) !void {
     switch (self.as) {
+        .list => |value| {
+            if (value.len == 0) {
+                try w.writeAll("()");
+            } else {
+                try w.writeByte('(');
+                try w.print("{f}", .{value[0].alt(vm)});
+                for (value[1..]) |v| try w.print(";{f}", .{v.alt(vm)});
+                try w.writeByte(')');
+            }
+        },
         .boolean => |v| try w.print("{d}b", .{@intFromBool(v)}),
         .boolean_list => |value| {
             for (value) |v| try w.print("{d}", .{@intFromBool(v)});
@@ -309,11 +341,11 @@ pub fn format(self: Value, w: *Io.Writer) !void {
         },
         .char => |v| try w.print("\"{c}\"", .{v}),
         .char_list => |v| try w.print("\"{s}\"", .{v}),
-        .symbol => |v| try w.print("`{s}", .{v}),
+        .symbol => |v| try w.print("`{s}", .{vm.nullTerminatedString(v)}),
         .symbol_list => |value| {
-            for (value) |v| try w.print("`{s}", .{v});
+            for (value) |v| try w.print("`{s}", .{vm.nullTerminatedString(v)});
         },
-        .lambda => |v| try w.print("{s}", .{v.source}),
+        .lambda => |v| try w.print("{s}", .{vm.nullTerminatedString(v.source)}),
         .unary_primitive => |v| try w.print("{f}", .{v}),
         .operator => |v| try w.print("{f}", .{v}),
     }
@@ -323,6 +355,11 @@ pub fn match(a: *Value, b: *Value) bool {
     if (@as(Type, a.as) != b.as) return false;
 
     return switch (a.as) {
+        .list => |value| blk: {
+            if (value.len != b.as.list.len) return false;
+            for (value, b.as.list) |va, vb| if (!va.match(vb)) return false;
+            break :blk true;
+        },
         .boolean => |v| v == b.as.boolean,
         .boolean_list => |v| std.mem.eql(bool, v, b.as.boolean_list),
         .byte => |v| v == b.as.byte,
@@ -340,11 +377,19 @@ pub fn match(a: *Value, b: *Value) bool {
         .char => |v| v == b.as.char,
         .char_list => |v| std.mem.eql(u8, v, b.as.char_list),
         .symbol => |v| v == b.as.symbol,
-        .symbol_list => |v| std.mem.eql([*:0]const u8, v, b.as.symbol_list),
+        .symbol_list => |v| std.mem.eql(NullTerminatedString, v, b.as.symbol_list),
         .lambda => |v| v.source == b.as.lambda.source,
         .unary_primitive => |v| v == b.as.unary_primitive,
         .operator => |v| v == b.as.operator,
     };
+}
+
+pub fn list(gpa: Allocator, value: []const *Value) !*Value {
+    const self = try gpa.create(Value);
+    errdefer comptime unreachable;
+    for (value) |v| _ = v.ref();
+    self.* = .{ .as = .{ .list = value } };
+    return self;
 }
 
 pub fn boolean(gpa: Allocator, value: bool) !*Value {
@@ -362,11 +407,11 @@ pub fn booleanList(gpa: Allocator, value: []const bool) !*Value {
 }
 
 pub fn copyBooleanList(gpa: Allocator, value: []const bool) !*Value {
-    const list = try gpa.dupe(bool, value);
-    errdefer gpa.free(list);
+    const items = try gpa.dupe(bool, value);
+    errdefer gpa.free(items);
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
-    self.* = .{ .as = .{ .boolean_list = list } };
+    self.* = .{ .as = .{ .boolean_list = items } };
     return self;
 }
 
@@ -385,11 +430,11 @@ pub fn byteList(gpa: Allocator, value: []const u8) !*Value {
 }
 
 pub fn copyByteList(gpa: Allocator, value: []const u8) !*Value {
-    const list = try gpa.dupe(u8, value);
-    errdefer gpa.free(list);
+    const items = try gpa.dupe(u8, value);
+    errdefer gpa.free(items);
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
-    self.* = .{ .as = .{ .byte_list = list } };
+    self.* = .{ .as = .{ .byte_list = items } };
     return self;
 }
 
@@ -408,11 +453,11 @@ pub fn shortList(gpa: Allocator, value: []const i16) !*Value {
 }
 
 pub fn copyShortList(gpa: Allocator, value: []const i16) !*Value {
-    const list = try gpa.dupe(i16, value);
-    errdefer gpa.free(list);
+    const items = try gpa.dupe(i16, value);
+    errdefer gpa.free(items);
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
-    self.* = .{ .as = .{ .short_list = list } };
+    self.* = .{ .as = .{ .short_list = items } };
     return self;
 }
 
@@ -431,11 +476,11 @@ pub fn intList(gpa: Allocator, value: []const i32) !*Value {
 }
 
 pub fn copyIntList(gpa: Allocator, value: []const i32) !*Value {
-    const list = try gpa.dupe(i32, value);
-    errdefer gpa.free(list);
+    const items = try gpa.dupe(i32, value);
+    errdefer gpa.free(items);
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
-    self.* = .{ .as = .{ .int_list = list } };
+    self.* = .{ .as = .{ .int_list = items } };
     return self;
 }
 
@@ -454,11 +499,11 @@ pub fn longList(gpa: Allocator, value: []const i64) !*Value {
 }
 
 pub fn copyLongList(gpa: Allocator, value: []const i64) !*Value {
-    const list = try gpa.dupe(i64, value);
-    errdefer gpa.free(list);
+    const items = try gpa.dupe(i64, value);
+    errdefer gpa.free(items);
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
-    self.* = .{ .as = .{ .long_list = list } };
+    self.* = .{ .as = .{ .long_list = items } };
     return self;
 }
 
@@ -477,11 +522,11 @@ pub fn realList(gpa: Allocator, value: []const f32) !*Value {
 }
 
 pub fn copyRealList(gpa: Allocator, value: []const f32) !*Value {
-    const list = try gpa.dupe(f32, value);
-    errdefer gpa.free(list);
+    const items = try gpa.dupe(f32, value);
+    errdefer gpa.free(items);
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
-    self.* = .{ .as = .{ .real_list = list } };
+    self.* = .{ .as = .{ .real_list = items } };
     return self;
 }
 
@@ -500,11 +545,11 @@ pub fn floatList(gpa: Allocator, value: []const f64) !*Value {
 }
 
 pub fn copyFloatList(gpa: Allocator, value: []const f64) !*Value {
-    const list = try gpa.dupe(f64, value);
-    errdefer gpa.free(list);
+    const items = try gpa.dupe(f64, value);
+    errdefer gpa.free(items);
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
-    self.* = .{ .as = .{ .float_list = list } };
+    self.* = .{ .as = .{ .float_list = items } };
     return self;
 }
 
@@ -523,22 +568,22 @@ pub fn charList(gpa: Allocator, value: []const u8) !*Value {
 }
 
 pub fn copyCharList(gpa: Allocator, value: []const u8) !*Value {
-    const list = try gpa.dupe(u8, value);
-    errdefer gpa.free(list);
+    const items = try gpa.dupe(u8, value);
+    errdefer gpa.free(items);
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
-    self.* = .{ .as = .{ .char_list = list } };
+    self.* = .{ .as = .{ .char_list = items } };
     return self;
 }
 
-pub fn symbol(gpa: Allocator, value: [*:0]const u8) !*Value {
+pub fn symbol(gpa: Allocator, value: NullTerminatedString) !*Value {
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
     self.* = .{ .as = .{ .symbol = value } };
     return self;
 }
 
-pub fn symbolList(gpa: Allocator, value: []const [*:0]const u8) !*Value {
+pub fn symbolList(gpa: Allocator, value: []const NullTerminatedString) !*Value {
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
     self.* = .{ .as = .{ .symbol_list = value } };
@@ -546,11 +591,11 @@ pub fn symbolList(gpa: Allocator, value: []const [*:0]const u8) !*Value {
 }
 
 pub fn copySymbolList(gpa: Allocator, value: []const [*:0]const u8) !*Value {
-    const list = try gpa.dupe([*:0]const u8, value);
-    errdefer gpa.free(list);
+    const items = try gpa.dupe([*:0]const u8, value);
+    errdefer gpa.free(items);
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
-    self.* = .{ .as = .{ .symbol_list = list } };
+    self.* = .{ .as = .{ .symbol_list = items } };
     return self;
 }
 

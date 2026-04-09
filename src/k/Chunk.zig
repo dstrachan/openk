@@ -4,6 +4,7 @@ const Allocator = std.mem.Allocator;
 
 const k = @import("../root.zig");
 const Value = k.Value;
+const Vm = k.Vm;
 
 const Chunk = @This();
 
@@ -59,18 +60,18 @@ pub fn addConstant(chunk: *Chunk, gpa: Allocator, value: *Value) !usize {
     return chunk.constants.items.len - 1;
 }
 
-pub fn disassemble(chunk: Chunk, writer: *Io.Writer, name: []const u8) !void {
+pub fn disassemble(chunk: Chunk, vm: *Vm, writer: *Io.Writer, name: []const u8) !void {
     try writer.print("== {s} ==\n", .{name});
 
     var offset: usize = 0;
     while (offset < chunk.data.len) {
-        offset = try chunk.disassembleInstruction(writer, offset);
+        offset = try chunk.disassembleInstruction(vm, writer, offset);
     }
 
     try writer.flush();
 }
 
-pub fn disassembleInstruction(chunk: Chunk, writer: *Io.Writer, offset: usize) !usize {
+pub fn disassembleInstruction(chunk: Chunk, vm: *Vm, writer: *Io.Writer, offset: usize) !usize {
     try writer.print("{d:04} ", .{offset});
     if (offset > 0 and chunk.data.items(.line)[offset] == chunk.data.items(.line)[offset - 1]) {
         try writer.writeAll("   | ");
@@ -82,7 +83,7 @@ pub fn disassembleInstruction(chunk: Chunk, writer: *Io.Writer, offset: usize) !
         .constant,
         .get_global,
         .set_global,
-        => |t| return chunk.constantInstruction(writer, t, offset),
+        => |t| return chunk.constantInstruction(vm, writer, t, offset),
 
         .unary_primitive => return chunk.unaryPrimitiveInstruction(writer, offset),
         .operator => return chunk.operatorInstruction(writer, offset),
@@ -104,9 +105,9 @@ fn simpleInstruction(writer: *Io.Writer, op_code: OpCode, offset: usize) !usize 
     return offset + 1;
 }
 
-fn constantInstruction(chunk: Chunk, writer: *Io.Writer, op_code: OpCode, offset: usize) !usize {
+fn constantInstruction(chunk: Chunk, vm: *Vm, writer: *Io.Writer, op_code: OpCode, offset: usize) !usize {
     const constant = chunk.data.items(.code)[offset + 1];
-    try writer.print("{t: <16} {d:4} '{f}'\n", .{ op_code, constant, chunk.constants.items[constant] });
+    try writer.print("{t: <16} {d:4} '{f}'\n", .{ op_code, constant, chunk.constants.items[constant].alt(vm) });
     return offset + 2;
 }
 

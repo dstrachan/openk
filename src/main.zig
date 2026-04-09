@@ -73,14 +73,13 @@ fn mainArgs(
 
     const cmd = args[1];
     const cmd_args = args[2..];
-    _ = cmd_args; // autofix
     if (std.mem.eql(u8, cmd, "help") or std.mem.eql(u8, cmd, "-h") or std.mem.eql(u8, cmd, "--help")) {
         try Io.File.stdout().writeStreamingAll(io, usage);
-    } else return cmdRepl(io, gpa, args[1..]);
+    } else return cmdFile(io, gpa, cmd, cmd_args);
 }
 
 const usage_repl =
-    \\Usage: openq [options]
+    \\Usage: openk [options]
     \\
     \\  Start an interactive REPL.
     \\
@@ -184,6 +183,78 @@ fn cmdRepl(io: Io, gpa: Allocator, args: []const []const u8) !void {
 
         try vm.interpret(tree, "<stdin>");
     }
+
+    return cleanExit(io);
+}
+
+const usage_file =
+    \\Usage: openk <file> [options]
+    \\
+    \\  Interpret a k file.
+    \\
+    \\Options:
+    \\
+    \\  -h, --help            Print this help and exit
+    \\  --color [auto|off|on] Enable or disable colored error messages
+    \\
+;
+
+fn cmdFile(io: Io, gpa: Allocator, file: []const u8, args: []const []const u8) !void {
+    var color: std.zig.Color = .auto;
+
+    var i: usize = 0;
+    while (i < args.len) : (i += 1) {
+        const arg = args[i];
+        if (std.mem.startsWith(u8, arg, "-")) {
+            if (std.mem.eql(u8, arg, "-h") or std.mem.eql(u8, arg, "--help")) {
+                try Io.File.stdout().writeStreamingAll(io, usage_file);
+                return cleanExit(io);
+            } else if (std.mem.eql(u8, arg, "--color")) {
+                if (i + 1 >= args.len) {
+                    fatal("expected [auto|off|on] after --color", .{});
+                }
+                i += 1;
+                const next_arg = args[i];
+                color = std.meta.stringToEnum(std.zig.Color, next_arg) orelse {
+                    fatal("expected [auto|off|on] after --color, found '{s}'", .{next_arg});
+                };
+            } else {
+                fatal("unrecognized parameter: '{s}'", .{arg});
+            }
+        } else {
+            fatal("extra positional parameter: '{s}'", .{arg});
+        }
+    }
+
+    var f = try Io.Dir.openFile(.cwd(), io, file, .{});
+    defer f.close(io);
+    var file_reader = f.reader(io, &.{});
+    const source = try std.zig.readSourceFileToEndAlloc(gpa, &file_reader);
+    defer gpa.free(source);
+
+    var stdout_writer = Io.File.stdout().writer(io, &stdout_buffer);
+    const stdout = &stdout_writer.interface;
+    var stderr_buffer: [1024]u8 = undefined;
+    var stderr_writer = Io.File.stderr().writer(io, &stderr_buffer);
+    const stderr = &stderr_writer.interface;
+
+    var vm: Vm = undefined;
+    try vm.init(io, gpa, stdout, color);
+    defer vm.deinit();
+
+    if (try Io.File.stdin().isTty(io)) {
+        try stderr.writeAll(banner);
+        try stderr.flush();
+    }
+
+    var tree: Ast = try .parse(gpa, source);
+    defer tree.deinit(gpa);
+    if (tree.errors.len > 0) {
+        try utils.printAstErrorsToStderr(io, gpa, tree, file, color);
+        std.process.exit(1);
+    }
+
+    try vm.interpret(tree, file);
 
     return cleanExit(io);
 }

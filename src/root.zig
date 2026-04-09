@@ -16,6 +16,7 @@ pub const Parse = @import("k/Parse.zig");
 pub const Chunk = @import("k/Chunk.zig");
 pub const OpCode = Chunk.OpCode;
 pub const Vm = @import("k/Vm.zig");
+pub const NullTerminatedString = Vm.NullTerminatedString;
 pub const Value = @import("k/Value.zig");
 pub const Lambda = Value.Lambda;
 pub const UnaryPrimitive = Value.UnaryPrimitive;
