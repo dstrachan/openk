@@ -27,17 +27,13 @@ src_path: []const u8,
 line: u32 = 0,
 locals: std.ArrayList([]const u8),
 globals: std.ArrayList(Ast.TokenIndex),
-eb: ErrorBundle.Wip,
+eb: *ErrorBundle.Wip,
 
-pub fn init(c: *Compiler, vm: *Vm, tree: Ast, src_path: []const u8) !void {
+pub fn init(c: *Compiler, vm: *Vm, tree: Ast, eb: *ErrorBundle.Wip, src_path: []const u8) !void {
     var locals: std.ArrayList([]const u8) = try .initCapacity(vm.gpa, std.math.maxInt(u8));
     errdefer locals.deinit(vm.gpa);
     var globals: std.ArrayList(Ast.TokenIndex) = try .initCapacity(vm.gpa, std.math.maxInt(u8));
     errdefer globals.deinit(vm.gpa);
-
-    var eb: ErrorBundle.Wip = undefined;
-    try eb.init(vm.gpa);
-    errdefer eb.deinit();
 
     const lambda: *Value = try .lambda(vm.gpa, .{ .source = try vm.intern(src_path) });
     errdefer comptime unreachable;
@@ -57,7 +53,6 @@ pub fn init(c: *Compiler, vm: *Vm, tree: Ast, src_path: []const u8) !void {
 pub fn deinit(c: *Compiler) void {
     c.locals.deinit(c.gpa);
     c.globals.deinit(c.gpa);
-    c.eb.deinit();
 }
 
 pub fn compile(c: *Compiler) !*Value {
@@ -89,6 +84,15 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             errdefer value.deref(c.gpa);
             try c.emitConstant(value, node);
         },
+        .list => {
+            const nodes = tree.extraDataSlice(tree.nodeData(node).extra_range, Node.Index);
+            assert(nodes.len > 1);
+
+            try c.emitOpCode(.store_stack_len);
+            var it = std.mem.reverseIterator(nodes);
+            while (it.next()) |n| try c.compileNode(n);
+            try c.emitOpCode(.enlist);
+        },
 
         .lambda => {
             const data = tree.extraData(tree.nodeData(node).extra_and_token[0], Node.Lambda);
@@ -102,7 +106,7 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             }, Node.Index);
 
             var compiler: Compiler = undefined;
-            try compiler.init(c.vm, tree, c.src_path);
+            try compiler.init(c.vm, tree, c.eb, c.src_path);
             errdefer compiler.lambda.deref(c.gpa);
             defer compiler.deinit();
 
@@ -113,17 +117,7 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
                     try compiler.addLocal(name, identifier, .append);
                 }
             }
-            for (body) |n| compiler.findLocals(n, params.len == 0) catch |err| switch (err) {
-                error.OutOfMemory => return error.OutOfMemory,
-                else => {
-                    if (compiler.hasErrors()) {
-                        var eb = try compiler.eb.toOwnedBundle("");
-                        defer eb.deinit(c.gpa);
-                        try c.eb.addBundleAsRoots(eb);
-                    }
-                    return err;
-                },
-            };
+            for (body) |n| try compiler.findLocals(n, params.len == 0);
 
             const arity: usize = if (params.len == 0) arity: {
                 if (compiler.locals.items.len > 2 and std.mem.eql(u8, compiler.locals.items[2], "z")) break :arity 3;
@@ -140,12 +134,6 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
 
             const lambda = try compiler.endCompiler();
             try c.emitConstant(lambda, node);
-
-            if (compiler.hasErrors()) {
-                var eb = try compiler.eb.toOwnedBundle("");
-                defer eb.deinit(c.gpa);
-                try c.eb.addBundleAsRoots(eb);
-            }
         },
 
         .negation => {
@@ -421,10 +409,10 @@ fn emitConstant(c: *Compiler, value: *Value, node: Node.Index) !void {
 }
 
 fn makeConstant(c: *Compiler, value: *Value, node: Node.Index) !u8 {
-    const constant = try c.currentChunk().addConstant(c.gpa, value);
-    if (constant > std.math.maxInt(u8)) {
+    if (c.currentChunk().constants.items.len >= std.math.maxInt(u8)) {
         return c.failNode(node, "Too many constants", .{});
     }
+    const constant = try c.currentChunk().addConstant(c.gpa, value);
     return @intCast(constant);
 }
 
@@ -714,8 +702,12 @@ fn testCompiler(source: [:0]const u8, expected: []const u8) !void {
     var tree: Ast = try .parse(gpa, source);
     defer tree.deinit(gpa);
 
+    var wip: ErrorBundle.Wip = undefined;
+    try wip.init(gpa);
+    defer wip.deinit();
+
     var compiler: Compiler = undefined;
-    try compiler.init(&vm, tree, "<test>");
+    try compiler.init(&vm, tree, &wip, "<test>");
     defer compiler.deinit();
 
     const lambda: *Value = compiler.compile() catch |err| switch (err) {
@@ -728,7 +720,7 @@ fn testCompiler(source: [:0]const u8, expected: []const u8) !void {
     defer lambda.deref(gpa);
 
     if (compiler.hasErrors()) {
-        var eb = try compiler.eb.toOwnedBundle("");
+        var eb = try wip.toOwnedBundle("");
         defer eb.deinit(gpa);
         try eb.renderToWriter(.{}, stdout);
     }

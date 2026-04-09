@@ -2,6 +2,7 @@ const std = @import("std");
 const Io = std.Io;
 const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
+const ErrorBundle = std.zig.ErrorBundle;
 
 const k = @import("../root.zig");
 const Chunk = k.Chunk;
@@ -179,22 +180,29 @@ pub fn intern(vm: *Vm, bytes: []const u8) !NullTerminatedString {
 }
 
 pub fn interpret(vm: *Vm, tree: Ast, src_path: []const u8) Error!void {
+    var wip: ErrorBundle.Wip = undefined;
+    try wip.init(vm.gpa);
+    defer wip.deinit();
+
     var compiler: Compiler = undefined;
-    try compiler.init(vm, tree, src_path);
+    try compiler.init(vm, tree, &wip, src_path);
     defer compiler.deinit();
 
     const lambda: *Value = lambda: {
         errdefer compiler.lambda.deref(vm.gpa);
         break :lambda compiler.compile() catch |err| switch (err) {
             error.OutOfMemory => return error.OutOfMemory,
-            else => return error.CompilerError,
+            else => {
+                assert(compiler.hasErrors());
+                break :lambda compiler.lambda;
+            },
         };
     };
     errdefer lambda.deref(vm.gpa);
 
     if (compiler.hasErrors()) {
-        var eb = try compiler.eb.toOwnedBundle("");
-        defer eb.deinit(compiler.gpa);
+        var eb = try wip.toOwnedBundle("");
+        defer eb.deinit(vm.gpa);
         eb.renderToStderr(vm.io, .{}, vm.color) catch return error.CompilerError;
         return error.CompilerError;
     }
@@ -277,6 +285,16 @@ fn run(vm: *Vm) Error!void {
                 } else {
                     vm.push(try vm.apply(arg_count));
                 }
+            },
+            .enlist => {
+                const len = vm.stack.items.len - vm.stack_lens.pop().?;
+                assert(len > 1);
+                const value: *Value = try .list(vm.gpa, len);
+                errdefer comptime unreachable;
+                for (value.as.list) |*v| {
+                    v.* = vm.pop();
+                }
+                vm.push(value);
             },
         }
     }

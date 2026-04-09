@@ -27,6 +27,7 @@ pub const OpCode = enum(u8) {
     print,
     store_stack_len,
     apply,
+    enlist,
 
     pub const Index = enum(u32) { _ };
 };
@@ -98,6 +99,7 @@ pub fn disassembleInstruction(chunk: Chunk, vm: *Vm, writer: *Io.Writer, offset:
         .print,
         .store_stack_len,
         .apply,
+        .enlist,
         => |t| return simpleInstruction(writer, t, offset),
     }
 }
