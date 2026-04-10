@@ -6,6 +6,7 @@ const assert = std.debug.assert;
 pub const build_options = @import("build_options");
 pub const version = build_options.version;
 pub const trace_execution = build_options.trace_execution;
+pub const print_code = build_options.print_code;
 
 pub const tokenizer = @import("k/tokenizer.zig");
 pub const Token = tokenizer.Token;

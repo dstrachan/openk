@@ -385,7 +385,7 @@ fn currentChunk(c: *Compiler) *Chunk {
 fn endCompiler(c: *Compiler) !*Value {
     try c.emitReturn();
 
-    if (!c.hasErrors()) {
+    if (c.vm.print_code and !c.hasErrors()) {
         try c.currentChunk().disassemble(c.vm, c.vm.stdout, c.vm.nullTerminatedString(c.lambda.as.lambda.source));
     }
 

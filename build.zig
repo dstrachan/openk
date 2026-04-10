@@ -79,7 +79,10 @@ pub fn build(b: *std.Build) !void {
     const version = try b.allocator.dupeZ(u8, version_slice);
     mod_options.addOption([:0]const u8, "version", version);
 
-    mod_options.addOption(bool, "trace_execution", optimize == .Debug);
+    const opt_trace_execution = b.option(bool, "trace-execution", "TODO");
+    mod_options.addOption(bool, "trace_execution", opt_trace_execution orelse (optimize == .Debug));
+    const opt_print_code = b.option(bool, "print-code", "TODO");
+    mod_options.addOption(bool, "print_code", opt_print_code orelse (optimize == .Debug));
 
     const exe = b.addExecutable(.{
         .name = "openk",

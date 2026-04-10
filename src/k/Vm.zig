@@ -13,12 +13,13 @@ const Compiler = k.Compiler;
 const Lambda = k.Lambda;
 const UnaryPrimitive = k.UnaryPrimitive;
 const Operator = k.Operator;
-const trace_execution = k.trace_execution;
 
 const Vm = @This();
 
 io: Io,
 gpa: Allocator,
+trace_execution: bool = k.trace_execution,
+print_code: bool = k.print_code,
 frames: std.ArrayList(CallFrame),
 stack: std.ArrayList(*Value),
 stack_lens: std.ArrayList(usize),
@@ -214,7 +215,7 @@ pub fn interpret(vm: *Vm, tree: Ast, src_path: []const u8) Error!void {
 fn run(vm: *Vm) Error!void {
     var frame = &vm.frames.items[vm.frames.items.len - 1];
     while (true) {
-        if (trace_execution) {
+        if (vm.trace_execution) {
             try vm.stdout.writeAll("          ");
             for (vm.stack.items) |slot| {
                 try vm.stdout.print("[ {f} ]", .{slot.alt(vm)});
@@ -419,7 +420,7 @@ fn match(vm: *Vm, x: *Value, y: *Value) !*Value {
     return .boolean(vm.gpa, x.match(y));
 }
 
-fn testVm(source: [:0]const u8) !void {
+fn testVm(source: [:0]const u8, expected: []const u8) !void {
     const gpa = std.testing.allocator;
 
     var stdout_writer: std.Io.Writer.Allocating = .init(gpa);
@@ -429,13 +430,22 @@ fn testVm(source: [:0]const u8) !void {
     var vm: Vm = undefined;
     try vm.init(std.testing.io, gpa, stdout, .on);
     defer vm.deinit();
+    vm.trace_execution = false;
+    vm.print_code = false;
 
     var tree: Ast = try .parse(gpa, source);
     defer tree.deinit(gpa);
 
     try vm.interpret(tree, "<test>");
+
+    try std.testing.expectEqualStrings(
+        std.mem.trim(u8, expected, &std.ascii.whitespace),
+        std.mem.trim(u8, stdout_writer.written(), &std.ascii.whitespace),
+    );
 }
 
 test {
-    try testVm("{[]x:1}");
+    try testVm("{[]x:1}", "{[]x:1}");
+    if (true) return error.SkipZigTest;
+    try testVm("{[]x}[]", "");
 }
