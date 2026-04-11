@@ -92,7 +92,7 @@ pub const ByteCode = enum(u8) {
     empty_list = 11,
     zero = 12,
     one = 13,
-    // TODO: 14
+    comma = 14,
     null_symbol = 15,
     nil = 16,
     empty = 17,
