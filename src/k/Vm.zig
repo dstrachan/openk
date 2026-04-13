@@ -25,7 +25,7 @@ stack: std.ArrayList(*Value),
 stack_lens: std.ArrayList(usize),
 stdout: *Io.Writer,
 color: std.zig.Color,
-constants: [1]*Value = undefined,
+constants: [6]*Value = undefined,
 unary_primitives: [std.meta.fields(UnaryPrimitive).len]*Value = undefined,
 operators: [std.meta.fields(Operator).len]*Value = undefined,
 string_bytes: std.ArrayList(u8) = .empty,
@@ -70,6 +70,16 @@ pub fn init(vm: *Vm, io: Io, gpa: Allocator, stdout: *Io.Writer, color: std.zig.
     errdefer for (0..constants) |i| vm.constants[i].deref(gpa);
     vm.constants[0] = try .list(gpa, 0);
     constants += 1;
+    vm.constants[1] = try .float(gpa, 0);
+    constants += 1;
+    vm.constants[2] = try .float(gpa, 1);
+    constants += 1;
+    vm.constants[3] = try .operator(gpa, .join);
+    constants += 1;
+    vm.constants[4] = try .symbol(gpa, .empty);
+    constants += 1;
+    vm.constants[5] = try .unaryPrimitive(gpa, .identity);
+    constants += 1;
 
     var unary_primitives: usize = 0;
     errdefer for (0..unary_primitives) |i| vm.unary_primitives[i].deref(gpa);
@@ -85,7 +95,10 @@ pub fn init(vm: *Vm, io: Io, gpa: Allocator, stdout: *Io.Writer, color: std.zig.
         operators += 1;
     }
 
-    _ = try vm.intern("");
+    assert(.empty == try vm.intern(""));
+    assert(.x == try vm.intern("x"));
+    assert(.y == try vm.intern("y"));
+    assert(.z == try vm.intern("z"));
 }
 
 pub fn deinit(vm: *Vm) void {
@@ -135,12 +148,17 @@ fn runtimeError(vm: *Vm, comptime fmt: []const u8, args: anytype) Error {
     }
 
     try stderr.flush();
+    while (vm.stack.items.len > 1) vm.pop().deref(vm.gpa);
     vm.stack.shrinkRetainingCapacity(0);
+    vm.frames.shrinkRetainingCapacity(0);
     return error.RuntimeError;
 }
 
 pub const NullTerminatedString = enum(u32) {
     empty = 0,
+    x = 1,
+    y = 3,
+    z = 5,
     _,
 };
 
@@ -180,14 +198,13 @@ pub fn intern(vm: *Vm, bytes: []const u8) !NullTerminatedString {
     }
 }
 
-pub fn interpret(vm: *Vm, tree: Ast, src_path: []const u8) Error!void {
+pub fn interpret(vm: *Vm, tree: Ast, src_path: []const u8) Error!*Value {
     var wip: ErrorBundle.Wip = undefined;
     try wip.init(vm.gpa);
     defer wip.deinit();
 
     var compiler: Compiler = undefined;
     try compiler.init(vm, tree, &wip, src_path);
-    defer compiler.deinit();
 
     const lambda: *Value = lambda: {
         errdefer compiler.lambda.deref(vm.gpa);
@@ -199,7 +216,7 @@ pub fn interpret(vm: *Vm, tree: Ast, src_path: []const u8) Error!void {
             },
         };
     };
-    errdefer lambda.deref(vm.gpa);
+    defer lambda.deref(vm.gpa);
 
     if (compiler.hasErrors()) {
         var eb = try wip.toOwnedBundle("");
@@ -208,11 +225,12 @@ pub fn interpret(vm: *Vm, tree: Ast, src_path: []const u8) Error!void {
         return error.CompilerError;
     }
 
-    try vm.applyLambda(lambda, 0);
-    vm.run() catch return error.RuntimeError;
+    try vm.applyValue(lambda, 0);
+    return vm.run() catch return error.RuntimeError;
 }
 
-fn run(vm: *Vm) Error!void {
+fn run(vm: *Vm) Error!*Value {
+    const initial_frame_count = vm.frames.items.len;
     var frame = &vm.frames.items[vm.frames.items.len - 1];
     while (true) {
         if (vm.trace_execution) {
@@ -227,76 +245,126 @@ fn run(vm: *Vm) Error!void {
 
         const instruction: OpCode = @enumFromInt(vm.readByte());
         switch (instruction) {
-            .constant => vm.push(vm.readConstant().ref()),
-            .get_global => {
-                const name = vm.readConstant();
-                if (vm.globals.get(name.as.symbol)) |global| {
-                    vm.push(global.ref());
-                } else return vm.runtimeError("Undefined variable '{s}'.", .{vm.nullTerminatedString(name.as.symbol)});
-            },
-            .set_global => {
-                const name = vm.readConstant();
-                const gop = try vm.globals.getOrPut(vm.gpa, name.as.symbol);
-                if (gop.found_existing) {
-                    gop.value_ptr.*.deref(vm.gpa);
-                }
-                gop.value_ptr.* = vm.peek().ref();
-            },
-
-            .unary_primitive => vm.push(vm.readUnaryPrimitive().ref()),
-            .operator => vm.push(vm.readOperator().ref()),
-
-            .get_local => vm.push(frame.slots[vm.readByte() + frame.lambda.arity].ref()),
-            .set_local => {
-                const index = vm.readByte() + frame.lambda.arity;
-                frame.slots[index].deref(vm.gpa);
-                frame.slots[index] = vm.peek().ref();
-            },
-
             .@"return" => {
                 const result = vm.pop();
-                defer result.deref(vm.gpa);
-                defer vm.frames.shrinkRetainingCapacity(vm.frames.items.len - 1);
-                if (vm.frames.items.len == 1) {
-                    vm.pop().deref(vm.gpa);
-                    return;
-                }
-
                 while (vm.stack.items.len > frame.slots - vm.stack.items.ptr) {
                     vm.pop().deref(vm.gpa);
                 }
+                vm.frames.shrinkRetainingCapacity(vm.frames.items.len - 1);
 
-                vm.push(result.ref());
-                frame = &vm.frames.items[vm.frames.items.len - 2];
+                if (vm.frames.items.len < initial_frame_count) return result;
+
+                vm.push(result);
+                frame = &vm.frames.items[vm.frames.items.len - 1];
             },
-            .pop => vm.pop().deref(vm.gpa),
             .print => {
                 try vm.stdout.print("{f}\n", .{vm.peek().alt(vm)});
                 try vm.stdout.flush();
             },
+            .pop => vm.pop().deref(vm.gpa),
+            .assign => {
+                const value = &frame.slots[vm.readByte()];
+                value.*.deref(vm.gpa);
+                value.* = vm.peek().ref();
+            },
+            .amend => {
+                const name = vm.readGlobal();
+                const operator: Operator = @enumFromInt(vm.readByte());
+                switch (operator) {
+                    .assign => {
+                        const depth = vm.pop();
+                        defer depth.deref(vm.gpa);
+                        if (depth.as == .list and depth.as.list.len == 0) {
+                            const gop = try vm.globals.getOrPut(vm.gpa, name);
+                            if (gop.found_existing) {
+                                gop.value_ptr.*.deref(vm.gpa);
+                            }
+                            gop.value_ptr.* = vm.peek().ref();
+                        } else {
+                            unreachable;
+                        }
+                    },
+                    inline else => |t| @panic("NYI: " ++ @tagName(t)),
+                }
+            },
+            .call => {
+                const arg_count = vm.readByte();
 
-            .store_stack_len => vm.stack_lens.appendAssumeCapacity(vm.stack.items.len),
-            .apply => {
-                const arg_count = vm.stack.items.len - vm.stack_lens.pop().? - 1;
-                if (vm.peek().as == .lambda) {
-                    const lambda = vm.pop();
-                    errdefer lambda.deref(vm.gpa);
-                    try vm.applyLambda(lambda, arg_count);
-                    frame = &vm.frames.items[vm.frames.items.len - 1];
-                } else {
-                    vm.push(try vm.apply(arg_count));
+                const x = vm.pop();
+                defer x.deref(vm.gpa);
+
+                try vm.applyValue(x, arg_count);
+                if (x.as == .lambda) frame = &vm.frames.items[vm.frames.items.len - 1];
+            },
+
+            .empty_list => vm.push(vm.constants[0].ref()),
+            .zero => vm.push(vm.constants[1].ref()),
+            .one => vm.push(vm.constants[2].ref()),
+            .comma => vm.push(vm.constants[3].ref()),
+            .null_symbol => vm.push(vm.constants[4].ref()),
+            .nil => vm.push(vm.constants[5].ref()),
+            .empty => unreachable,
+
+            .identity => {},
+
+            inline .add,
+            .subtract,
+            .multiply,
+            .divide,
+            .@"and",
+            .@"or",
+            .fill,
+            .equals,
+            .less_than,
+            .greater_than,
+            .cast,
+            .join,
+            .take,
+            .drop,
+            .match,
+            .dict,
+            .find,
+            .apply_at,
+            .apply,
+            .file_text,
+            .file_binary,
+            .dynamic_load,
+            .in,
+            .within,
+            .like,
+            .bin,
+            .ss,
+            .insert,
+            .wsum,
+            .wavg,
+            .div,
+            => |t| {
+                const x = vm.pop();
+                defer x.deref(vm.gpa);
+
+                switch (t) {
+                    .apply_at => {
+                        try vm.applyValue(x, 1);
+                        if (x.as == .lambda) frame = &vm.frames.items[vm.frames.items.len - 1];
+                    },
+                    else => {
+                        const y = vm.pop();
+                        defer y.deref(vm.gpa);
+                        vm.push(try @call(.auto, @field(Vm, @tagName(t)), .{ vm, x, y }));
+                    },
                 }
             },
-            .enlist => {
-                const len = vm.stack.items.len - vm.stack_lens.pop().?;
-                assert(len > 1);
-                const value: *Value = try .list(vm.gpa, len);
-                errdefer comptime unreachable;
-                for (value.as.list) |*v| {
-                    v.* = vm.pop();
-                }
-                vm.push(value);
+
+            .local => vm.push(frame.slots[vm.readByte()].ref()),
+
+            .global => {
+                const name = vm.readGlobal();
+                if (vm.globals.get(name)) |global| {
+                    vm.push(global.ref());
+                } else return vm.runtimeError("Undefined variable '{s}'.", .{vm.nullTerminatedString(name)});
             },
+
+            .constant => vm.push(vm.readConstant().ref()),
         }
     }
 }
@@ -307,97 +375,50 @@ inline fn readByte(vm: *Vm) u8 {
     return frame.ip[0];
 }
 
+inline fn readGlobal(vm: *Vm) NullTerminatedString {
+    const frame = &vm.frames.items[vm.frames.items.len - 1];
+    return frame.lambda.chunk.globals.items[vm.readByte()];
+}
+
 inline fn readConstant(vm: *Vm) *Value {
     const frame = &vm.frames.items[vm.frames.items.len - 1];
     return frame.lambda.chunk.constants.items[vm.readByte()];
 }
 
-inline fn readUnaryPrimitive(vm: *Vm) *Value {
-    return vm.unary_primitives[vm.readByte()];
-}
+fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
+    switch (x.as) {
+        .lambda => |lambda| {
+            if (lambda.arity != arg_count) {
+                return vm.runtimeError("expected {d} argument(s), found: {d}", .{ lambda.arity, arg_count });
+            }
 
-inline fn readOperator(vm: *Vm) *Value {
-    return vm.operators[vm.readByte()];
-}
+            if (vm.frames.items.len == frames_max) {
+                return vm.runtimeError("stack overflow", .{});
+            }
 
-fn apply(vm: *Vm, arg_count: usize) !*Value {
-    const callee = vm.pop();
-    defer callee.deref(vm.gpa);
+            const args = args: {
+                var args: [8]*Value = undefined;
+                for (0..arg_count) |i| args[i] = vm.pop();
+                break :args args[0..arg_count];
+            };
+            errdefer comptime unreachable;
 
-    const args = args: {
-        var args: [8]*Value = undefined;
-        for (0..arg_count) |i| args[i] = vm.pop();
-        break :args args[0..arg_count];
-    };
-    defer for (args) |v| v.deref(vm.gpa);
+            const stack_len = vm.stack.items.len;
 
-    return switch (callee.as) {
-        .lambda => unreachable,
-        .unary_primitive => |unary_primitive| blk: {
-            if (args.len != 1) return vm.runtimeError("expected 1 argument, found: {d}", .{args.len});
-            break :blk vm.applyUnaryPrimitive(unary_primitive, args[0]);
+            vm.push(x.ref());
+            for (args) |v| vm.push(v);
+            for (lambda.chunk.locals.items) |_| {
+                vm.push(vm.constants[0].ref());
+            }
+
+            vm.frames.appendAssumeCapacity(.{
+                .lambda = lambda,
+                .ip = lambda.chunk.data.items(.code).ptr,
+                .slots = vm.stack.items[stack_len..].ptr,
+            });
         },
-        .operator => |operator| blk: {
-            if (args.len != 2) return vm.runtimeError("expected 2 arguments, found: {d}", .{args.len});
-            break :blk vm.applyOperator(operator, args[0], args[1]);
-        },
-        inline else => |_, t| std.debug.panic("NYI: {t}", .{t}),
-    };
-}
-
-fn applyLambda(vm: *Vm, lambda: *Value, arg_count: usize) !void {
-    const args = args: {
-        var args: [8]*Value = undefined;
-        for (0..arg_count) |i| args[i] = vm.pop();
-        break :args args[0..arg_count];
-    };
-    errdefer for (args) |v| v.deref(vm.gpa);
-
-    if (lambda.as.lambda.arity != arg_count) {
-        return vm.runtimeError("expected {d} argument(s), found: {d}", .{ lambda.as.lambda.arity, arg_count });
+        inline else => |_, t| @panic("NYI: " ++ @tagName(t)),
     }
-
-    if (vm.frames.items.len == frames_max) {
-        return vm.runtimeError("stack overflow", .{});
-    }
-
-    errdefer comptime unreachable;
-
-    const stack_len = vm.stack.items.len;
-
-    vm.push(lambda);
-    for (args) |v| vm.push(v);
-    for (0..lambda.as.lambda.locals) |_| vm.push(vm.constants[0].ref());
-
-    vm.frames.appendAssumeCapacity(.{
-        .lambda = lambda.as.lambda,
-        .ip = lambda.as.lambda.chunk.data.items(.code).ptr,
-        .slots = vm.stack.items[stack_len..].ptr,
-    });
-}
-
-fn applyUnaryPrimitive(vm: *Vm, unary_primitive: UnaryPrimitive, x: *Value) !*Value {
-    return switch (unary_primitive) {
-        inline .neg,
-        => |t| @call(.auto, @field(Vm, @tagName(t)), .{ vm, x }),
-        inline else => |t| std.debug.panic("NYI: {t}", .{t}),
-    };
-}
-
-fn neg(vm: *Vm, x: *Value) !*Value {
-    return .float(vm.gpa, -x.as.float);
-}
-
-fn applyOperator(vm: *Vm, operator: Operator, x: *Value, y: *Value) !*Value {
-    return switch (operator) {
-        inline .add,
-        .subtract,
-        .multiply,
-        .divide,
-        .match,
-        => |t| @call(.auto, @field(Vm, @tagName(t)), .{ vm, x, y }),
-        inline else => |t| std.debug.panic("NYI: {t}", .{t}),
-    };
 }
 
 fn add(vm: *Vm, x: *Value, y: *Value) !*Value {
@@ -416,8 +437,183 @@ fn divide(vm: *Vm, x: *Value, y: *Value) !*Value {
     return .float(vm.gpa, x.as.float / y.as.float);
 }
 
+fn @"and"(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn @"or"(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn fill(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn equals(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn less_than(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn greater_than(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn cast(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn join(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn take(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn drop(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
 fn match(vm: *Vm, x: *Value, y: *Value) !*Value {
     return .boolean(vm.gpa, x.match(y));
+}
+
+fn dict(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn find(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn apply(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn file_text(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn file_binary(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn dynamic_load(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn in(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn within(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn like(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn bin(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn ss(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn insert(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn wsum(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn wavg(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
+}
+
+fn div(vm: *Vm, x: *Value, y: *Value) !*Value {
+    _ = vm; // autofix
+    _ = x; // autofix
+    _ = y; // autofix
+    @panic("NYI");
 }
 
 fn testVm(source: [:0]const u8, expected: []const u8) !void {
@@ -436,7 +632,8 @@ fn testVm(source: [:0]const u8, expected: []const u8) !void {
     var tree: Ast = try .parse(gpa, source);
     defer tree.deinit(gpa);
 
-    try vm.interpret(tree, "<test>");
+    const result = try vm.interpret(tree, "<test>");
+    defer result.deref(gpa);
 
     try std.testing.expectEqualStrings(
         std.mem.trim(u8, expected, &std.ascii.whitespace),

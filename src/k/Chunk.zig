@@ -5,29 +5,76 @@ const Allocator = std.mem.Allocator;
 const k = @import("../root.zig");
 const Value = k.Value;
 const Vm = k.Vm;
+const NullTerminatedString = k.NullTerminatedString;
 
 const Chunk = @This();
 
 data: std.MultiArrayList(struct { code: u8, line: u32 }) = .empty,
+params: std.ArrayList(NullTerminatedString) = .empty,
+locals: std.ArrayList(NullTerminatedString) = .empty,
+globals: std.ArrayList(NullTerminatedString) = .empty,
 constants: std.ArrayList(*Value) = .empty,
 
 pub const empty: Chunk = .{};
 
 pub const OpCode = enum(u8) {
-    constant,
-    unary_primitive,
-    operator,
-    get_global,
-    set_global,
-    get_local,
-    set_local,
+    @"return" = 0,
+    print = 1,
+    pop = 2,
+    assign = 3,
+    amend = 4,
+    call = 10,
 
-    @"return",
-    pop,
-    print,
-    store_stack_len,
-    apply,
-    enlist,
+    // builtins
+    empty_list = 11,
+    zero = 12,
+    one = 13,
+    comma = 14,
+    null_symbol = 15,
+    nil = 16,
+    empty = 17,
+
+    // unary primitives
+    identity = 32,
+
+    // operators
+    add = 65,
+    subtract = 66,
+    multiply = 67,
+    divide = 68,
+    @"and" = 69,
+    @"or" = 70,
+    fill = 71,
+    equals = 72,
+    less_than = 73,
+    greater_than = 74,
+    cast = 75,
+    join = 76,
+    take = 77,
+    drop = 78,
+    match = 79,
+    dict = 80,
+    find = 81,
+    apply_at = 82,
+    apply = 83,
+    file_text = 84,
+    file_binary = 85,
+    dynamic_load = 86,
+    in = 87,
+    within = 88,
+    like = 89,
+    bin = 90,
+    ss = 91,
+    insert = 92,
+    wsum = 93,
+    wavg = 94,
+    div = 95,
+
+    local = 96,
+
+    global = 129,
+
+    constant = 160,
 
     pub const Index = enum(u32) { _ };
 };
@@ -38,6 +85,9 @@ pub fn opCode(chunk: *const Chunk, index: OpCode.Index) OpCode {
 
 pub fn deinit(chunk: *Chunk, gpa: Allocator) void {
     chunk.data.deinit(gpa);
+    chunk.params.deinit(gpa);
+    chunk.locals.deinit(gpa);
+    chunk.globals.deinit(gpa);
     for (chunk.constants.items) |v| v.deref(gpa);
     chunk.constants.deinit(gpa);
 }
@@ -82,31 +132,94 @@ pub fn disassembleInstruction(chunk: Chunk, vm: *Vm, writer: *Io.Writer, offset:
     }
 
     switch (chunk.opCode(@enumFromInt(offset))) {
-        .constant,
-        .get_global,
-        .set_global,
-        => |t| return chunk.constantInstruction(vm, writer, t, offset),
+        .@"return" => |t| return simpleInstruction(writer, t, offset),
+        .print => |t| return simpleInstruction(writer, t, offset),
+        .pop => |t| return simpleInstruction(writer, t, offset),
+        .assign => |t| return chunk.assignInstruction(vm, writer, t, offset),
+        .amend => |t| return chunk.byteInstruction2(writer, t, offset, Value.Operator),
+        .call => |t| return chunk.byteInstruction(writer, t, offset),
 
-        .unary_primitive => return chunk.unaryPrimitiveInstruction(writer, offset),
-        .operator => return chunk.operatorInstruction(writer, offset),
-
-        .get_local,
-        .set_local,
-        => |t| return chunk.byteInstruction(writer, t, offset),
-
-        .@"return",
-        .pop,
-        .print,
-        .store_stack_len,
-        .apply,
-        .enlist,
+        .empty_list,
+        .zero,
+        .one,
+        .comma,
+        .null_symbol,
+        .nil,
+        .empty,
         => |t| return simpleInstruction(writer, t, offset),
+
+        .identity,
+        => |t| return simpleInstruction(writer, t, offset),
+
+        .add,
+        .subtract,
+        .multiply,
+        .divide,
+        .@"and",
+        .@"or",
+        .fill,
+        .equals,
+        .less_than,
+        .greater_than,
+        .cast,
+        .join,
+        .take,
+        .drop,
+        .match,
+        .dict,
+        .find,
+        .apply_at,
+        .apply,
+        .file_text,
+        .file_binary,
+        .dynamic_load,
+        .in,
+        .within,
+        .like,
+        .bin,
+        .ss,
+        .insert,
+        .wsum,
+        .wavg,
+        .div,
+        => |t| return simpleInstruction(writer, t, offset),
+
+        .local => |t| return chunk.localInstruction(vm, writer, t, offset),
+
+        .global => |t| return chunk.globalInstruction(vm, writer, t, offset),
+
+        .constant => |t| return chunk.constantInstruction(vm, writer, t, offset),
     }
 }
 
 fn simpleInstruction(writer: *Io.Writer, op_code: OpCode, offset: usize) !usize {
     try writer.print("{t}\n", .{op_code});
     return offset + 1;
+}
+
+fn assignInstruction(chunk: Chunk, vm: *Vm, writer: *Io.Writer, op_code: OpCode, offset: usize) !usize {
+    const constant = chunk.data.items(.code)[offset + 1];
+    const name = vm.nullTerminatedString(
+        if (constant < 9) chunk.params.items[constant - 1] else chunk.locals.items[constant - 9],
+    );
+    try writer.print("{t: <16} {d:4} '{s}'\n", .{ op_code, constant, name });
+    return offset + 2;
+}
+
+fn localInstruction(chunk: Chunk, vm: *Vm, writer: *Io.Writer, op_code: OpCode, offset: usize) !usize {
+    const constant = chunk.data.items(.code)[offset + 1];
+    const name = vm.nullTerminatedString(
+        if (constant < 9) chunk.params.items[constant - 1] else chunk.locals.items[constant - 9],
+    );
+    try writer.print("{t: <16} {d:4} '{s}'\n", .{ op_code, constant, name });
+    return offset + 2;
+}
+
+fn globalInstruction(chunk: Chunk, vm: *Vm, writer: *Io.Writer, op_code: OpCode, offset: usize) !usize {
+    const constant = chunk.data.items(.code)[offset + 1];
+    const name = vm.nullTerminatedString(chunk.globals.items[constant]);
+    try writer.print("{t: <16} {d:4} '{s}'\n", .{ op_code, constant, name });
+    return offset + 2;
 }
 
 fn constantInstruction(chunk: Chunk, vm: *Vm, writer: *Io.Writer, op_code: OpCode, offset: usize) !usize {
@@ -131,6 +244,13 @@ fn byteInstruction(chunk: Chunk, writer: *Io.Writer, op_code: OpCode, offset: us
     const slot = chunk.data.items(.code)[offset + 1];
     try writer.print("{t: <16} {d:4}\n", .{ op_code, slot });
     return offset + 2;
+}
+
+fn byteInstruction2(chunk: Chunk, writer: *Io.Writer, op_code: OpCode, offset: usize, comptime T: type) !usize {
+    const slot1 = chunk.data.items(.code)[offset + 1];
+    const slot2: T = @enumFromInt(chunk.data.items(.code)[offset + 2]);
+    try writer.print("{t: <16} {d:4} {t}\n", .{ op_code, slot1, slot2 });
+    return offset + 3;
 }
 
 test {

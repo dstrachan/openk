@@ -159,10 +159,13 @@ fn cmdRepl(io: Io, gpa: Allocator, args: []const []const u8) !void {
                 continue;
             }
 
-            vm.interpret(tree, "<stdin>") catch |err| switch (err) {
+            if (vm.interpret(tree, "<stdin>")) |value| {
+                defer value.deref(gpa);
+            } else |err| switch (err) {
                 error.CompilerError => {},
+                error.RuntimeError => {},
                 else => return err,
-            };
+            }
         }
     } else {
         var buffer: Io.Writer.Allocating = .init(gpa);
@@ -181,7 +184,8 @@ fn cmdRepl(io: Io, gpa: Allocator, args: []const []const u8) !void {
             std.process.exit(1);
         }
 
-        try vm.interpret(tree, "<stdin>");
+        const result = try vm.interpret(tree, "<stdin>");
+        defer result.deref(gpa);
     }
 
     return cleanExit(io);
@@ -254,7 +258,8 @@ fn cmdFile(io: Io, gpa: Allocator, file: []const u8, args: []const []const u8) !
         std.process.exit(1);
     }
 
-    try vm.interpret(tree, file);
+    const result = try vm.interpret(tree, file);
+    defer result.deref(gpa);
 
     return cleanExit(io);
 }

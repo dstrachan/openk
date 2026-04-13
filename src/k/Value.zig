@@ -469,7 +469,7 @@ pub const Operator = enum(u8) {
 
     pub fn format(self: Operator, w: *Io.Writer) !void {
         switch (self) {
-            .assign => try w.writeAll("TODO"),
+            .assign => try w.writeByte(':'),
             .add => try w.writeByte('+'),
             .subtract => try w.writeByte('-'),
             .multiply => try w.writeByte('*'),

@@ -25,16 +25,9 @@ tree: Ast,
 lambda: *Value,
 src_path: []const u8,
 line: u32 = 0,
-locals: std.ArrayList([]const u8),
-globals: std.ArrayList(Ast.TokenIndex),
 eb: *ErrorBundle.Wip,
 
 pub fn init(c: *Compiler, vm: *Vm, tree: Ast, eb: *ErrorBundle.Wip, src_path: []const u8) !void {
-    var locals: std.ArrayList([]const u8) = try .initCapacity(vm.gpa, std.math.maxInt(u8));
-    errdefer locals.deinit(vm.gpa);
-    var globals: std.ArrayList(Ast.TokenIndex) = try .initCapacity(vm.gpa, std.math.maxInt(u8));
-    errdefer globals.deinit(vm.gpa);
-
     const lambda: *Value = try .lambda(vm.gpa, .{ .source = try vm.intern(src_path) });
     errdefer comptime unreachable;
 
@@ -44,15 +37,8 @@ pub fn init(c: *Compiler, vm: *Vm, tree: Ast, eb: *ErrorBundle.Wip, src_path: []
         .tree = tree,
         .lambda = lambda,
         .src_path = src_path,
-        .locals = locals,
-        .globals = globals,
         .eb = eb,
     };
-}
-
-pub fn deinit(c: *Compiler) void {
-    c.locals.deinit(c.gpa);
-    c.globals.deinit(c.gpa);
 }
 
 pub fn compile(c: *Compiler) !*Value {
@@ -67,6 +53,7 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
 
     switch (tree.nodeTag(tree.unwrap(node))) {
         .root => unreachable,
+        .no_op => try c.emitOpCode(.empty),
 
         .pop => {
             try c.compileNode(tree.nodeData(node).node);
@@ -79,19 +66,18 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
 
         .grouped_expression => unreachable,
 
-        .empty_list => {
-            const value: *Value = try .list(c.gpa, 0);
-            errdefer value.deref(c.gpa);
-            try c.emitConstant(value, node);
-        },
+        .empty_list => try c.emitEmptyList(),
         .list => {
             const nodes = tree.extraDataSlice(tree.nodeData(node).extra_range, Node.Index);
             assert(nodes.len > 1);
 
-            try c.emitOpCode(.store_stack_len);
             var it = std.mem.reverseIterator(nodes);
             while (it.next()) |n| try c.compileNode(n);
-            try c.emitOpCode(.enlist);
+            const value: *Value = try .unaryPrimitive(c.gpa, .enlist);
+            errdefer value.deref(c.gpa);
+            try c.emitConstant(value, node);
+            try c.emitOpCode(.call);
+            try c.emitByte(nodes.len);
         },
 
         .lambda => {
@@ -108,29 +94,32 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             var compiler: Compiler = undefined;
             try compiler.init(c.vm, tree, c.eb, c.src_path);
             errdefer compiler.lambda.deref(c.gpa);
-            defer compiler.deinit();
+
+            const chunk = &compiler.lambda.as.lambda.chunk;
+            try chunk.params.ensureTotalCapacity(c.gpa, 8);
 
             if (params.len > 0 and tree.nodeTag(params[0]) != .no_op) {
                 for (params) |identifier| {
                     assert(tree.nodeTag(identifier) == .identifier);
-                    const name = tree.tokenSlice(tree.nodeMainToken(identifier));
-                    try compiler.addLocal(name, identifier, .append);
+                    const name = try c.vm.intern(tree.tokenSlice(tree.nodeMainToken(identifier)));
+                    chunk.params.appendAssumeCapacity(name);
                 }
             }
             for (body) |n| try compiler.findLocals(n, params.len == 0);
 
             const arity: usize = if (params.len == 0) arity: {
-                if (compiler.locals.items.len > 2 and std.mem.eql(u8, compiler.locals.items[2], "z")) break :arity 3;
-                if (compiler.locals.items.len > 1 and std.mem.eql(u8, compiler.locals.items[1], "y")) break :arity 2;
+                const locals = compiler.lambda.as.lambda.chunk.locals.items;
+                if (locals.len > 2 and locals[2] == .z) break :arity 3;
+                if (locals.len > 1 and locals[1] == .y) break :arity 2;
                 break :arity 1;
             } else params.len;
 
             compiler.lambda.as.lambda.source = try c.vm.intern(tree.nodeSlice(node));
             compiler.lambda.as.lambda.arity = arity;
-            compiler.lambda.as.lambda.locals = compiler.locals.items.len -| arity;
+            compiler.lambda.as.lambda.locals = compiler.lambda.as.lambda.chunk.locals.items.len -| arity;
 
             for (body) |n| try compiler.compileNode(n);
-            if (data.trailing_semicolon) try compiler.emitUnaryPrimitive(.identity);
+            if (body.len == 0 or data.trailing_semicolon) try compiler.emitNil();
 
             const lambda = try compiler.endCompiler();
             try c.emitConstant(lambda, node);
@@ -147,7 +136,7 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             try c.emitConstant(value, number_literal);
         },
 
-        .colon, .colon_colon => unreachable,
+        .colon, .colon_colon => try c.emitNil(),
         .plus => try c.emitOperator(.add),
         .minus => try c.emitOperator(.subtract),
         .asterisk => try c.emitOperator(.multiply),
@@ -173,54 +162,53 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
 
         .call => {
             const nodes = tree.extraDataSlice(tree.nodeData(node).extra_range, Node.Index);
-            assert(nodes.len > 0);
+            const func = nodes[0];
+            const args = nodes[1..];
 
-            if (nodes.len == 3) switch (tree.nodeTag(tree.unwrap(nodes[0]))) {
-                .colon => return c.compileColon(nodes[1], nodes[2]),
-                .colon_colon => return c.compileColonColon(nodes[1], nodes[2]),
-                else => {},
-            };
-
-            try c.emitOpCode(.store_stack_len);
-            if (nodes.len == 1) {
-                try c.emitUnaryPrimitive(.identity);
+            if (args.len == 0) {
+                try c.emitNil();
+                try c.compileNode(func);
+                try c.emitCall(1);
+                return;
             }
-            var it = std.mem.reverseIterator(nodes);
-            while (it.next()) |n| try c.compileNode(n);
-            try c.emitOpCode(.apply);
+
+            if (args.len == 2) {
+                switch (tree.nodeTag(func)) {
+                    .colon => return c.failNode(node, "nyi", .{}),
+                    .colon_colon => return c.failNode(node, "nyi", .{}),
+                    else => {},
+                }
+            }
+
+            var it = std.mem.reverseIterator(args);
+            while (it.next()) |n| {
+                try c.compileNode(n);
+            }
+            try c.compileNode(func);
+            try c.emitCall(args.len);
         },
 
         .apply_unary => {
             const lhs, const rhs = tree.nodeData(node).node_and_node;
-
-            try c.emitOpCode(.store_stack_len);
-            try c.compileNode(rhs);
-            try c.compileUnaryNode(lhs);
-            try c.emitOpCode(.apply);
+            try c.emitApplyUnary(lhs, rhs);
         },
 
         .apply_binary => {
             const lhs, const maybe_rhs = tree.nodeData(node).node_and_opt_node;
             const op: Node.Index = @enumFromInt(tree.nodeMainToken(node));
-
-            switch (tree.nodeTag(op)) {
-                .colon => return c.compileColon(lhs, maybe_rhs.unwrap().?),
-                .colon_colon => return c.compileColonColon(lhs, maybe_rhs.unwrap().?),
-                else => {},
-            }
-
-            try c.emitOpCode(.store_stack_len);
-            if (maybe_rhs.unwrap()) |rhs| {
-                try c.compileNode(rhs);
-            } else unreachable;
-            try c.compileNode(lhs);
-            try c.compileNode(op);
-            try c.emitOpCode(.apply);
+            try c.emitApplyBinary(lhs, op, maybe_rhs);
         },
 
         .number_literal => {
             const token = tree.nodeMainToken(node);
             const slice = tree.tokenSlice(token);
+            if (slice.len == 1 or (slice.len == 2 and slice[1] == 'j')) {
+                switch (slice[0]) {
+                    '0' => return c.emitZero(),
+                    '1' => return c.emitOne(),
+                    else => {},
+                }
+            }
             const number = try std.fmt.parseFloat(f64, slice);
             const value: *Value = try .float(c.gpa, number);
             errdefer value.deref(c.gpa);
@@ -237,6 +225,7 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
         .symbol_literal => {
             const token = tree.nodeMainToken(node);
             const slice = tree.tokenSlice(token);
+            if (slice.len == 1) return c.emitNullSymbol();
             const value: *Value = try .symbol(c.gpa, try c.vm.intern(slice[1..]));
             errdefer value.deref(c.gpa);
             try c.emitConstant(value, node);
@@ -256,111 +245,25 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             try c.emitConstant(value, node);
         },
         .identifier => {
+            const name = try c.vm.intern(tree.tokenSlice(tree.nodeMainToken(node)));
+
             if (c.lambda.as.lambda.arity > 0) {
-                const name = tree.tokenSlice(tree.nodeMainToken(node));
                 if (c.getLocal(name)) |local| {
-                    try c.emitOpCode(.get_local);
-                    try c.emitByte(local);
+                    try c.emitLocal(local);
                     return;
                 }
             }
 
-            const constant = try c.identifierConstant(node);
-            try c.emitOpCode(.get_global);
-            try c.emitByte(constant);
+            const global: u8 = c.getGlobal(name) orelse global: {
+                try c.addGlobal(name);
+                const globals = c.lambda.as.lambda.chunk.globals.items;
+                assert(globals[globals.len - 1] == name);
+                break :global @intCast(globals.len - 1);
+            };
+            try c.emitGlobal(global);
         },
 
         inline else => |t| std.debug.panic("{t}", .{t}),
-    }
-}
-
-fn compileUnaryNode(c: *Compiler, node: Node.Index) !void {
-    const tree = c.tree;
-
-    switch (tree.nodeTag(tree.unwrap(node))) {
-        .grouped_expression => unreachable,
-
-        .colon, .colon_colon => unreachable,
-        .plus, .plus_colon => try c.emitUnaryPrimitive(.flip),
-        .minus, .minus_colon => try c.emitUnaryPrimitive(.neg),
-        .asterisk, .asterisk_colon => try c.emitUnaryPrimitive(.first),
-        .percent, .percent_colon => try c.emitUnaryPrimitive(.reciprocal),
-        .ampersand, .ampersand_colon => try c.emitUnaryPrimitive(.where),
-        .pipe, .pipe_colon => try c.emitUnaryPrimitive(.reverse),
-        .caret, .caret_colon => try c.emitUnaryPrimitive(.null),
-        .equal, .equal_colon => try c.emitUnaryPrimitive(.group),
-        .l_angle_bracket, .l_angle_bracket_colon => try c.emitUnaryPrimitive(.asc),
-        .r_angle_bracket, .r_angle_bracket_colon => try c.emitUnaryPrimitive(.desc),
-        .dollar, .dollar_colon => try c.emitUnaryPrimitive(.string),
-        .comma, .comma_colon => try c.emitUnaryPrimitive(.list),
-        .hash, .hash_colon => try c.emitUnaryPrimitive(.count),
-        .underscore, .underscore_colon => try c.emitUnaryPrimitive(.lower),
-        .tilde, .tilde_colon => try c.emitUnaryPrimitive(.not),
-        .bang, .bang_colon => try c.emitUnaryPrimitive(.key),
-        .question_mark, .question_mark_colon => try c.emitUnaryPrimitive(.distinct),
-        .at, .at_colon => try c.emitUnaryPrimitive(.type),
-        .dot, .dot_colon => try c.emitUnaryPrimitive(.value),
-        .zero_colon, .zero_colon_colon => try c.emitUnaryPrimitive(.read_text),
-        .one_colon, .one_colon_colon => try c.emitUnaryPrimitive(.read_binary),
-
-        else => try c.compileNode(node),
-    }
-}
-
-fn compileColon(c: *Compiler, lhs: Node.Index, rhs: Node.Index) !void {
-    const tree = c.tree;
-
-    const identifier = tree.unwrap(lhs);
-    assert(tree.nodeTag(identifier) == .identifier);
-
-    try c.compileNode(rhs);
-
-    if (c.lambda.as.lambda.arity > 0) {
-        const name = tree.tokenSlice(tree.nodeMainToken(identifier));
-        if (c.getLocal(name)) |local| {
-            try c.emitOpCode(.set_local);
-            try c.emitByte(local);
-        } else {
-            try c.appendErrorNodeNotes(
-                identifier,
-                "Cannot assign to global variable '{s}'",
-                .{name},
-                &.{
-                    try c.errNoteTok(
-                        c.getGlobal(name).?,
-                        "Variable promoted to global here",
-                        .{},
-                    ),
-                },
-            );
-        }
-    } else {
-        const constant = try c.identifierConstant(identifier);
-        try c.emitOpCode(.set_global);
-        try c.emitByte(constant);
-    }
-}
-
-fn compileColonColon(c: *Compiler, lhs: Node.Index, rhs: Node.Index) !void {
-    const tree = c.tree;
-
-    const identifier = tree.unwrap(lhs);
-    assert(tree.nodeTag(identifier) == .identifier);
-
-    try c.compileNode(rhs);
-
-    if (c.lambda.as.lambda.arity > 0) {
-        const name = tree.tokenSlice(tree.nodeMainToken(identifier));
-        if (c.getLocal(name)) |local| {
-            try c.emitOpCode(.set_local);
-            try c.emitByte(local);
-        } else {
-            const constant = try c.identifierConstant(identifier);
-            try c.emitOpCode(.set_global);
-            try c.emitByte(constant);
-        }
-    } else {
-        @panic("NYI: set_view");
     }
 }
 
@@ -392,20 +295,260 @@ fn endCompiler(c: *Compiler) !*Value {
     return c.lambda;
 }
 
+fn emitAssign(c: *Compiler, local: u8) !void {
+    try c.emitOpCode(.assign);
+    try c.emitByte(local);
+}
+
+fn emitAmend(c: *Compiler, identifier: u8, operator: Value.Operator) !void {
+    try c.emitOpCode(.empty_list);
+    try c.emitOpCode(.amend);
+    try c.emitByte(identifier);
+    try c.emitByte(@intFromEnum(operator));
+}
+
+fn emitCall(c: *Compiler, arg_count: usize) !void {
+    try c.emitOpCode(.call);
+    try c.emitByte(arg_count);
+}
+
+fn emitLocal(c: *Compiler, local: u8) !void {
+    try c.emitOpCode(.local);
+    try c.emitByte(local);
+}
+
+fn emitGlobal(c: *Compiler, global: u8) !void {
+    try c.emitOpCode(.global);
+    try c.emitByte(global);
+}
+
+fn emitApplyUnary(c: *Compiler, lhs: Node.Index, rhs: Node.Index) !void {
+    const tree = c.tree;
+
+    try c.compileNode(rhs);
+    switch (tree.nodeTag(tree.unwrap(lhs))) {
+        .grouped_expression => unreachable,
+
+        .colon, .colon_colon => try c.emitUnaryPrimitive(.identity),
+        .plus, .plus_colon => try c.emitUnaryPrimitive(.flip),
+        .minus, .minus_colon => try c.emitUnaryPrimitive(.neg),
+        .asterisk, .asterisk_colon => try c.emitUnaryPrimitive(.first),
+        .percent, .percent_colon => try c.emitUnaryPrimitive(.reciprocal),
+        .ampersand, .ampersand_colon => try c.emitUnaryPrimitive(.where),
+        .pipe, .pipe_colon => try c.emitUnaryPrimitive(.reverse),
+        .caret, .caret_colon => try c.emitUnaryPrimitive(.null),
+        .equal, .equal_colon => try c.emitUnaryPrimitive(.group),
+        .l_angle_bracket, .l_angle_bracket_colon => try c.emitUnaryPrimitive(.asc),
+        .r_angle_bracket, .r_angle_bracket_colon => try c.emitUnaryPrimitive(.desc),
+        .dollar, .dollar_colon => try c.emitUnaryPrimitive(.string),
+        .comma, .comma_colon => try c.emitUnaryPrimitive(.list),
+        .hash, .hash_colon => try c.emitUnaryPrimitive(.count),
+        .underscore, .underscore_colon => try c.emitUnaryPrimitive(.lower),
+        .tilde, .tilde_colon => try c.emitUnaryPrimitive(.not),
+        .bang, .bang_colon => try c.emitUnaryPrimitive(.key),
+        .question_mark, .question_mark_colon => try c.emitUnaryPrimitive(.distinct),
+        .at, .at_colon => try c.emitUnaryPrimitive(.type),
+        .dot, .dot_colon => try c.emitUnaryPrimitive(.value),
+        .zero_colon, .zero_colon_colon => try c.emitUnaryPrimitive(.read_text),
+        .one_colon, .one_colon_colon => try c.emitUnaryPrimitive(.read_binary),
+
+        else => {
+            try c.compileNode(lhs);
+            try c.emitOpCode(.apply_at);
+        },
+    }
+}
+
+// TODO: binary iterator
+fn emitApplyBinary(c: *Compiler, lhs: Node.Index, op: Node.Index, maybe_rhs: Node.OptionalIndex) !void {
+    const tree = c.tree;
+
+    if (maybe_rhs.unwrap()) |rhs| {
+        const tag = tree.nodeTag(tree.unwrap(op));
+        switch (tag) {
+            .grouped_expression => unreachable,
+
+            inline .colon,
+            .colon_colon,
+            => |t| {
+                const identifier = tree.unwrap(lhs);
+                if (tree.nodeTag(identifier) != .identifier) {
+                    return c.failNode(lhs, "Expected identifier, found '{t}'", .{tree.nodeTag(identifier)});
+                }
+
+                try c.compileNode(rhs);
+
+                const name = try c.vm.intern(tree.tokenSlice(tree.nodeMainToken(identifier)));
+                if (comptime t == .colon) {
+                    try c.emitAssign(c.getLocal(name).?);
+                } else {
+                    if (c.getLocal(name)) |local| {
+                        try c.emitAssign(local);
+                    } else {
+                        try c.emitAmend(c.getGlobal(name).?, .assign);
+                    }
+                }
+            },
+
+            else => {
+                try c.compileNode(rhs);
+                try c.compileNode(lhs);
+                switch (tree.nodeTag(tree.unwrap(op))) {
+                    .plus => return c.emitOperator(.add),
+                    .plus_colon => return c.failNode(op, "nyi", .{}),
+                    .minus => return c.emitOperator(.subtract),
+                    .minus_colon => return c.failNode(op, "nyi", .{}),
+                    .asterisk => return c.emitOperator(.multiply),
+                    .asterisk_colon => return c.failNode(op, "nyi", .{}),
+                    .percent => return c.emitOperator(.divide),
+                    .percent_colon => return c.failNode(op, "nyi", .{}),
+                    .ampersand => return c.emitOperator(.@"and"),
+                    .ampersand_colon => return c.failNode(op, "nyi", .{}),
+                    .pipe => return c.emitOperator(.@"or"),
+                    .pipe_colon => return c.failNode(op, "nyi", .{}),
+                    .caret => return c.emitOperator(.fill),
+                    .caret_colon => return c.failNode(op, "nyi", .{}),
+                    .equal => return c.emitOperator(.equals),
+                    .equal_colon => return c.failNode(op, "nyi", .{}),
+                    .l_angle_bracket => return c.emitOperator(.less_than),
+                    .l_angle_bracket_colon => return c.failNode(op, "nyi", .{}),
+                    .r_angle_bracket => return c.emitOperator(.greater_than),
+                    .r_angle_bracket_colon => return c.failNode(op, "nyi", .{}),
+                    .dollar => return c.emitOperator(.cast),
+                    .dollar_colon => return c.failNode(op, "nyi", .{}),
+                    .comma => return c.emitOperator(.join),
+                    .comma_colon => return c.failNode(op, "nyi", .{}),
+                    .hash => return c.emitOperator(.take),
+                    .hash_colon => return c.failNode(op, "nyi", .{}),
+                    .underscore => return c.emitOperator(.drop),
+                    .underscore_colon => return c.failNode(op, "nyi", .{}),
+                    .tilde => return c.emitOperator(.match),
+                    .tilde_colon => return c.failNode(op, "nyi", .{}),
+                    .bang => return c.emitOperator(.dict),
+                    .bang_colon => return c.failNode(op, "nyi", .{}),
+                    .question_mark => return c.emitOperator(.find),
+                    .question_mark_colon => return c.failNode(op, "nyi", .{}),
+                    .at => return c.emitOperator(.apply_at),
+                    .at_colon => return c.failNode(op, "nyi", .{}),
+                    .dot => return c.emitOperator(.apply),
+                    .dot_colon => return c.failNode(op, "nyi", .{}),
+                    .zero_colon => return c.emitOperator(.file_text),
+                    .zero_colon_colon => return c.failNode(op, "nyi", .{}),
+                    .one_colon => return c.emitOperator(.file_binary),
+                    .one_colon_colon => return c.failNode(op, "nyi", .{}),
+                    .two_colon => return c.emitOperator(.dynamic_load),
+                    else => unreachable,
+                }
+            },
+        }
+    } else {
+        try c.compileNode(lhs);
+        try c.compileNode(op);
+        try c.emitOperator(.apply_at);
+    }
+}
+
 fn emitUnaryPrimitive(c: *Compiler, unary_primitive: Value.UnaryPrimitive) !void {
-    try c.emitOpCode(.unary_primitive);
-    try c.emitByte(@intFromEnum(unary_primitive));
+    const op_code: OpCode = @enumFromInt(@intFromEnum(unary_primitive) + 32);
+    try c.emitOpCode(op_code);
+}
+
+fn emitEmptyList(c: *Compiler) !void {
+    try c.emitOpCode(.empty_list);
+}
+
+fn emitZero(c: *Compiler) !void {
+    try c.emitOpCode(.zero);
+}
+
+fn emitOne(c: *Compiler) !void {
+    try c.emitOpCode(.one);
+}
+
+fn emitComma(c: *Compiler) !void {
+    try c.emitOpCode(.comma);
+}
+
+fn emitNullSymbol(c: *Compiler) !void {
+    try c.emitOpCode(.null_symbol);
+}
+
+fn emitNil(c: *Compiler) !void {
+    try c.emitOpCode(.nil);
+}
+
+fn emitEmpty(c: *Compiler) !void {
+    try c.emitOpCode(.empty);
 }
 
 fn emitOperator(c: *Compiler, operator: Value.Operator) !void {
-    try c.emitOpCode(.operator);
-    try c.emitByte(@intFromEnum(operator));
+    const op_code: OpCode = @enumFromInt(@intFromEnum(operator) + 64);
+    try c.emitOpCode(op_code);
 }
 
 fn emitConstant(c: *Compiler, value: *Value, node: Node.Index) !void {
     const constant = try c.makeConstant(value, node);
     try c.emitOpCode(.constant);
     try c.emitByte(constant);
+}
+
+fn addImplicitParam(c: *Compiler, name: NullTerminatedString) void {
+    const params = &c.lambda.as.lambda.chunk.params;
+    assert(params.capacity >= 8);
+    switch (name) {
+        .x => if (params.items.len < 1) {
+            params.items.len = 1;
+            params.items[0] = .x;
+        },
+        .y => if (params.items.len < 2) {
+            params.items.len = 2;
+            params.items[0] = .x;
+            params.items[1] = .y;
+        },
+        .z => if (params.items.len < 3) {
+            params.items.len = 3;
+            params.items[0] = .x;
+            params.items[1] = .y;
+            params.items[2] = .z;
+        },
+        else => unreachable,
+    }
+}
+
+fn addLocal(c: *Compiler, name: NullTerminatedString, node: Node.Index) !void {
+    if (c.getGlobal(name) != null) {
+        return c.failNode(node, "Cannot assign to global variable '{s}'", .{c.vm.nullTerminatedString(name)});
+    }
+    if (c.getLocal(name) != null) return;
+    try c.lambda.as.lambda.chunk.locals.append(c.gpa, name);
+}
+
+fn addGlobal(c: *Compiler, name: NullTerminatedString) !void {
+    if (c.getLocal(name) != null) return;
+    if (c.getGlobal(name) != null) return;
+    try c.lambda.as.lambda.chunk.globals.append(c.gpa, name);
+}
+
+fn addIdentifier(c: *Compiler, node: Node.Index, implicit_args: bool, scope: enum { local, global }) !void {
+    assert(c.tree.nodeTag(node) == .identifier);
+    const name = try c.vm.intern(c.tree.tokenSlice(c.tree.nodeMainToken(node)));
+    if (scope == .local) {
+        if (implicit_args) {
+            switch (name) {
+                .x, .y, .z => return c.addImplicitParam(name),
+                else => {},
+            }
+        }
+        try c.addLocal(name, node);
+    } else {
+        if (implicit_args) {
+            switch (name) {
+                .x, .y, .z => return c.addImplicitParam(name),
+                else => {},
+            }
+        }
+        try c.addGlobal(name);
+    }
 }
 
 fn makeConstant(c: *Compiler, value: *Value, node: Node.Index) !u8 {
@@ -489,80 +632,26 @@ fn appendErrorNodeNotes(
     }, notes);
 }
 
-fn getLocal(c: *Compiler, name: []const u8) ?u32 {
-    for (c.locals.items, 0..) |local, i| {
-        if (std.mem.eql(u8, local, name)) return @intCast(i);
+fn getParam(c: *Compiler, name: NullTerminatedString) ?u8 {
+    for (c.lambda.as.lambda.chunk.params.items, 1..) |value, i| {
+        if (value == name) return @intCast(i);
     }
     return null;
 }
 
-fn getGlobal(c: *Compiler, name: []const u8) ?Ast.TokenIndex {
-    for (c.globals.items) |global| {
-        if (std.mem.eql(u8, c.tree.tokenSlice(global), name)) return global;
+fn getLocal(c: *Compiler, name: NullTerminatedString) ?u8 {
+    if (c.getParam(name)) |param| return param;
+    for (c.lambda.as.lambda.chunk.locals.items, 9..) |value, i| {
+        if (value == name) return @intCast(i);
     }
     return null;
 }
 
-fn addLocal(c: *Compiler, name: []const u8, node: Node.Index, index: enum { zero, one, two, append }) !void {
-    assert(name.len > 0);
-
-    if (c.getGlobal(name)) |_| return;
-    if (c.getLocal(name)) |_| return;
-
-    if (c.locals.items.len >= std.math.maxInt(u8)) {
-        return c.failNode(node, "Too many local variables", .{});
+fn getGlobal(c: *Compiler, name: NullTerminatedString) ?u8 {
+    for (c.lambda.as.lambda.chunk.globals.items, 0..) |value, i| {
+        if (value == name) return @intCast(i);
     }
-
-    switch (index) {
-        .zero, .one, .two => c.locals.insertAssumeCapacity(@intFromEnum(index), name),
-        .append => c.locals.appendAssumeCapacity(name),
-    }
-}
-
-fn addGlobal(c: *Compiler, token_index: Ast.TokenIndex, node: Node.Index) !void {
-    const name = c.tree.tokenSlice(token_index);
-    assert(name.len > 0);
-    assert(c.getLocal(name) == null);
-
-    if (c.getGlobal(name)) |_| return;
-
-    if (c.globals.items.len >= std.math.maxInt(u8)) {
-        return c.failNode(node, "Too many global variables", .{});
-    }
-
-    c.globals.appendAssumeCapacity(token_index);
-}
-
-fn addIdentifier(c: *Compiler, node: Node.Index, implicit_args: bool, scope: enum { local, global }) !void {
-    const tree = c.tree;
-    assert(tree.nodeTag(node) == .identifier);
-    const identifier = tree.nodeMainToken(node);
-    const name = tree.tokenSlice(identifier);
-    if (implicit_args and name.len == 1) {
-        switch (name[0]) {
-            'x' => {
-                try c.addLocal("x", node, .zero);
-                return;
-            },
-            'y' => {
-                try c.addLocal("x", node, .zero);
-                try c.addLocal("y", node, .one);
-                return;
-            },
-            'z' => {
-                try c.addLocal("x", node, .zero);
-                try c.addLocal("y", node, .one);
-                try c.addLocal("z", node, .two);
-                return;
-            },
-            else => {},
-        }
-    }
-
-    switch (scope) {
-        .local => try c.addLocal(name, node, .append),
-        .global => if (c.getLocal(name) == null) try c.addGlobal(identifier, node),
-    }
+    return null;
 }
 
 fn findLocals(c: *Compiler, node: Node.Index, implicit_args: bool) !void {
@@ -577,15 +666,15 @@ fn findLocals(c: *Compiler, node: Node.Index, implicit_args: bool) !void {
 
         .grouped_expression => try c.findLocals(tree.nodeData(node).node_and_token[0], implicit_args),
         .empty_list => {},
-        .list => {
-            for (tree.extraDataSlice(tree.nodeData(node).extra_range, Node.Index)) |n| try c.findLocals(n, implicit_args);
+        .list => for (tree.extraDataSlice(tree.nodeData(node).extra_range, Node.Index)) |n| {
+            try c.findLocals(n, implicit_args);
         },
         .table_literal => |t| std.debug.panic("NYI: findLocals({t})", .{t}),
 
         .lambda => {},
 
-        .expr_block => {
-            for (tree.extraDataSlice(tree.nodeData(node).extra_range, Node.Index)) |n| try c.findLocals(n, implicit_args);
+        .expr_block => for (tree.extraDataSlice(tree.nodeData(node).extra_range, Node.Index)) |n| {
+            try c.findLocals(n, implicit_args);
         },
 
         .negation => try c.findLocals(tree.nodeData(node).node, implicit_args),
@@ -648,12 +737,14 @@ fn findLocals(c: *Compiler, node: Node.Index, implicit_args: bool) !void {
         .call => {
             const nodes = tree.extraDataSlice(tree.nodeData(node).extra_range, Node.Index);
             assert(nodes.len > 0);
+
             if (nodes.len == 3) {
                 try c.findLocals(nodes[2], implicit_args);
                 if (tree.nodeTag(tree.unwrap(nodes[0])) == .colon) {
                     try c.addIdentifier(tree.unwrap(nodes[1]), implicit_args, .local);
                 }
                 try c.findLocals(nodes[1], implicit_args);
+                try c.findLocals(nodes[0], implicit_args);
             } else {
                 var it = std.mem.reverseIterator(nodes);
                 while (it.next()) |n| try c.findLocals(n, implicit_args);
@@ -708,7 +799,6 @@ fn testCompiler(source: [:0]const u8, expected: []const u8) !void {
 
     var compiler: Compiler = undefined;
     try compiler.init(&vm, tree, &wip, "<test>");
-    defer compiler.deinit();
 
     const lambda: *Value = compiler.compile() catch |err| switch (err) {
         error.CompilerError => blk: {
@@ -731,48 +821,58 @@ fn testCompiler(source: [:0]const u8, expected: []const u8) !void {
     );
 }
 
-test {
+test "implicit params" {
+    try testCompiler("{x}",
+        \\== {x} ==
+        \\0000    0 local               1 'x'
+        \\0002    | return
+        \\== <test> ==
+        \\0000    0 constant            0 '{x}'
+        \\0002    | print
+        \\0003    | return
+    );
+    try testCompiler("{a:x}",
+        \\== {a:x} ==
+        \\0000    0 local               1 'x'
+        \\0002    | assign              9 'a'
+        \\0004    | return
+        \\== <test> ==
+        \\0000    0 constant            0 '{a:x}'
+        \\0002    | print
+        \\0003    | return
+    );
+    try testCompiler("{y:x}",
+        \\== {y:x} ==
+        \\0000    0 local               1 'x'
+        \\0002    | assign              2 'y'
+        \\0004    | return
+        \\== <test> ==
+        \\0000    0 constant            0 '{y:x}'
+        \\0002    | print
+        \\0003    | return
+    );
     try testCompiler("{x;x+1;x}",
         \\== {x;x+1;x} ==
-        \\0000    0 get_local           0
+        \\0000    0 local               1 'x'
         \\0002    | pop
-        \\0003    | store_stack_len
-        \\0004    | constant            0 '1f'
-        \\0006    | get_local           0
-        \\0008    | operator            1 '+'
-        \\0010    | apply
-        \\0011    | pop
-        \\0012    | get_local           0
-        \\0014    | return
+        \\0003    | one
+        \\0004    | local               1 'x'
+        \\0006    | add
+        \\0007    | pop
+        \\0008    | local               1 'x'
+        \\0010    | return
         \\== <test> ==
         \\0000    0 constant            0 '{x;x+1;x}'
         \\0002    | print
         \\0003    | return
     );
-    try testCompiler("{[]x;x+1;x}",
-        \\== {[]x;x+1;x} ==
-        \\0000    0 get_global          0 '`x'
-        \\0002    | pop
-        \\0003    | store_stack_len
-        \\0004    | constant            1 '1f'
-        \\0006    | get_global          0 '`x'
-        \\0008    | operator            1 '+'
-        \\0010    | apply
-        \\0011    | pop
-        \\0012    | get_global          0 '`x'
-        \\0014    | return
-        \\== <test> ==
-        \\0000    0 constant            0 '{[]x;x+1;x}'
-        \\0002    | print
-        \\0003    | return
-    );
     try testCompiler("{x;x:1}",
         \\== {x;x:1} ==
-        \\0000    0 get_local           0
+        \\0000    0 local               1 'x'
         \\0002    | pop
-        \\0003    | constant            0 '1f'
-        \\0005    | set_local           0
-        \\0007    | return
+        \\0003    | one
+        \\0004    | assign              1 'x'
+        \\0006    | return
         \\== <test> ==
         \\0000    0 constant            0 '{x;x:1}'
         \\0002    | print
@@ -780,13 +880,44 @@ test {
     );
     try testCompiler("{x;x::1}",
         \\== {x;x::1} ==
-        \\0000    0 get_local           0
+        \\0000    0 local               1 'x'
         \\0002    | pop
-        \\0003    | constant            0 '1f'
-        \\0005    | set_local           0
-        \\0007    | return
+        \\0003    | one
+        \\0004    | assign              1 'x'
+        \\0006    | return
         \\== <test> ==
         \\0000    0 constant            0 '{x;x::1}'
+        \\0002    | print
+        \\0003    | return
+    );
+}
+
+test "explicit params" {
+    try testCompiler("{[]x;x+1;x}",
+        \\== {[]x;x+1;x} ==
+        \\0000    0 global              0 'x'
+        \\0002    | pop
+        \\0003    | one
+        \\0004    | global              0 'x'
+        \\0006    | add
+        \\0007    | pop
+        \\0008    | global              0 'x'
+        \\0010    | return
+        \\== <test> ==
+        \\0000    0 constant            0 '{[]x;x+1;x}'
+        \\0002    | print
+        \\0003    | return
+    );
+    try testCompiler("{[]x;x::1}",
+        \\== {[]x;x::1} ==
+        \\0000    0 global              0 'x'
+        \\0002    | pop
+        \\0003    | one
+        \\0004    | empty_list
+        \\0005    | amend               0 assign
+        \\0008    | return
+        \\== <test> ==
+        \\0000    0 constant            0 '{[]x;x::1}'
         \\0002    | print
         \\0003    | return
     );
@@ -794,36 +925,11 @@ test {
         \\<test>:1:6: error: Cannot assign to global variable 'x'
         \\{[]x;x:1}
         \\     ^
-        \\<test>:1:4: note: Variable promoted to global here
-        \\{[]x;x:1}
-        \\   ^
-    );
-    try testCompiler("{[]x;x::1}",
-        \\== {[]x;x::1} ==
-        \\0000    0 get_global          0 '`x'
-        \\0002    | pop
-        \\0003    | constant            1 '1f'
-        \\0005    | set_global          0 '`x'
-        \\0007    | return
-        \\== <test> ==
-        \\0000    0 constant            0 '{[]x;x::1}'
-        \\0002    | print
-        \\0003    | return
-    );
-    try testCompiler("{a:x}",
-        \\== {a:x} ==
-        \\0000    0 get_local           0
-        \\0002    | set_local           1
-        \\0004    | return
-        \\== <test> ==
-        \\0000    0 constant            0 '{a:x}'
-        \\0002    | print
-        \\0003    | return
     );
     try testCompiler("{[x]a:x}",
         \\== {[x]a:x} ==
-        \\0000    0 get_local           0
-        \\0002    | set_local           1
+        \\0000    0 local               1 'x'
+        \\0002    | assign              9 'a'
         \\0004    | return
         \\== <test> ==
         \\0000    0 constant            0 '{[x]a:x}'
