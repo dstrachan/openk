@@ -23,6 +23,7 @@ pub const Lambda = Value.Lambda;
 pub const UnaryPrimitive = Value.UnaryPrimitive;
 pub const Operator = Value.Operator;
 pub const Compiler = @import("k/Compiler.zig");
+pub const parseNumber = @import("k/parse_number.zig").parseNumber;
 
 pub fn putAstErrorsIntoBundle(tree: Ast, src_path: []const u8, eb: *std.zig.ErrorBundle.Wip) !void {
     assert(tree.errors.len > 0);

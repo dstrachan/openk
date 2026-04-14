@@ -13,6 +13,7 @@ const Value = k.Value;
 const Vm = k.Vm;
 const OpCode = k.OpCode;
 const NullTerminatedString = k.NullTerminatedString;
+const parseNumber = k.parseNumber;
 
 const Compiler = @This();
 
@@ -130,10 +131,13 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             assert(tree.nodeTag(number_literal) == .number_literal);
             const token = tree.nodeMainToken(number_literal);
             const slice = tree.tokenSlice(token);
-            const number = try std.fmt.parseFloat(f64, slice);
-            const value: *Value = try .float(c.gpa, -number);
+            const value = parseNumber(c.gpa, slice) catch |err| switch (err) {
+                error.OutOfMemory => return error.OutOfMemory,
+                error.InvalidCharacter => return c.failNode(node, "Invalid character", .{}),
+            };
             errdefer value.deref(c.gpa);
             try c.emitConstant(value, number_literal);
+            unreachable;
         },
 
         .colon, .colon_colon => try c.emitNil(),
@@ -209,8 +213,10 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
                     else => {},
                 }
             }
-            const number = try std.fmt.parseFloat(f64, slice);
-            const value: *Value = try .float(c.gpa, number);
+            const value = parseNumber(c.gpa, slice) catch |err| switch (err) {
+                error.OutOfMemory => return error.OutOfMemory,
+                error.InvalidCharacter => return c.failNode(node, "Invalid character", .{}),
+            };
             errdefer value.deref(c.gpa);
             try c.emitConstant(value, node);
         },
