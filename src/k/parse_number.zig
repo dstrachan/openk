@@ -22,8 +22,8 @@ pub fn parseNumber(gpa: Allocator, bytes: []const u8, comptime sign: Sign) !*Val
         'h' => return parseShort(gpa, bytes[0 .. bytes.len - 1], sign),
         'i' => return parseInt(gpa, bytes[0 .. bytes.len - 1], sign),
         'j' => return parseLong(gpa, bytes[0 .. bytes.len - 1], sign),
-        'e' => unreachable,
-        'f' => unreachable,
+        'e' => return parseReal(gpa, bytes[0 .. bytes.len - 1], sign),
+        'f' => return parseFloat(gpa, bytes[0 .. bytes.len - 1], sign),
         '.' => unreachable,
         '0'...'9' => unreachable,
         else => unreachable,
@@ -84,4 +84,20 @@ fn parseIntWithSign(comptime T: type, bytes: []const u8, comptime sign: Sign) !T
     }
 
     return accumulate;
+}
+
+fn parseReal(gpa: Allocator, bytes: []const u8, comptime sign: Sign) !*Value {
+    const value = try std.fmt.parseFloat(f32, bytes);
+    return .real(gpa, switch (sign) {
+        .neg => -value,
+        .pos => value,
+    });
+}
+
+fn parseFloat(gpa: Allocator, bytes: []const u8, comptime sign: Sign) !*Value {
+    const value = try std.fmt.parseFloat(f64, bytes);
+    return .float(gpa, switch (sign) {
+        .neg => -value,
+        .pos => value,
+    });
 }
