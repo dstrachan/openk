@@ -25,7 +25,7 @@ pub fn parseNumber(gpa: Allocator, bytes: []const u8, comptime sign: Sign) !*Val
         'e' => return parseReal(gpa, bytes[0 .. bytes.len - 1], sign),
         'f' => return parseFloat(gpa, bytes[0 .. bytes.len - 1], sign),
         '.' => return parseFloat(gpa, bytes, sign),
-        '0'...'9' => @panic("NYI"),
+        '0'...'9' => return parseLong(gpa, bytes, sign),
         else => return error.InvalidCharacter,
     }
 }

@@ -25,6 +25,39 @@ pub const Operator = Value.Operator;
 pub const Compiler = @import("k/Compiler.zig");
 pub const parseNumber = @import("k/parse_number.zig").parseNumber;
 
+pub const Operators = struct {
+    pub const add = @import("k/operators/add.zig").add;
+    pub const subtract = @import("k/operators/subtract.zig").subtract;
+    pub const multiply = @import("k/operators/multiply.zig").multiply;
+    pub const divide = @import("k/operators/divide.zig").divide;
+    pub const @"and" = @import("k/operators/and.zig").@"and";
+    pub const @"or" = @import("k/operators/or.zig").@"or";
+    pub const fill = @import("k/operators/fill.zig").fill;
+    pub const equals = @import("k/operators/equals.zig").equals;
+    pub const less_than = @import("k/operators/less_than.zig").less_than;
+    pub const greater_than = @import("k/operators/greater_than.zig").greater_than;
+    pub const cast = @import("k/operators/cast.zig").cast;
+    pub const join = @import("k/operators/join.zig").join;
+    pub const take = @import("k/operators/take.zig").take;
+    pub const drop = @import("k/operators/drop.zig").drop;
+    pub const match = @import("k/operators/match.zig").match;
+    pub const dict = @import("k/operators/dict.zig").dict;
+    pub const find = @import("k/operators/find.zig").find;
+    pub const apply = @import("k/operators/apply.zig").apply;
+    pub const file_text = @import("k/operators/file_text.zig").file_text;
+    pub const file_binary = @import("k/operators/file_binary.zig").file_binary;
+    pub const dynamic_load = @import("k/operators/dynamic_load.zig").dynamic_load;
+    pub const in = @import("k/operators/in.zig").in;
+    pub const within = @import("k/operators/within.zig").within;
+    pub const like = @import("k/operators/like.zig").like;
+    pub const bin = @import("k/operators/bin.zig").bin;
+    pub const ss = @import("k/operators/ss.zig").ss;
+    pub const insert = @import("k/operators/insert.zig").insert;
+    pub const wsum = @import("k/operators/wsum.zig").wsum;
+    pub const wavg = @import("k/operators/wavg.zig").wavg;
+    pub const div = @import("k/operators/div.zig").div;
+};
+
 pub fn putAstErrorsIntoBundle(tree: Ast, src_path: []const u8, eb: *std.zig.ErrorBundle.Wip) !void {
     assert(tree.errors.len > 0);
 

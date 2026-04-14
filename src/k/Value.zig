@@ -575,41 +575,30 @@ pub fn format(self: Value, w: *Io.Writer, vm: *Vm) !void {
         .short => |v| try w.print("{d}h", .{v}),
         .short_list => |value| {
             try w.print("{d}", .{value[0]});
-            for (value[1..]) |v| {
-                try w.print(" {d}", .{v});
-            }
+            for (value[1..]) |v| try w.print(" {d}", .{v});
             try w.writeByte('h');
         },
         .int => |v| try w.print("{d}i", .{v}),
         .int_list => |value| {
             try w.print("{d}", .{value[0]});
-            for (value[1..]) |v| {
-                try w.print(" {d}", .{v});
-            }
+            for (value[1..]) |v| try w.print(" {d}", .{v});
             try w.writeByte('i');
         },
-        .long => |v| try w.print("{d}j", .{v}),
+        .long => |v| try w.print("{d}", .{v}),
         .long_list => |value| {
             try w.print("{d}", .{value[0]});
-            for (value[1..]) |v| {
-                try w.print(" {d}", .{v});
-            }
-            try w.writeByte('j');
+            for (value[1..]) |v| try w.print(" {d}", .{v});
         },
         .real => |v| try w.print("{d}e", .{v}),
         .real_list => |value| {
             try w.print("{d}", .{value[0]});
-            for (value[1..]) |v| {
-                try w.print(" {d}", .{v});
-            }
+            for (value[1..]) |v| try w.print(" {d}", .{v});
             try w.writeByte('e');
         },
         .float => |v| try w.print("{d}f", .{v}),
         .float_list => |value| {
             try w.print("{d}", .{value[0]});
-            for (value[1..]) |v| {
-                try w.print(" {d}", .{v});
-            }
+            for (value[1..]) |v| try w.print(" {d}", .{v});
             try w.writeByte('f');
         },
         .char => |v| try w.print("\"{c}\"", .{v}),

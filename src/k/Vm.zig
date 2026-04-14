@@ -130,7 +130,7 @@ fn pop(vm: *Vm) *Value {
     return vm.stack.pop().?;
 }
 
-fn runtimeError(vm: *Vm, comptime fmt: []const u8, args: anytype) Error {
+pub fn runtimeError(vm: *Vm, comptime fmt: []const u8, args: anytype) Error {
     var buffer: [256]u8 = undefined;
     const locked_stderr = try vm.io.lockStderr(&buffer, vm.color.terminalMode());
     defer vm.io.unlockStderr();
@@ -148,9 +148,14 @@ fn runtimeError(vm: *Vm, comptime fmt: []const u8, args: anytype) Error {
     }
 
     try stderr.flush();
-    while (vm.stack.items.len > 1) vm.pop().deref(vm.gpa);
-    vm.stack.shrinkRetainingCapacity(0);
-    vm.frames.shrinkRetainingCapacity(0);
+
+    while (vm.frames.items.len > 0) {
+        const frame = &vm.frames.items[vm.frames.items.len - 1];
+        while (vm.stack.items.len > frame.slots - vm.stack.items.ptr) {
+            vm.pop().deref(vm.gpa);
+        }
+        vm.frames.shrinkRetainingCapacity(vm.frames.items.len - 1);
+    }
     return error.RuntimeError;
 }
 
@@ -350,7 +355,7 @@ fn run(vm: *Vm) Error!*Value {
                     else => {
                         const y = vm.pop();
                         defer y.deref(vm.gpa);
-                        vm.push(try @call(.auto, @field(Vm, @tagName(t)), .{ vm, x, y }));
+                        vm.push(try @call(.auto, @field(k.Operators, @tagName(t)), .{ vm, x, y }));
                     },
                 }
             },
@@ -419,201 +424,6 @@ fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
         },
         inline else => |_, t| @panic("NYI: " ++ @tagName(t)),
     }
-}
-
-fn add(vm: *Vm, x: *Value, y: *Value) !*Value {
-    return .float(vm.gpa, x.as.float + y.as.float);
-}
-
-fn subtract(vm: *Vm, x: *Value, y: *Value) !*Value {
-    return .float(vm.gpa, x.as.float - y.as.float);
-}
-
-fn multiply(vm: *Vm, x: *Value, y: *Value) !*Value {
-    return .float(vm.gpa, x.as.float * y.as.float);
-}
-
-fn divide(vm: *Vm, x: *Value, y: *Value) !*Value {
-    return .float(vm.gpa, x.as.float / y.as.float);
-}
-
-fn @"and"(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn @"or"(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn fill(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn equals(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn less_than(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn greater_than(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn cast(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn join(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn take(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn drop(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn match(vm: *Vm, x: *Value, y: *Value) !*Value {
-    return .boolean(vm.gpa, x.match(y));
-}
-
-fn dict(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn find(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn apply(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn file_text(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn file_binary(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn dynamic_load(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn in(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn within(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn like(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn bin(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn ss(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn insert(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn wsum(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn wavg(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
-}
-
-fn div(vm: *Vm, x: *Value, y: *Value) !*Value {
-    _ = vm; // autofix
-    _ = x; // autofix
-    _ = y; // autofix
-    @panic("NYI");
 }
 
 fn testVm(source: [:0]const u8, expected: []const u8) !void {
