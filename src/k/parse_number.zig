@@ -12,24 +12,22 @@ pub fn parseNumber(gpa: Allocator, bytes: []const u8, comptime sign: Sign) !*Val
     assert(bytes.len > 0);
     if (std.mem.startsWith(u8, bytes, "0x")) {
         if (sign == .neg) return error.InvalidCharacter;
-        unreachable;
+        return parseByte(gpa, bytes[2..]);
     }
-
-    std.log.debug("parseNumber: {s} {d}", .{ bytes, bytes.len });
-
     switch (bytes[bytes.len - 1]) {
-        'b' => return if (sign == .pos) parseBoolean(gpa, bytes[0 .. bytes.len - 1]) else error.InvalidCharacter,
+        'b' => {
+            if (sign == .neg) return error.InvalidCharacter;
+            return parseBoolean(gpa, bytes[0 .. bytes.len - 1]);
+        },
         'h' => return parseShort(gpa, bytes[0 .. bytes.len - 1], sign),
         'i' => return parseInt(gpa, bytes[0 .. bytes.len - 1], sign),
         'j' => return parseLong(gpa, bytes[0 .. bytes.len - 1], sign),
         'e' => return parseReal(gpa, bytes[0 .. bytes.len - 1], sign),
         'f' => return parseFloat(gpa, bytes[0 .. bytes.len - 1], sign),
-        '.' => unreachable,
-        '0'...'9' => unreachable,
-        else => unreachable,
+        '.' => return parseFloat(gpa, bytes, sign),
+        '0'...'9' => @panic("NYI"),
+        else => return error.InvalidCharacter,
     }
-
-    unreachable;
 }
 
 fn parseBoolean(gpa: Allocator, bytes: []const u8) !*Value {
@@ -53,19 +51,48 @@ fn parseBoolean(gpa: Allocator, bytes: []const u8) !*Value {
     return .booleanList(gpa, items);
 }
 
+fn parseByte(gpa: Allocator, bytes: []const u8) !*Value {
+    return switch (bytes.len) {
+        0 => .byteList(gpa, &.{}),
+        1, 2 => .byte(gpa, try parseIntWithSign(u8, bytes, 16, .pos)),
+        else => switch (bytes.len % 2) {
+            0 => {
+                const len = bytes.len / 2;
+                const items = try gpa.alloc(u8, len);
+                errdefer gpa.free(items);
+                for (0..len) |i| {
+                    items[i] = try parseIntWithSign(u8, bytes[(i * 2)..][0..2], 16, .pos);
+                }
+                return .byteList(gpa, items);
+            },
+            1 => {
+                const len = bytes.len / 2 + 1;
+                const items = try gpa.alloc(u8, len);
+                errdefer gpa.free(items);
+                items[0] = try parseIntWithSign(u8, bytes[0..1], 16, .pos);
+                for (1..len) |i| {
+                    items[i] = try parseIntWithSign(u8, bytes[1 + ((i - 1) * 2) ..][0..2], 16, .pos);
+                }
+                return .byteList(gpa, items);
+            },
+            else => unreachable,
+        },
+    };
+}
+
 fn parseShort(gpa: Allocator, bytes: []const u8, comptime sign: Sign) !*Value {
-    return .short(gpa, try parseIntWithSign(i16, bytes, sign));
+    return .short(gpa, try parseIntWithSign(i16, bytes, 10, sign));
 }
 
 fn parseInt(gpa: Allocator, bytes: []const u8, comptime sign: Sign) !*Value {
-    return .int(gpa, try parseIntWithSign(i32, bytes, sign));
+    return .int(gpa, try parseIntWithSign(i32, bytes, 10, sign));
 }
 
 fn parseLong(gpa: Allocator, bytes: []const u8, comptime sign: Sign) !*Value {
-    return .long(gpa, try parseIntWithSign(i64, bytes, sign));
+    return .long(gpa, try parseIntWithSign(i64, bytes, 10, sign));
 }
 
-fn parseIntWithSign(comptime T: type, bytes: []const u8, comptime sign: Sign) !T {
+fn parseIntWithSign(comptime T: type, bytes: []const u8, base: u8, comptime sign: Sign) !T {
     const add = switch (sign) {
         .pos => std.math.add,
         .neg => std.math.sub,
@@ -73,9 +100,9 @@ fn parseIntWithSign(comptime T: type, bytes: []const u8, comptime sign: Sign) !T
 
     var accumulate: T = 0;
     for (bytes) |c| {
-        const digit = try std.fmt.charToDigit(c, 10);
+        const digit = try std.fmt.charToDigit(c, base);
         if (accumulate != 0) {
-            accumulate = try std.math.mul(T, accumulate, 10);
+            accumulate = try std.math.mul(T, accumulate, base);
         } else if (sign == .neg) {
             accumulate = -@as(i8, @intCast(digit));
             continue;
