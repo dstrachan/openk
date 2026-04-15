@@ -564,48 +564,80 @@ pub fn format(self: Value, w: *Io.Writer, vm: *Vm) !void {
         },
         .boolean => |v| try w.print("{d}b", .{@intFromBool(v)}),
         .boolean_list => |value| {
-            for (value) |v| try w.print("{d}", .{@intFromBool(v)});
-            try w.writeByte('b');
+            if (value.len == 0) {
+                try w.writeAll("`boolean$()");
+            } else {
+                for (value) |v| try w.print("{d}", .{@intFromBool(v)});
+                try w.writeByte('b');
+            }
         },
         .byte => |v| try w.print("0x{x:02}", .{v}),
         .byte_list => |value| {
-            try w.writeAll("0x");
-            for (value) |v| try w.print("{x:02}", .{v});
+            if (value.len == 0) {
+                try w.writeAll("`byte$()");
+            } else {
+                try w.writeAll("0x");
+                for (value) |v| try w.print("{x:02}", .{v});
+            }
         },
-        .short => |v| try w.print("{d}h", .{v}),
+        .short => |v| try w.print("{f}h", .{@as(Short, @enumFromInt(v))}),
         .short_list => |value| {
-            try w.print("{d}", .{value[0]});
-            for (value[1..]) |v| try w.print(" {d}", .{v});
-            try w.writeByte('h');
+            if (value.len == 0) {
+                try w.writeAll("`short$()");
+            } else {
+                try w.print("{f}", .{@as(Short, @enumFromInt(value[0]))});
+                for (value[1..]) |v| try w.print(" {f}", .{@as(Short, @enumFromInt(v))});
+                try w.writeByte('h');
+            }
         },
-        .int => |v| try w.print("{d}i", .{v}),
+        .int => |v| try w.print("{f}i", .{@as(Int, @enumFromInt(v))}),
         .int_list => |value| {
-            try w.print("{d}", .{value[0]});
-            for (value[1..]) |v| try w.print(" {d}", .{v});
-            try w.writeByte('i');
+            if (value.len == 0) {
+                try w.writeAll("`int$()");
+            } else {
+                try w.print("{f}", .{@as(Int, @enumFromInt(value[0]))});
+                for (value[1..]) |v| try w.print(" {f}", .{@as(Int, @enumFromInt(v))});
+                try w.writeByte('i');
+            }
         },
-        .long => |v| try w.print("{d}", .{v}),
+        .long => |v| try w.print("{f}", .{@as(Long, @enumFromInt(v))}),
         .long_list => |value| {
-            try w.print("{d}", .{value[0]});
-            for (value[1..]) |v| try w.print(" {d}", .{v});
+            if (value.len == 0) {
+                try w.writeAll("`long$()");
+            } else {
+                try w.print("{f}", .{@as(Long, @enumFromInt(value[0]))});
+                for (value[1..]) |v| try w.print(" {f}", .{@as(Long, @enumFromInt(v))});
+            }
         },
         .real => |v| try w.print("{d}e", .{v}),
         .real_list => |value| {
-            try w.print("{d}", .{value[0]});
-            for (value[1..]) |v| try w.print(" {d}", .{v});
-            try w.writeByte('e');
+            if (value.len == 0) {
+                try w.writeAll("`real$()");
+            } else {
+                try w.print("{d}", .{value[0]});
+                for (value[1..]) |v| try w.print(" {d}", .{v});
+                try w.writeByte('e');
+            }
         },
         .float => |v| try w.print("{d}f", .{v}),
         .float_list => |value| {
-            try w.print("{d}", .{value[0]});
-            for (value[1..]) |v| try w.print(" {d}", .{v});
-            try w.writeByte('f');
+            if (value.len == 0) {
+                try w.writeAll("`float$()");
+            } else {
+                try w.print("{d}", .{value[0]});
+                for (value[1..]) |v| try w.print(" {d}", .{v});
+                try w.writeByte('f');
+            }
         },
         .char => |v| try w.print("\"{c}\"", .{v}),
         .char_list => |v| try w.print("\"{s}\"", .{v}),
         .symbol => |v| try w.print("`{s}", .{vm.nullTerminatedString(v)}),
         .symbol_list => |value| {
-            for (value) |v| try w.print("`{s}", .{vm.nullTerminatedString(v)});
+            if (value.len == 0) {
+                try w.writeAll("`symbol$()");
+            } else {
+                for (value) |v| try w.print("`{s}", .{vm.nullTerminatedString(v)});
+            }
         },
         .lambda => |v| try w.print("{s}", .{vm.nullTerminatedString(v.source)}),
         .unary_primitive => |v| try w.print("{f}", .{v}),
