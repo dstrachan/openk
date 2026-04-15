@@ -230,7 +230,7 @@ pub fn interpret(vm: *Vm, tree: Ast, src_path: []const u8) Error!*Value {
         return error.CompilerError;
     }
 
-    try vm.applyValue(lambda, 0);
+    try vm.applyLambda(lambda, 0);
     return vm.run() catch return error.RuntimeError;
 }
 
@@ -312,6 +312,45 @@ fn run(vm: *Vm) Error!*Value {
 
             .identity => {},
 
+            ._unused => unreachable,
+
+            inline .flip,
+            .neg,
+            .first,
+            .reciprocal,
+            .where,
+            .reverse,
+            .null,
+            .group,
+            .asc,
+            .desc,
+            .string,
+            .list,
+            .count,
+            .lower,
+            .not,
+            .key,
+            .distinct,
+            .type,
+            .value,
+            .read_text,
+            .read_binary,
+            .avg,
+            .last,
+            .sum,
+            .prd,
+            .min,
+            .max,
+            .exit,
+            .getenv,
+            .abs,
+            => |t| {
+                const x = vm.pop();
+                defer x.deref(vm.gpa);
+
+                vm.push(try @call(.auto, @field(k.UnaryPrimitives, @tagName(t)), .{ vm, x }));
+            },
+
             inline .add,
             .subtract,
             .multiply,
@@ -392,38 +431,62 @@ inline fn readConstant(vm: *Vm) *Value {
 
 fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
     switch (x.as) {
-        .lambda => |lambda| {
-            if (lambda.arity != arg_count) {
-                return vm.runtimeError("expected {d} argument(s), found: {d}", .{ lambda.arity, arg_count });
-            }
-
-            if (vm.frames.items.len == frames_max) {
-                return vm.runtimeError("stack overflow", .{});
-            }
-
-            const args = args: {
-                var args: [8]*Value = undefined;
-                for (0..arg_count) |i| args[i] = vm.pop();
-                break :args args[0..arg_count];
-            };
-            errdefer comptime unreachable;
-
-            const stack_len = vm.stack.items.len;
-
-            vm.push(x.ref());
-            for (args) |v| vm.push(v);
-            for (lambda.chunk.locals.items) |_| {
-                vm.push(vm.constants[0].ref());
-            }
-
-            vm.frames.appendAssumeCapacity(.{
-                .lambda = lambda,
-                .ip = lambda.chunk.data.items(.code).ptr,
-                .slots = vm.stack.items[stack_len..].ptr,
-            });
-        },
-        inline else => |_, t| @panic("NYI: " ++ @tagName(t)),
+        .list => unreachable,
+        .boolean => unreachable,
+        .boolean_list => unreachable,
+        .byte => unreachable,
+        .byte_list => unreachable,
+        .short => unreachable,
+        .short_list => unreachable,
+        .int => unreachable,
+        .int_list => unreachable,
+        .long => unreachable,
+        .long_list => unreachable,
+        .real => unreachable,
+        .real_list => unreachable,
+        .float => unreachable,
+        .float_list => unreachable,
+        .char => unreachable,
+        .char_list => unreachable,
+        .symbol => unreachable,
+        .symbol_list => unreachable,
+        .lambda => try vm.applyLambda(x, arg_count),
+        .unary_primitive => unreachable,
+        .operator => unreachable,
     }
+}
+
+fn applyLambda(vm: *Vm, x: *Value, arg_count: usize) !void {
+    assert(x.as == .lambda);
+    const lambda = x.as.lambda;
+    if (lambda.arity != arg_count) {
+        return vm.runtimeError("expected {d} argument(s), found: {d}", .{ lambda.arity, arg_count });
+    }
+
+    if (vm.frames.items.len == frames_max) {
+        return vm.runtimeError("stack overflow", .{});
+    }
+
+    const args = args: {
+        var args: [8]*Value = undefined;
+        for (0..arg_count) |i| args[i] = vm.pop();
+        break :args args[0..arg_count];
+    };
+    errdefer comptime unreachable;
+
+    const stack_len = vm.stack.items.len;
+
+    vm.push(x.ref());
+    for (args) |v| vm.push(v);
+    for (lambda.chunk.locals.items) |_| {
+        vm.push(vm.constants[0].ref());
+    }
+
+    vm.frames.appendAssumeCapacity(.{
+        .lambda = lambda,
+        .ip = lambda.chunk.data.items(.code).ptr,
+        .slots = vm.stack.items[stack_len..].ptr,
+    });
 }
 
 fn testVm(source: [:0]const u8, expected: []const u8) !void {
