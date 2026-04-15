@@ -52,7 +52,7 @@ pub fn compile(c: *Compiler) !*Value {
 fn compileNode(c: *Compiler, node: Node.Index) Error!void {
     const tree = c.tree;
 
-    switch (tree.nodeTag(tree.unwrap(node))) {
+    switch (tree.nodeTag(node)) {
         .root => unreachable,
         .no_op => try c.emitOpCode(.empty),
 
@@ -65,7 +65,7 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             try c.emitOpCode(.print);
         },
 
-        .grouped_expression => unreachable,
+        .grouped_expression => try c.compileNode(tree.nodeData(node).node_and_token[0]),
 
         .empty_list => try c.emitEmptyList(),
         .list => {
