@@ -745,25 +745,37 @@ fn parseNumberLiteral(p: *Parse) !Node.Index {
     const number_literal = p.assertToken(.number_literal);
 
     var maybe_last_number_literal: ?TokenIndex = null;
-    while (p.tokenTag(p.tok_i) == .number_literal or
-        p.tokenTag(p.tok_i) == .minus and
-            p.tokenTag(p.tok_i + 1) == .number_literal and
-            p.tokenStart(p.tok_i) + 1 == p.tokenStart(p.tok_i + 1) and
-            p.tokenStart(p.tok_i) != p.tokenStart(p.tok_i - 1) + p.tokenSlice(p.tok_i - 1).len)
-    {
-        if (p.eatToken(.minus)) |token_index| {
-            maybe_last_number_literal = token_index;
-            _ = p.assertToken(.number_literal);
-        } else {
-            maybe_last_number_literal = p.assertToken(.number_literal);
-        }
-    }
-    if (maybe_last_number_literal) |last_number_literal| {
-        return p.addNode(.{
-            .tag = .number_list_literal,
-            .main_token = number_literal,
-            .data = .{ .token = last_number_literal },
-        });
+    const first_slice = p.tokenSlice(p.tok_i - 1);
+    switch (first_slice[first_slice.len - 1]) {
+        'a'...'z' => {},
+        else => {
+            while (p.tokenTag(p.tok_i) == .number_literal or
+                p.tokenTag(p.tok_i) == .minus and
+                    p.tokenTag(p.tok_i + 1) == .number_literal and
+                    p.tokenStart(p.tok_i) + 1 == p.tokenStart(p.tok_i + 1) and
+                    p.tokenStart(p.tok_i) != p.tokenStart(p.tok_i - 1) + p.tokenSlice(p.tok_i - 1).len)
+            {
+                const slice = p.tokenSlice(p.tok_i);
+                switch (slice[slice.len - 1]) {
+                    'a'...'z' => break,
+                    else => {},
+                }
+
+                if (p.eatToken(.minus)) |token_index| {
+                    maybe_last_number_literal = token_index;
+                    _ = p.assertToken(.number_literal);
+                } else {
+                    maybe_last_number_literal = p.assertToken(.number_literal);
+                }
+            }
+            if (maybe_last_number_literal) |last_number_literal| {
+                return p.addNode(.{
+                    .tag = .number_list_literal,
+                    .main_token = number_literal,
+                    .data = .{ .token = last_number_literal },
+                });
+            }
+        },
     }
 
     return p.addNode(.{
@@ -846,6 +858,23 @@ fn skipExpr(p: *Parse) void {
         if (p.tokenTag(p.tok_i) == .eof) break;
         _ = p.nextToken();
     }
+}
+
+fn testTree(source: [:0]const u8, expected_tags: []const Node.Tag) !void {
+    const gpa = std.testing.allocator;
+    var tree: Ast = try .parse(gpa, source);
+    defer tree.deinit(gpa);
+
+    try std.testing.expectEqualSlices(Node.Tag, expected_tags, tree.nodes.items(.tag));
+}
+
+test "alphabetic character ends number list literal" {
+    try testTree("0 1 10b", &.{
+        .root, .number_list_literal, .apply_unary, .number_literal, .print,
+    });
+    try testTree("01b 1 0", &.{
+        .root, .number_literal, .apply_unary, .number_list_literal, .print,
+    });
 }
 
 test {
