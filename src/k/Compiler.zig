@@ -241,14 +241,12 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             const first_token = tree.nodeMainToken(node);
             const last_token = tree.nodeData(node).token;
             const len = last_token - first_token + 1;
-            const symbols = try c.gpa.alloc(NullTerminatedString, len);
-            errdefer c.gpa.free(symbols);
-            for (symbols, first_token..) |*symbol, token| {
+            const value: *Value = try .symbolList(c.gpa, len);
+            errdefer value.deref(c.gpa);
+            for (value.as.symbol_list, first_token..) |*symbol, token| {
                 const slice = tree.tokenSlice(@intCast(token));
                 symbol.* = try c.vm.intern(slice[1..]);
             }
-            const value: *Value = try .symbolList(c.gpa, symbols);
-            errdefer value.deref(c.gpa);
             try c.emitConstant(value, node);
         },
         .identifier => {

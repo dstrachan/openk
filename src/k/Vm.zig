@@ -70,9 +70,9 @@ pub fn init(vm: *Vm, io: Io, gpa: Allocator, stdout: *Io.Writer, color: std.zig.
     errdefer for (0..constants) |i| vm.constants[i].deref(gpa);
     vm.constants[0] = try .list(gpa, 0);
     constants += 1;
-    vm.constants[1] = try .float(gpa, 0);
+    vm.constants[1] = try .long(gpa, 0);
     constants += 1;
-    vm.constants[2] = try .float(gpa, 1);
+    vm.constants[2] = try .long(gpa, 1);
     constants += 1;
     vm.constants[3] = try .operator(gpa, .join);
     constants += 1;

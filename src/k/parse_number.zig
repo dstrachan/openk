@@ -39,41 +39,41 @@ fn parseBoolean(gpa: Allocator, bytes: []const u8) !*Value {
         });
     }
 
-    const items = try gpa.alloc(bool, bytes.len);
-    errdefer gpa.free(items);
-    for (items, bytes) |*i, b| {
+    const value: *Value = try .booleanList(gpa, bytes.len);
+    errdefer value.deref(gpa);
+    for (value.as.boolean_list, bytes) |*i, b| {
         i.* = switch (b) {
             '0' => false,
             '1' => true,
             else => return error.InvalidCharacter,
         };
     }
-    return .booleanList(gpa, items);
+    return value;
 }
 
 fn parseByte(gpa: Allocator, bytes: []const u8) !*Value {
     return switch (bytes.len) {
-        0 => .byteList(gpa, &.{}),
+        0 => .byteList(gpa, 0),
         1, 2 => .byte(gpa, try parseIntWithSign(u8, bytes, 16, .pos)),
         else => switch (bytes.len % 2) {
             0 => {
                 const len = bytes.len / 2;
-                const items = try gpa.alloc(u8, len);
-                errdefer gpa.free(items);
-                for (0..len) |i| {
-                    items[i] = try parseIntWithSign(u8, bytes[(i * 2)..][0..2], 16, .pos);
+                const value: *Value = try .byteList(gpa, len);
+                errdefer value.deref(gpa);
+                for (value.as.byte_list, 0..) |*v, i| {
+                    v.* = try parseIntWithSign(u8, bytes[(i * 2)..][0..2], 16, .pos);
                 }
-                return .byteList(gpa, items);
+                return value;
             },
             1 => {
                 const len = bytes.len / 2 + 1;
-                const items = try gpa.alloc(u8, len);
-                errdefer gpa.free(items);
-                items[0] = try parseIntWithSign(u8, bytes[0..1], 16, .pos);
-                for (1..len) |i| {
-                    items[i] = try parseIntWithSign(u8, bytes[1 + ((i - 1) * 2) ..][0..2], 16, .pos);
+                const value: *Value = try .byteList(gpa, len);
+                errdefer value.deref(gpa);
+                value.as.byte_list[0] = try parseIntWithSign(u8, bytes[0..1], 16, .pos);
+                for (value.as.byte_list[1..], 1..) |*v, i| {
+                    v.* = try parseIntWithSign(u8, bytes[1 + ((i - 1) * 2) ..][0..2], 16, .pos);
                 }
-                return .byteList(gpa, items);
+                return value;
             },
             else => unreachable,
         },

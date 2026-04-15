@@ -41,23 +41,23 @@ const Type = enum(i8) {
 const Union = union(Type) {
     list: []*Value,
     boolean: bool,
-    boolean_list: []const bool,
+    boolean_list: []bool,
     byte: u8,
-    byte_list: []const u8,
+    byte_list: []u8,
     short: i16,
-    short_list: []const i16,
+    short_list: []i16,
     int: i32,
-    int_list: []const i32,
+    int_list: []i32,
     long: i64,
-    long_list: []const i64,
+    long_list: []i64,
     real: f32,
-    real_list: []const f32,
+    real_list: []f32,
     float: f64,
-    float_list: []const f64,
+    float_list: []f64,
     char: u8,
-    char_list: []const u8,
+    char_list: []u8,
     symbol: NullTerminatedString,
-    symbol_list: []const NullTerminatedString,
+    symbol_list: []NullTerminatedString,
     lambda: Lambda,
     unary_primitive: UnaryPrimitive,
     operator: Operator,
@@ -662,10 +662,12 @@ pub fn boolean(gpa: Allocator, value: bool) !*Value {
     return self;
 }
 
-pub fn booleanList(gpa: Allocator, value: []const bool) !*Value {
+pub fn booleanList(gpa: Allocator, len: usize) !*Value {
+    const items = try gpa.alloc(bool, len);
+    errdefer gpa.free(items);
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
-    self.* = .{ .as = .{ .boolean_list = value } };
+    self.* = .{ .as = .{ .boolean_list = items } };
     return self;
 }
 
@@ -685,10 +687,12 @@ pub fn byte(gpa: Allocator, value: u8) !*Value {
     return self;
 }
 
-pub fn byteList(gpa: Allocator, value: []const u8) !*Value {
+pub fn byteList(gpa: Allocator, len: usize) !*Value {
+    const items = try gpa.alloc(u8, len);
+    errdefer gpa.free(items);
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
-    self.* = .{ .as = .{ .byte_list = value } };
+    self.* = .{ .as = .{ .byte_list = items } };
     return self;
 }
 
@@ -708,10 +712,12 @@ pub fn short(gpa: Allocator, value: i16) !*Value {
     return self;
 }
 
-pub fn shortList(gpa: Allocator, value: []const i16) !*Value {
+pub fn shortList(gpa: Allocator, len: usize) !*Value {
+    const items = try gpa.alloc(i16, len);
+    errdefer gpa.free(items);
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
-    self.* = .{ .as = .{ .short_list = value } };
+    self.* = .{ .as = .{ .short_list = items } };
     return self;
 }
 
@@ -731,10 +737,12 @@ pub fn int(gpa: Allocator, value: i32) !*Value {
     return self;
 }
 
-pub fn intList(gpa: Allocator, value: []const i32) !*Value {
+pub fn intList(gpa: Allocator, len: usize) !*Value {
+    const items = try gpa.alloc(i32, len);
+    errdefer gpa.free(items);
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
-    self.* = .{ .as = .{ .int_list = value } };
+    self.* = .{ .as = .{ .int_list = items } };
     return self;
 }
 
@@ -754,10 +762,12 @@ pub fn long(gpa: Allocator, value: i64) !*Value {
     return self;
 }
 
-pub fn longList(gpa: Allocator, value: []const i64) !*Value {
+pub fn longList(gpa: Allocator, len: usize) !*Value {
+    const items = try gpa.alloc(i64, len);
+    errdefer gpa.free(items);
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
-    self.* = .{ .as = .{ .long_list = value } };
+    self.* = .{ .as = .{ .long_list = items } };
     return self;
 }
 
@@ -777,10 +787,12 @@ pub fn real(gpa: Allocator, value: f32) !*Value {
     return self;
 }
 
-pub fn realList(gpa: Allocator, value: []const f32) !*Value {
+pub fn realList(gpa: Allocator, len: usize) !*Value {
+    const items = try gpa.alloc(f32, len);
+    errdefer gpa.free(items);
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
-    self.* = .{ .as = .{ .real_list = value } };
+    self.* = .{ .as = .{ .real_list = items } };
     return self;
 }
 
@@ -800,10 +812,12 @@ pub fn float(gpa: Allocator, value: f64) !*Value {
     return self;
 }
 
-pub fn floatList(gpa: Allocator, value: []const f64) !*Value {
+pub fn floatList(gpa: Allocator, len: usize) !*Value {
+    const items = try gpa.alloc(f64, len);
+    errdefer gpa.free(items);
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
-    self.* = .{ .as = .{ .float_list = value } };
+    self.* = .{ .as = .{ .float_list = items } };
     return self;
 }
 
@@ -823,10 +837,12 @@ pub fn char(gpa: Allocator, value: u8) !*Value {
     return self;
 }
 
-pub fn charList(gpa: Allocator, value: []const u8) !*Value {
+pub fn charList(gpa: Allocator, len: usize) !*Value {
+    const items = try gpa.alloc(u8, len);
+    errdefer gpa.free(items);
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
-    self.* = .{ .as = .{ .char_list = value } };
+    self.* = .{ .as = .{ .char_list = items } };
     return self;
 }
 
@@ -846,10 +862,12 @@ pub fn symbol(gpa: Allocator, value: NullTerminatedString) !*Value {
     return self;
 }
 
-pub fn symbolList(gpa: Allocator, value: []const NullTerminatedString) !*Value {
+pub fn symbolList(gpa: Allocator, len: usize) !*Value {
+    const items = try gpa.alloc(NullTerminatedString, len);
+    errdefer gpa.free(items);
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
-    self.* = .{ .as = .{ .symbol_list = value } };
+    self.* = .{ .as = .{ .symbol_list = items } };
     return self;
 }
 
