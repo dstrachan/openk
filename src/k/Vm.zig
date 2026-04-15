@@ -13,6 +13,7 @@ const Compiler = k.Compiler;
 const Lambda = k.Lambda;
 const UnaryPrimitive = k.UnaryPrimitive;
 const Operator = k.Operator;
+const Type = k.Type;
 
 const Vm = @This();
 
@@ -431,28 +432,122 @@ inline fn readConstant(vm: *Vm) *Value {
 
 fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
     switch (x.as) {
-        .list => unreachable,
+        .list => try vm.applyList(x, arg_count),
         .boolean => unreachable,
-        .boolean_list => unreachable,
+        .boolean_list => try vm.applyList(x, arg_count),
         .byte => unreachable,
-        .byte_list => unreachable,
+        .byte_list => try vm.applyList(x, arg_count),
         .short => unreachable,
-        .short_list => unreachable,
+        .short_list => try vm.applyList(x, arg_count),
         .int => unreachable,
-        .int_list => unreachable,
+        .int_list => try vm.applyList(x, arg_count),
         .long => unreachable,
-        .long_list => unreachable,
+        .long_list => try vm.applyList(x, arg_count),
         .real => unreachable,
-        .real_list => unreachable,
+        .real_list => try vm.applyList(x, arg_count),
         .float => unreachable,
-        .float_list => unreachable,
+        .float_list => try vm.applyList(x, arg_count),
         .char => unreachable,
-        .char_list => unreachable,
+        .char_list => try vm.applyList(x, arg_count),
         .symbol => unreachable,
-        .symbol_list => unreachable,
+        .symbol_list => try vm.applyList(x, arg_count),
         .lambda => try vm.applyLambda(x, arg_count),
         .unary_primitive => unreachable,
         .operator => unreachable,
+    }
+}
+
+fn applyList(vm: *Vm, x: *Value, arg_count: usize) !void {
+    assert(@intFromEnum(x.as) >= @intFromEnum(Type.list));
+    assert(@intFromEnum(x.as) <= @intFromEnum(Type.symbol_list));
+    if (arg_count != 1) return vm.runtimeError("rank", .{});
+
+    const y = vm.pop();
+    defer y.deref(vm.gpa);
+
+    const y_index = try y.toIndex(vm.gpa) orelse return vm.runtimeError("type", .{});
+    defer y_index.deref(vm.gpa);
+
+    switch (y_index.as) {
+        .long => |i| vm.push(switch (x.as) {
+            .list => |list| if (i < 0 or i >= list.len) @panic("NYI") else list[@intCast(i)].ref(),
+            .boolean_list => |list| try .boolean(vm.gpa, if (i < 0 or i >= list.len) false else list[@intCast(i)]),
+            .byte_list => |list| try .byte(vm.gpa, if (i < 0 or i >= list.len) 0 else list[@intCast(i)]),
+            .short_list => |list| try .short(vm.gpa, if (i < 0 or i >= list.len) @intFromEnum(Value.Short.null) else list[@intCast(i)]),
+            .int_list => |list| try .int(vm.gpa, if (i < 0 or i >= list.len) @intFromEnum(Value.Int.null) else list[@intCast(i)]),
+            .long_list => |list| try .long(vm.gpa, if (i < 0 or i >= list.len) @intFromEnum(Value.Long.null) else list[@intCast(i)]),
+            .real_list => |list| try .real(vm.gpa, if (i < 0 or i >= list.len) std.math.nan(f32) else list[@intCast(i)]),
+            .float_list => |list| try .float(vm.gpa, if (i < 0 or i >= list.len) std.math.nan(f64) else list[@intCast(i)]),
+            .char_list => |list| try .char(vm.gpa, if (i < 0 or i >= list.len) ' ' else list[@intCast(i)]),
+            .symbol_list => |list| try .symbol(vm.gpa, if (i < 0 or i >= list.len) .empty else list[@intCast(i)]),
+            else => unreachable,
+        }),
+        .long_list => |is| {
+            switch (x.as) {
+                .list => |list| {
+                    const value: *Value = try .list(vm.gpa, is.len);
+                    errdefer comptime unreachable;
+                    for (value.as.list, is) |*v, i| v.* = if (i < 0 or i >= list.len) @panic("NYI") else list[@intCast(i)].ref();
+                    vm.push(value);
+                },
+                .boolean_list => |list| {
+                    const value: *Value = try .booleanList(vm.gpa, is.len);
+                    errdefer comptime unreachable;
+                    for (value.as.boolean_list, is) |*v, i| v.* = if (i < 0 or i >= list.len) false else list[@intCast(i)];
+                    vm.push(value);
+                },
+                .byte_list => |list| {
+                    const value: *Value = try .byteList(vm.gpa, is.len);
+                    errdefer comptime unreachable;
+                    for (value.as.byte_list, is) |*v, i| v.* = if (i < 0 or i >= list.len) 0 else list[@intCast(i)];
+                    vm.push(value);
+                },
+                .short_list => |list| {
+                    const value: *Value = try .shortList(vm.gpa, is.len);
+                    errdefer comptime unreachable;
+                    for (value.as.short_list, is) |*v, i| v.* = if (i < 0 or i >= list.len) @intFromEnum(Value.Short.null) else list[@intCast(i)];
+                    vm.push(value);
+                },
+                .int_list => |list| {
+                    const value: *Value = try .intList(vm.gpa, is.len);
+                    errdefer comptime unreachable;
+                    for (value.as.int_list, is) |*v, i| v.* = if (i < 0 or i >= list.len) @intFromEnum(Value.Int.null) else list[@intCast(i)];
+                    vm.push(value);
+                },
+                .long_list => |list| {
+                    const value: *Value = try .longList(vm.gpa, is.len);
+                    errdefer comptime unreachable;
+                    for (value.as.long_list, is) |*v, i| v.* = if (i < 0 or i >= list.len) @intFromEnum(Value.Long.null) else list[@intCast(i)];
+                    vm.push(value);
+                },
+                .real_list => |list| {
+                    const value: *Value = try .realList(vm.gpa, is.len);
+                    errdefer comptime unreachable;
+                    for (value.as.real_list, is) |*v, i| v.* = if (i < 0 or i >= list.len) std.math.nan(f32) else list[@intCast(i)];
+                    vm.push(value);
+                },
+                .float_list => |list| {
+                    const value: *Value = try .floatList(vm.gpa, is.len);
+                    errdefer comptime unreachable;
+                    for (value.as.float_list, is) |*v, i| v.* = if (i < 0 or i >= list.len) std.math.nan(f64) else list[@intCast(i)];
+                    vm.push(value);
+                },
+                .char_list => |list| {
+                    const value: *Value = try .charList(vm.gpa, is.len);
+                    errdefer comptime unreachable;
+                    for (value.as.char_list, is) |*v, i| v.* = if (i < 0 or i >= list.len) ' ' else list[@intCast(i)];
+                    vm.push(value);
+                },
+                .symbol_list => |list| {
+                    const value: *Value = try .symbolList(vm.gpa, is.len);
+                    errdefer comptime unreachable;
+                    for (value.as.symbol_list, is) |*v, i| v.* = if (i < 0 or i >= list.len) .empty else list[@intCast(i)];
+                    vm.push(value);
+                },
+                else => unreachable,
+            }
+        },
+        else => unreachable,
     }
 }
 

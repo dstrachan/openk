@@ -19,6 +19,7 @@ pub const OpCode = Chunk.OpCode;
 pub const Vm = @import("k/Vm.zig");
 pub const NullTerminatedString = Vm.NullTerminatedString;
 pub const Value = @import("k/Value.zig");
+pub const Type = Value.Type;
 pub const Lambda = Value.Lambda;
 pub const UnaryPrimitive = Value.UnaryPrimitive;
 pub const Operator = Value.Operator;

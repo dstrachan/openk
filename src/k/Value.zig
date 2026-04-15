@@ -13,7 +13,7 @@ const Value = @This();
 ref_count: u32 = 0,
 as: Union,
 
-const Type = enum(i8) {
+pub const Type = enum(i8) {
     list = 0,
     boolean = -1,
     boolean_list = 1,
@@ -646,6 +646,27 @@ pub fn match(a: *Value, b: *Value) bool {
     };
 }
 
+pub fn toIndex(x: *Value, gpa: Allocator) !?*Value {
+    return switch (x.as) {
+        .boolean => |v| .long(gpa, @intFromBool(v)),
+        .boolean_list => |values| blk: {
+            const value: *Value = try .longList(gpa, values.len);
+            errdefer comptime unreachable;
+            for (value.as.long_list, values) |*v, b| v.* = @intFromBool(b);
+            break :blk value;
+        },
+        .byte, .short, .int, .char => |v| .long(gpa, v),
+        inline .byte_list, .short_list, .int_list, .char_list => |values| blk: {
+            const value: *Value = try .longList(gpa, values.len);
+            errdefer comptime unreachable;
+            for (value.as.long_list, values) |*v, i| v.* = i;
+            break :blk value;
+        },
+        .long, .long_list => x.ref(),
+        else => null,
+    };
+}
+
 pub fn list(gpa: Allocator, len: usize) !*Value {
     const items = try gpa.alloc(*Value, len);
     errdefer gpa.free(items);
@@ -705,6 +726,22 @@ pub fn copyByteList(gpa: Allocator, value: []const u8) !*Value {
     return self;
 }
 
+pub const Short = enum(i16) {
+    null = std.math.minInt(i16),
+    neg_inf = -std.math.maxInt(i16),
+    inf = std.math.maxInt(i16),
+    _,
+
+    pub fn format(self: @This(), w: *Io.Writer) !void {
+        try switch (self) {
+            .null => w.writeAll("0N"),
+            .neg_inf => w.writeAll("-0W"),
+            .inf => w.writeAll("0W"),
+            else => w.print("{d}", .{self}),
+        };
+    }
+};
+
 pub fn short(gpa: Allocator, value: i16) !*Value {
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
@@ -730,6 +767,22 @@ pub fn copyShortList(gpa: Allocator, value: []const i16) !*Value {
     return self;
 }
 
+pub const Int = enum(i32) {
+    null = std.math.minInt(i32),
+    neg_inf = -std.math.maxInt(i32),
+    inf = std.math.maxInt(i32),
+    _,
+
+    pub fn format(self: @This(), w: *Io.Writer) !void {
+        try switch (self) {
+            .null => w.writeAll("0N"),
+            .neg_inf => w.writeAll("-0W"),
+            .inf => w.writeAll("0W"),
+            else => w.print("{d}", .{self}),
+        };
+    }
+};
+
 pub fn int(gpa: Allocator, value: i32) !*Value {
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
@@ -754,6 +807,22 @@ pub fn copyIntList(gpa: Allocator, value: []const i32) !*Value {
     self.* = .{ .as = .{ .int_list = items } };
     return self;
 }
+
+pub const Long = enum(i64) {
+    null = std.math.minInt(i64),
+    neg_inf = -std.math.maxInt(i64),
+    inf = std.math.maxInt(i64),
+    _,
+
+    pub fn format(self: @This(), w: *Io.Writer) !void {
+        try switch (self) {
+            .null => w.writeAll("0N"),
+            .neg_inf => w.writeAll("-0W"),
+            .inf => w.writeAll("0W"),
+            else => w.print("{d}", .{self}),
+        };
+    }
+};
 
 pub fn long(gpa: Allocator, value: i64) !*Value {
     const self = try gpa.create(Value);
