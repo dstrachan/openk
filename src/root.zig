@@ -57,6 +57,19 @@ pub const UnaryPrimitives = struct {
     pub const exit = @import("k/unary_primitives/exit.zig").exit;
     pub const getenv = @import("k/unary_primitives/getenv.zig").getenv;
     pub const abs = @import("k/unary_primitives/abs.zig").abs;
+    pub const sqrt = @import("k/unary_primitives/sqrt.zig").sqrt;
+    pub const log = @import("k/unary_primitives/log.zig").log;
+    pub const exp = @import("k/unary_primitives/exp.zig").exp;
+    pub const sin = @import("k/unary_primitives/sin.zig").sin;
+    pub const asin = @import("k/unary_primitives/asin.zig").asin;
+    pub const cos = @import("k/unary_primitives/cos.zig").cos;
+    pub const acos = @import("k/unary_primitives/acos.zig").acos;
+    pub const tan = @import("k/unary_primitives/tan.zig").tan;
+    pub const atan = @import("k/unary_primitives/atan.zig").atan;
+    pub const enlist = @import("k/unary_primitives/enlist.zig").enlist;
+    pub const @"var" = @import("k/unary_primitives/var.zig").@"var";
+    pub const dev = @import("k/unary_primitives/dev.zig").dev;
+    pub const hopen = @import("k/unary_primitives/hopen.zig").hopen;
 };
 
 pub const Operators = struct {

@@ -97,9 +97,9 @@ pub fn init(vm: *Vm, io: Io, gpa: Allocator, stdout: *Io.Writer, color: std.zig.
     }
 
     assert(.empty == try vm.intern(""));
-    assert(.x == try vm.intern("x"));
-    assert(.y == try vm.intern("y"));
-    assert(.z == try vm.intern("z"));
+    inline for (std.meta.tags(NullTerminatedString)[1..]) |t| {
+        assert(t == try vm.intern(@tagName(t)));
+    }
 }
 
 pub fn deinit(vm: *Vm) void {
@@ -165,6 +165,28 @@ pub const NullTerminatedString = enum(u32) {
     x = 1,
     y = 3,
     z = 5,
+    avg = 7,
+    last = 11,
+    sum = 16,
+    prd = 20,
+    min = 24,
+    max = 28,
+    exit = 32,
+    getenv = 37,
+    abs = 44,
+    sqrt = 48,
+    log = 53,
+    exp = 57,
+    sin = 61,
+    asin = 65,
+    cos = 70,
+    acos = 74,
+    tan = 79,
+    atan = 83,
+    enlist = 88,
+    @"var" = 95,
+    dev = 99,
+    hopen = 103,
     _,
 };
 
@@ -313,7 +335,8 @@ fn run(vm: *Vm) Error!*Value {
 
             .identity => {},
 
-            ._unused => unreachable,
+            ._unused_unary_primitive => unreachable,
+            ._unused_operator => unreachable,
 
             inline .flip,
             .neg,
@@ -452,7 +475,20 @@ fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
         .symbol => unreachable,
         .symbol_list => try vm.applyList(x, arg_count),
         .lambda => try vm.applyLambda(x, arg_count),
-        .unary_primitive => unreachable,
+        .unary_primitive => {
+            if (arg_count != 1) return vm.runtimeError("rank", .{});
+
+            switch (x.as.unary_primitive) {
+                .identity => {},
+                ._unused => unreachable,
+                inline else => |t| {
+                    const y = vm.pop();
+                    defer y.deref(vm.gpa);
+
+                    vm.push(try @call(.auto, @field(k.UnaryPrimitives, @tagName(t)), .{ vm, y }));
+                },
+            }
+        },
         .operator => unreachable,
     }
 }

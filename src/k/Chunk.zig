@@ -57,7 +57,7 @@ pub const OpCode = enum(u8) {
     value = 51,
     read_text = 52,
     read_binary = 53,
-    _unused = 54,
+    _unused_unary_primitive = 54,
     avg = 55,
     last = 56,
     sum = 57,
@@ -69,6 +69,7 @@ pub const OpCode = enum(u8) {
     abs = 63,
 
     // operators
+    _unused_operator = 64,
     add = 65,
     subtract = 66,
     multiply = 67,
@@ -201,7 +202,7 @@ pub fn disassembleInstruction(chunk: Chunk, vm: *Vm, writer: *Io.Writer, offset:
         .value,
         .read_text,
         .read_binary,
-        ._unused,
+        ._unused_unary_primitive,
         .avg,
         .last,
         .sum,
@@ -213,6 +214,7 @@ pub fn disassembleInstruction(chunk: Chunk, vm: *Vm, writer: *Io.Writer, offset:
         .abs,
         => |t| return simpleInstruction(writer, t, offset),
 
+        ._unused_operator,
         .add,
         .subtract,
         .multiply,

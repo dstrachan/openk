@@ -13,6 +13,7 @@ const Value = k.Value;
 const Vm = k.Vm;
 const OpCode = k.OpCode;
 const NullTerminatedString = k.NullTerminatedString;
+const UnaryPrimitive = k.UnaryPrimitive;
 const parseNumber = k.parseNumber;
 
 const Compiler = @This();
@@ -251,6 +252,38 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
         },
         .identifier => {
             const name = try c.vm.intern(tree.tokenSlice(tree.nodeMainToken(node)));
+            switch (name) {
+                .avg,
+                .last,
+                .sum,
+                .prd,
+                .min,
+                .max,
+                .exit,
+                .getenv,
+                .abs,
+                .sqrt,
+                .log,
+                .exp,
+                .sin,
+                .asin,
+                .cos,
+                .acos,
+                .tan,
+                .atan,
+                .enlist,
+                .@"var",
+                .dev,
+                .hopen,
+                => |t| {
+                    const unary_primitive = std.meta.stringToEnum(UnaryPrimitive, @tagName(t)).?;
+                    const value = c.vm.unary_primitives[@intFromEnum(unary_primitive)].ref();
+                    errdefer value.deref(c.gpa);
+                    try c.emitConstant(value, node);
+                    return;
+                },
+                else => {},
+            }
 
             if (c.lambda.as.lambda.arity > 0) {
                 if (c.getLocal(name)) |local| {
@@ -331,7 +364,8 @@ fn emitApplyUnary(c: *Compiler, lhs: Node.Index, rhs: Node.Index) !void {
     const tree = c.tree;
 
     try c.compileNode(rhs);
-    switch (tree.nodeTag(tree.unwrap(lhs))) {
+    const node = tree.unwrap(lhs);
+    switch (tree.nodeTag(node)) {
         .grouped_expression => unreachable,
 
         .colon, .colon_colon => try c.emitUnaryPrimitive(.identity),
@@ -357,8 +391,28 @@ fn emitApplyUnary(c: *Compiler, lhs: Node.Index, rhs: Node.Index) !void {
         .zero_colon, .zero_colon_colon => try c.emitUnaryPrimitive(.read_text),
         .one_colon, .one_colon_colon => try c.emitUnaryPrimitive(.read_binary),
 
+        .identifier => {
+            const name = try c.vm.intern(tree.tokenSlice(tree.nodeMainToken(node)));
+            switch (name) {
+                inline .avg,
+                .last,
+                .sum,
+                .prd,
+                .min,
+                .max,
+                .exit,
+                .getenv,
+                .abs,
+                => |t| try c.emitUnaryPrimitive(std.meta.stringToEnum(UnaryPrimitive, @tagName(t)).?),
+                else => {
+                    try c.compileNode(node);
+                    try c.emitOpCode(.apply_at);
+                },
+            }
+        },
+
         else => {
-            try c.compileNode(lhs);
+            try c.compileNode(node);
             try c.emitOpCode(.apply_at);
         },
     }
@@ -454,7 +508,9 @@ fn emitApplyBinary(c: *Compiler, lhs: Node.Index, op: Node.Index, maybe_rhs: Nod
 }
 
 fn emitUnaryPrimitive(c: *Compiler, unary_primitive: Value.UnaryPrimitive) !void {
-    const op_code: OpCode = @enumFromInt(@intFromEnum(unary_primitive) + 32);
+    const op_code: OpCode = @enumFromInt(@intFromEnum(unary_primitive) + @intFromEnum(OpCode.identity));
+    assert(@intFromEnum(op_code) >= @intFromEnum(OpCode.identity) and
+        @intFromEnum(op_code) <= @intFromEnum(OpCode.abs));
     try c.emitOpCode(op_code);
 }
 
@@ -487,7 +543,9 @@ fn emitEmpty(c: *Compiler) !void {
 }
 
 fn emitOperator(c: *Compiler, operator: Value.Operator) !void {
-    const op_code: OpCode = @enumFromInt(@intFromEnum(operator) + 64);
+    const op_code: OpCode = @enumFromInt(@intFromEnum(operator) + @intFromEnum(OpCode._unused_operator));
+    assert(@intFromEnum(op_code) >= @intFromEnum(OpCode._unused_operator) and
+        @intFromEnum(op_code) <= @intFromEnum(OpCode.div));
     try c.emitOpCode(op_code);
 }
 
