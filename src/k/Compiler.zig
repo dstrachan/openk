@@ -14,6 +14,7 @@ const Vm = k.Vm;
 const OpCode = k.OpCode;
 const NullTerminatedString = k.NullTerminatedString;
 const UnaryPrimitive = k.UnaryPrimitive;
+const Operator = k.Operator;
 const parseNumber = k.parseNumber;
 
 const Compiler = @This();
@@ -141,67 +142,78 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             try c.emitConstant(value, number_literal);
         },
 
-        .colon, .colon_colon => try c.emitNil(),
-        .plus => try c.emitOperator(.add),
-        .minus => try c.emitOperator(.subtract),
-        .asterisk => try c.emitOperator(.multiply),
-        .percent => try c.emitOperator(.divide),
-        .ampersand => try c.emitOperator(.@"and"),
-        .pipe => try c.emitOperator(.@"or"),
-        .caret => try c.emitOperator(.fill),
-        .equal => try c.emitOperator(.equals),
-        .l_angle_bracket => try c.emitOperator(.less_than),
-        .r_angle_bracket => try c.emitOperator(.greater_than),
-        .dollar => try c.emitOperator(.cast),
-        .comma => try c.emitOperator(.join),
-        .hash => try c.emitOperator(.take),
-        .underscore => try c.emitOperator(.drop),
-        .tilde => try c.emitOperator(.match),
-        .bang => try c.emitOperator(.dict),
-        .question_mark => try c.emitOperator(.find),
-        .at => try c.emitOperator(.apply_at),
-        .dot => try c.emitOperator(.apply),
-        .zero_colon => try c.emitOperator(.file_text),
-        .one_colon => try c.emitOperator(.file_binary),
-        .two_colon => try c.emitOperator(.dynamic_load),
+        .colon => try c.emitConstantOperator(.assign, node),
+        .colon_colon => try c.emitConstantUnaryPrimitive(.identity, node),
+        .plus => try c.emitConstantOperator(.add, node),
+        .plus_colon => try c.emitConstantUnaryPrimitive(.flip, node),
+        .minus => try c.emitConstantOperator(.subtract, node),
+        .minus_colon => try c.emitConstantUnaryPrimitive(.neg, node),
+        .asterisk => try c.emitConstantOperator(.multiply, node),
+        .asterisk_colon => try c.emitConstantUnaryPrimitive(.first, node),
+        .percent => try c.emitConstantOperator(.divide, node),
+        .percent_colon => try c.emitConstantUnaryPrimitive(.reciprocal, node),
+        .ampersand => try c.emitConstantOperator(.@"and", node),
+        .ampersand_colon => try c.emitConstantUnaryPrimitive(.where, node),
+        .pipe => try c.emitConstantOperator(.@"or", node),
+        .pipe_colon => try c.emitConstantUnaryPrimitive(.reverse, node),
+        .caret => try c.emitConstantOperator(.fill, node),
+        .caret_colon => try c.emitConstantUnaryPrimitive(.null, node),
+        .equal => try c.emitConstantOperator(.equals, node),
+        .equal_colon => try c.emitConstantUnaryPrimitive(.group, node),
+        .l_angle_bracket => try c.emitConstantOperator(.less_than, node),
+        .l_angle_bracket_colon => try c.emitConstantUnaryPrimitive(.asc, node),
+        .r_angle_bracket => try c.emitConstantOperator(.greater_than, node),
+        .r_angle_bracket_colon => try c.emitConstantUnaryPrimitive(.desc, node),
+        .dollar => try c.emitConstantOperator(.cast, node),
+        .dollar_colon => try c.emitConstantUnaryPrimitive(.string, node),
+        .comma => try c.emitConstantOperator(.join, node),
+        .comma_colon => try c.emitConstantUnaryPrimitive(.list, node),
+        .hash => try c.emitConstantOperator(.take, node),
+        .hash_colon => try c.emitConstantUnaryPrimitive(.count, node),
+        .underscore => try c.emitConstantOperator(.drop, node),
+        .underscore_colon => try c.emitConstantUnaryPrimitive(.lower, node),
+        .tilde => try c.emitConstantOperator(.match, node),
+        .tilde_colon => try c.emitConstantUnaryPrimitive(.not, node),
+        .bang => try c.emitConstantOperator(.dict, node),
+        .bang_colon => try c.emitConstantUnaryPrimitive(.key, node),
+        .question_mark => try c.emitConstantOperator(.find, node),
+        .question_mark_colon => try c.emitConstantUnaryPrimitive(.distinct, node),
+        .at => try c.emitConstantOperator(.apply_at, node),
+        .at_colon => try c.emitConstantUnaryPrimitive(.type, node),
+        .dot => try c.emitConstantOperator(.apply, node),
+        .dot_colon => try c.emitConstantUnaryPrimitive(.value, node),
+        .zero_colon => try c.emitConstantOperator(.file_text, node),
+        .zero_colon_colon => try c.emitConstantUnaryPrimitive(.read_text, node),
+        .one_colon => try c.emitConstantOperator(.file_binary, node),
+        .one_colon_colon => try c.emitConstantUnaryPrimitive(.read_binary, node),
+        .two_colon => try c.emitConstantOperator(.dynamic_load, node),
+
+        .apostrophe => unreachable,
+        .apostrophe_colon => unreachable,
+        .slash => {
+            if (tree.nodeData(node).opt_node.unwrap()) |lhs| {
+                try c.compileNode(lhs);
+                try c.emitOpCode(.over);
+            } else unreachable;
+        },
+        .slash_colon => unreachable,
+        .backslash => unreachable,
+        .backslash_colon => unreachable,
 
         .call => {
             const nodes = tree.extraDataSlice(tree.nodeData(node).extra_range, Node.Index);
-            const func = nodes[0];
-            const args = nodes[1..];
-
-            if (args.len == 0) {
-                try c.emitNil();
-                try c.compileNode(func);
-                try c.emitCall(1);
-                return;
-            }
-
-            if (args.len == 2) {
-                switch (tree.nodeTag(func)) {
-                    .colon => return c.failNode(node, "nyi", .{}),
-                    .colon_colon => return c.failNode(node, "nyi", .{}),
-                    else => {},
-                }
-            }
-
-            var it = std.mem.reverseIterator(args);
-            while (it.next()) |n| {
-                try c.compileNode(n);
-            }
-            try c.compileNode(func);
-            try c.emitCall(args.len);
+            try c.emitCall(tree.unwrap(nodes[0]), nodes[1..]);
         },
 
         .apply_unary => {
             const lhs, const rhs = tree.nodeData(node).node_and_node;
-            try c.emitApplyUnary(lhs, rhs);
+            try c.emitUnaryCall(tree.unwrap(lhs), rhs.toOptional());
         },
 
         .apply_binary => {
             const lhs, const maybe_rhs = tree.nodeData(node).node_and_opt_node;
             const op: Node.Index = @enumFromInt(tree.nodeMainToken(node));
-            try c.emitApplyBinary(lhs, op, maybe_rhs);
+            try c.emitBinaryCall(op, lhs, maybe_rhs);
         },
 
         .number_literal => {
@@ -338,61 +350,45 @@ fn emitAssign(c: *Compiler, local: u8) !void {
     try c.emitByte(local);
 }
 
-fn emitAmend(c: *Compiler, identifier: u8, operator: Value.Operator) !void {
+fn emitAmend(c: *Compiler, identifier: u8, operator: Operator) !void {
     try c.emitOpCode(.empty_list);
     try c.emitOpCode(.amend);
     try c.emitByte(identifier);
     try c.emitByte(@intFromEnum(operator));
 }
 
-fn emitCall(c: *Compiler, arg_count: usize) !void {
-    try c.emitOpCode(.call);
-    try c.emitByte(arg_count);
-}
-
-fn emitLocal(c: *Compiler, local: u8) !void {
-    try c.emitOpCode(.local);
-    try c.emitByte(local);
-}
-
-fn emitGlobal(c: *Compiler, global: u8) !void {
-    try c.emitOpCode(.global);
-    try c.emitByte(global);
-}
-
-fn emitApplyUnary(c: *Compiler, lhs: Node.Index, rhs: Node.Index) !void {
+fn emitUnaryCall(c: *Compiler, func: Node.Index, maybe_rhs: Node.OptionalIndex) !void {
     const tree = c.tree;
 
-    try c.compileNode(rhs);
-    const node = tree.unwrap(lhs);
-    switch (tree.nodeTag(node)) {
+    if (maybe_rhs.unwrap()) |rhs| try c.compileNode(rhs) else try c.emitNil();
+    switch (tree.nodeTag(func)) {
         .grouped_expression => unreachable,
 
-        .colon, .colon_colon => try c.emitUnaryPrimitive(.identity),
-        .plus, .plus_colon => try c.emitUnaryPrimitive(.flip),
-        .minus, .minus_colon => try c.emitUnaryPrimitive(.neg),
-        .asterisk, .asterisk_colon => try c.emitUnaryPrimitive(.first),
-        .percent, .percent_colon => try c.emitUnaryPrimitive(.reciprocal),
-        .ampersand, .ampersand_colon => try c.emitUnaryPrimitive(.where),
-        .pipe, .pipe_colon => try c.emitUnaryPrimitive(.reverse),
-        .caret, .caret_colon => try c.emitUnaryPrimitive(.null),
-        .equal, .equal_colon => try c.emitUnaryPrimitive(.group),
-        .l_angle_bracket, .l_angle_bracket_colon => try c.emitUnaryPrimitive(.asc),
-        .r_angle_bracket, .r_angle_bracket_colon => try c.emitUnaryPrimitive(.desc),
-        .dollar, .dollar_colon => try c.emitUnaryPrimitive(.string),
-        .comma, .comma_colon => try c.emitUnaryPrimitive(.list),
-        .hash, .hash_colon => try c.emitUnaryPrimitive(.count),
-        .underscore, .underscore_colon => try c.emitUnaryPrimitive(.lower),
-        .tilde, .tilde_colon => try c.emitUnaryPrimitive(.not),
-        .bang, .bang_colon => try c.emitUnaryPrimitive(.key),
-        .question_mark, .question_mark_colon => try c.emitUnaryPrimitive(.distinct),
-        .at, .at_colon => try c.emitUnaryPrimitive(.type),
-        .dot, .dot_colon => try c.emitUnaryPrimitive(.value),
-        .zero_colon, .zero_colon_colon => try c.emitUnaryPrimitive(.read_text),
-        .one_colon, .one_colon_colon => try c.emitUnaryPrimitive(.read_binary),
+        .colon_colon => try c.emitUnaryPrimitive(.identity),
+        .plus_colon => try c.emitUnaryPrimitive(.flip),
+        .minus_colon => try c.emitUnaryPrimitive(.neg),
+        .asterisk_colon => try c.emitUnaryPrimitive(.first),
+        .percent_colon => try c.emitUnaryPrimitive(.reciprocal),
+        .ampersand_colon => try c.emitUnaryPrimitive(.where),
+        .pipe_colon => try c.emitUnaryPrimitive(.reverse),
+        .caret_colon => try c.emitUnaryPrimitive(.null),
+        .equal_colon => try c.emitUnaryPrimitive(.group),
+        .l_angle_bracket_colon => try c.emitUnaryPrimitive(.asc),
+        .r_angle_bracket_colon => try c.emitUnaryPrimitive(.desc),
+        .dollar_colon => try c.emitUnaryPrimitive(.string),
+        .comma_colon => try c.emitUnaryPrimitive(.list),
+        .hash_colon => try c.emitUnaryPrimitive(.count),
+        .underscore_colon => try c.emitUnaryPrimitive(.lower),
+        .tilde_colon => try c.emitUnaryPrimitive(.not),
+        .bang_colon => try c.emitUnaryPrimitive(.key),
+        .question_mark_colon => try c.emitUnaryPrimitive(.distinct),
+        .at_colon => try c.emitUnaryPrimitive(.type),
+        .dot_colon => try c.emitUnaryPrimitive(.value),
+        .zero_colon_colon => try c.emitUnaryPrimitive(.read_text),
+        .one_colon_colon => try c.emitUnaryPrimitive(.read_binary),
 
         .identifier => {
-            const name = try c.vm.intern(tree.tokenSlice(tree.nodeMainToken(node)));
+            const name = try c.vm.intern(tree.tokenSlice(tree.nodeMainToken(func)));
             switch (name) {
                 inline .avg,
                 .last,
@@ -405,113 +401,136 @@ fn emitApplyUnary(c: *Compiler, lhs: Node.Index, rhs: Node.Index) !void {
                 .abs,
                 => |t| try c.emitUnaryPrimitive(std.meta.stringToEnum(UnaryPrimitive, @tagName(t)).?),
                 else => {
-                    try c.compileNode(node);
+                    try c.compileNode(func);
                     try c.emitOpCode(.apply_at);
                 },
             }
         },
 
         else => {
-            try c.compileNode(node);
+            try c.compileNode(func);
             try c.emitOpCode(.apply_at);
         },
     }
 }
 
-// TODO: binary iterator
-fn emitApplyBinary(c: *Compiler, lhs: Node.Index, op: Node.Index, maybe_rhs: Node.OptionalIndex) !void {
+fn emitBinaryCall(c: *Compiler, func: Node.Index, lhs: Node.Index, maybe_rhs: Node.OptionalIndex) !void {
     const tree = c.tree;
 
-    if (maybe_rhs.unwrap()) |rhs| {
-        const tag = tree.nodeTag(tree.unwrap(op));
-        switch (tag) {
-            .grouped_expression => unreachable,
-
-            inline .colon,
-            .colon_colon,
-            => |t| {
-                const identifier = tree.unwrap(lhs);
-                if (tree.nodeTag(identifier) != .identifier) {
-                    return c.failNode(lhs, "Expected identifier, found '{t}'", .{tree.nodeTag(identifier)});
-                }
-
-                try c.compileNode(rhs);
-
-                const name = try c.vm.intern(tree.tokenSlice(tree.nodeMainToken(identifier)));
-                if (comptime t == .colon) {
-                    try c.emitAssign(c.getLocal(name).?);
-                } else {
-                    if (c.getLocal(name)) |local| {
-                        try c.emitAssign(local);
-                    } else {
-                        try c.emitAmend(c.getGlobal(name).?, .assign);
-                    }
-                }
-            },
-
-            else => {
-                try c.compileNode(rhs);
-                try c.compileNode(lhs);
-                switch (tree.nodeTag(tree.unwrap(op))) {
-                    .plus => return c.emitOperator(.add),
-                    .plus_colon => return c.failNode(op, "nyi", .{}),
-                    .minus => return c.emitOperator(.subtract),
-                    .minus_colon => return c.failNode(op, "nyi", .{}),
-                    .asterisk => return c.emitOperator(.multiply),
-                    .asterisk_colon => return c.failNode(op, "nyi", .{}),
-                    .percent => return c.emitOperator(.divide),
-                    .percent_colon => return c.failNode(op, "nyi", .{}),
-                    .ampersand => return c.emitOperator(.@"and"),
-                    .ampersand_colon => return c.failNode(op, "nyi", .{}),
-                    .pipe => return c.emitOperator(.@"or"),
-                    .pipe_colon => return c.failNode(op, "nyi", .{}),
-                    .caret => return c.emitOperator(.fill),
-                    .caret_colon => return c.failNode(op, "nyi", .{}),
-                    .equal => return c.emitOperator(.equals),
-                    .equal_colon => return c.failNode(op, "nyi", .{}),
-                    .l_angle_bracket => return c.emitOperator(.less_than),
-                    .l_angle_bracket_colon => return c.failNode(op, "nyi", .{}),
-                    .r_angle_bracket => return c.emitOperator(.greater_than),
-                    .r_angle_bracket_colon => return c.failNode(op, "nyi", .{}),
-                    .dollar => return c.emitOperator(.cast),
-                    .dollar_colon => return c.failNode(op, "nyi", .{}),
-                    .comma => return c.emitOperator(.join),
-                    .comma_colon => return c.failNode(op, "nyi", .{}),
-                    .hash => return c.emitOperator(.take),
-                    .hash_colon => return c.failNode(op, "nyi", .{}),
-                    .underscore => return c.emitOperator(.drop),
-                    .underscore_colon => return c.failNode(op, "nyi", .{}),
-                    .tilde => return c.emitOperator(.match),
-                    .tilde_colon => return c.failNode(op, "nyi", .{}),
-                    .bang => return c.emitOperator(.dict),
-                    .bang_colon => return c.failNode(op, "nyi", .{}),
-                    .question_mark => return c.emitOperator(.find),
-                    .question_mark_colon => return c.failNode(op, "nyi", .{}),
-                    .at => return c.emitOperator(.apply_at),
-                    .at_colon => return c.failNode(op, "nyi", .{}),
-                    .dot => return c.emitOperator(.apply),
-                    .dot_colon => return c.failNode(op, "nyi", .{}),
-                    .zero_colon => return c.emitOperator(.file_text),
-                    .zero_colon_colon => return c.failNode(op, "nyi", .{}),
-                    .one_colon => return c.emitOperator(.file_binary),
-                    .one_colon_colon => return c.failNode(op, "nyi", .{}),
-                    .two_colon => return c.emitOperator(.dynamic_load),
-                    else => unreachable,
-                }
-            },
-        }
-    } else {
+    const rhs = maybe_rhs.unwrap() orelse {
         try c.compileNode(lhs);
-        try c.compileNode(op);
+        try c.compileNode(func);
         try c.emitOperator(.apply_at);
+        return;
+    };
+
+    switch (tree.nodeTag(func)) {
+        inline .colon, .colon_colon => |t| {
+            if (tree.nodeTag(lhs) != .identifier) {
+                return c.failNode(lhs, "Expected identifier, found '{t}'", .{tree.nodeTag(lhs)});
+            }
+
+            try c.compileNode(rhs);
+
+            const name = try c.vm.intern(tree.tokenSlice(tree.nodeMainToken(lhs)));
+            if (t == .colon) {
+                try c.emitAssign(c.getLocal(name).?);
+            } else if (c.getLocal(name)) |local| {
+                try c.emitAssign(local);
+            } else {
+                try c.emitAmend(c.getGlobal(name).?, .assign);
+            }
+
+            return;
+        },
+        else => {},
+    }
+
+    try c.compileNode(rhs);
+    try c.compileNode(lhs);
+    switch (tree.nodeTag(func)) {
+        .grouped_expression => unreachable,
+
+        .colon => unreachable,
+        .colon_colon => unreachable,
+        .plus => return c.emitOperator(.add),
+        .plus_colon => return c.failNode(func, "nyi", .{}),
+        .minus => return c.emitOperator(.subtract),
+        .minus_colon => return c.failNode(func, "nyi", .{}),
+        .asterisk => return c.emitOperator(.multiply),
+        .asterisk_colon => return c.failNode(func, "nyi", .{}),
+        .percent => return c.emitOperator(.divide),
+        .percent_colon => return c.failNode(func, "nyi", .{}),
+        .ampersand => return c.emitOperator(.@"and"),
+        .ampersand_colon => return c.failNode(func, "nyi", .{}),
+        .pipe => return c.emitOperator(.@"or"),
+        .pipe_colon => return c.failNode(func, "nyi", .{}),
+        .caret => return c.emitOperator(.fill),
+        .caret_colon => return c.failNode(func, "nyi", .{}),
+        .equal => return c.emitOperator(.equals),
+        .equal_colon => return c.failNode(func, "nyi", .{}),
+        .l_angle_bracket => return c.emitOperator(.less_than),
+        .l_angle_bracket_colon => return c.failNode(func, "nyi", .{}),
+        .r_angle_bracket => return c.emitOperator(.greater_than),
+        .r_angle_bracket_colon => return c.failNode(func, "nyi", .{}),
+        .dollar => return c.emitOperator(.cast),
+        .dollar_colon => return c.failNode(func, "nyi", .{}),
+        .comma => return c.emitOperator(.join),
+        .comma_colon => return c.failNode(func, "nyi", .{}),
+        .hash => return c.emitOperator(.take),
+        .hash_colon => return c.failNode(func, "nyi", .{}),
+        .underscore => return c.emitOperator(.drop),
+        .underscore_colon => return c.failNode(func, "nyi", .{}),
+        .tilde => return c.emitOperator(.match),
+        .tilde_colon => return c.failNode(func, "nyi", .{}),
+        .bang => return c.emitOperator(.dict),
+        .bang_colon => return c.failNode(func, "nyi", .{}),
+        .question_mark => return c.emitOperator(.find),
+        .question_mark_colon => return c.failNode(func, "nyi", .{}),
+        .at => return c.emitOperator(.apply_at),
+        .at_colon => return c.failNode(func, "nyi", .{}),
+        .dot => return c.emitOperator(.apply),
+        .dot_colon => return c.failNode(func, "nyi", .{}),
+        .zero_colon => return c.emitOperator(.file_text),
+        .zero_colon_colon => return c.failNode(func, "nyi", .{}),
+        .one_colon => return c.emitOperator(.file_binary),
+        .one_colon_colon => return c.failNode(func, "nyi", .{}),
+        .two_colon => return c.emitOperator(.dynamic_load),
+
+        else => {
+            try c.compileNode(func);
+            try c.emitOpCode(.call);
+            try c.emitByte(2);
+        },
     }
 }
 
-fn emitUnaryPrimitive(c: *Compiler, unary_primitive: Value.UnaryPrimitive) !void {
-    const op_code: OpCode = @enumFromInt(@intFromEnum(unary_primitive) + @intFromEnum(OpCode.identity));
-    assert(@intFromEnum(op_code) >= @intFromEnum(OpCode.identity) and
-        @intFromEnum(op_code) <= @intFromEnum(OpCode.abs));
-    try c.emitOpCode(op_code);
+fn emitCall(c: *Compiler, func: Node.Index, args: []const Node.Index) !void {
+    const tree = c.tree;
+    switch (args.len) {
+        0 => try c.emitUnaryCall(func, .none),
+        1 => try c.emitUnaryCall(func, tree.unwrap(args[0]).toOptional()),
+        2 => try c.emitBinaryCall(func, tree.unwrap(args[0]), tree.unwrap(args[1]).toOptional()),
+        else => {
+            var it = std.mem.reverseIterator(args);
+            while (it.next()) |n| {
+                try c.compileNode(n);
+            }
+            try c.compileNode(func);
+            try c.emitOpCode(.call);
+            try c.emitByte(args.len);
+        },
+    }
+}
+
+fn emitLocal(c: *Compiler, local: u8) !void {
+    try c.emitOpCode(.local);
+    try c.emitByte(local);
+}
+
+fn emitGlobal(c: *Compiler, global: u8) !void {
+    try c.emitOpCode(.global);
+    try c.emitByte(global);
 }
 
 fn emitEmptyList(c: *Compiler) !void {
@@ -542,11 +561,30 @@ fn emitEmpty(c: *Compiler) !void {
     try c.emitOpCode(.empty);
 }
 
-fn emitOperator(c: *Compiler, operator: Value.Operator) !void {
+fn emitUnaryPrimitive(c: *Compiler, unary_primitive: Value.UnaryPrimitive) !void {
+    const op_code: OpCode = @enumFromInt(@intFromEnum(unary_primitive) + @intFromEnum(OpCode.identity));
+    assert(@intFromEnum(op_code) >= @intFromEnum(OpCode.identity) and
+        @intFromEnum(op_code) <= @intFromEnum(OpCode.abs));
+    try c.emitOpCode(op_code);
+}
+
+fn emitOperator(c: *Compiler, operator: Operator) !void {
     const op_code: OpCode = @enumFromInt(@intFromEnum(operator) + @intFromEnum(OpCode._unused_operator));
     assert(@intFromEnum(op_code) >= @intFromEnum(OpCode._unused_operator) and
         @intFromEnum(op_code) <= @intFromEnum(OpCode.div));
     try c.emitOpCode(op_code);
+}
+
+fn emitConstantUnaryPrimitive(c: *Compiler, unary_primitive: UnaryPrimitive, node: Node.Index) !void {
+    const value = c.vm.unary_primitives[@intFromEnum(unary_primitive)].ref();
+    errdefer value.deref(c.gpa);
+    try c.emitConstant(value, node);
+}
+
+fn emitConstantOperator(c: *Compiler, operator: Operator, node: Node.Index) !void {
+    const value = c.vm.operators[@intFromEnum(operator)].ref();
+    errdefer value.deref(c.gpa);
+    try c.emitConstant(value, node);
 }
 
 fn emitConstant(c: *Compiler, value: *Value, node: Node.Index) !void {
@@ -998,5 +1036,69 @@ test "explicit params" {
         \\0000    0 constant            0 '{[x]a:x}'
         \\0002    | print
         \\0003    | return
+    );
+}
+
+test "unary primitives" {
+    try testCompiler("+:",
+        \\== <test> ==
+        \\0000    0 constant            0 '+:'
+        \\0002    | print
+        \\0003    | return
+    );
+    try testCompiler("+:0",
+        \\== <test> ==
+        \\0000    0 zero
+        \\0001    | flip
+        \\0002    | print
+        \\0003    | return
+    );
+    try testCompiler("+:[0]",
+        \\== <test> ==
+        \\0000    0 zero
+        \\0001    | flip
+        \\0002    | print
+        \\0003    | return
+    );
+}
+
+test "operators" {
+    try testCompiler("+",
+        \\== <test> ==
+        \\0000    0 constant            0 '+'
+        \\0002    | print
+        \\0003    | return
+    );
+    try testCompiler("0+",
+        \\== <test> ==
+        \\0000    0 zero
+        \\0001    | constant            0 '+'
+        \\0003    | apply_at
+        \\0004    | print
+        \\0005    | return
+    );
+    try testCompiler("+[0]",
+        \\== <test> ==
+        \\0000    0 zero
+        \\0001    | constant            0 '+'
+        \\0003    | apply_at
+        \\0004    | print
+        \\0005    | return
+    );
+    try testCompiler("0+1",
+        \\== <test> ==
+        \\0000    0 one
+        \\0001    | zero
+        \\0002    | add
+        \\0003    | print
+        \\0004    | return
+    );
+    try testCompiler("+[0;1]",
+        \\== <test> ==
+        \\0000    0 one
+        \\0001    | zero
+        \\0002    | add
+        \\0003    | print
+        \\0004    | return
     );
 }
