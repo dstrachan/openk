@@ -15,6 +15,7 @@ const OpCode = k.OpCode;
 const NullTerminatedString = k.NullTerminatedString;
 const UnaryPrimitive = k.UnaryPrimitive;
 const Operator = k.Operator;
+const Iterator = k.Iterator;
 const parseNumber = k.parseNumber;
 
 const Compiler = @This();
@@ -188,17 +189,42 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
         .one_colon_colon => try c.emitConstantUnaryPrimitive(.read_binary, node),
         .two_colon => try c.emitConstantOperator(.dynamic_load, node),
 
-        .apostrophe => unreachable,
-        .apostrophe_colon => unreachable,
+        .apostrophe => {
+            if (tree.nodeData(node).opt_node.unwrap()) |lhs| {
+                _ = lhs; // autofix
+                unreachable;
+            } else try c.emitConstantIterator(.each, node);
+        },
+        .apostrophe_colon => {
+            if (tree.nodeData(node).opt_node.unwrap()) |lhs| {
+                _ = lhs; // autofix
+                unreachable;
+            } else try c.emitConstantIterator(.each_prior, node);
+        },
         .slash => {
             if (tree.nodeData(node).opt_node.unwrap()) |lhs| {
-                try c.compileNode(lhs);
-                try c.emitOpCode(.over);
-            } else unreachable;
+                _ = lhs; // autofix
+                unreachable;
+            } else try c.emitConstantIterator(.over, node);
         },
-        .slash_colon => unreachable,
-        .backslash => unreachable,
-        .backslash_colon => unreachable,
+        .slash_colon => {
+            if (tree.nodeData(node).opt_node.unwrap()) |lhs| {
+                _ = lhs; // autofix
+                unreachable;
+            } else try c.emitConstantIterator(.each_right, node);
+        },
+        .backslash => {
+            if (tree.nodeData(node).opt_node.unwrap()) |lhs| {
+                _ = lhs; // autofix
+                unreachable;
+            } else try c.emitConstantIterator(.scan, node);
+        },
+        .backslash_colon => {
+            if (tree.nodeData(node).opt_node.unwrap()) |lhs| {
+                _ = lhs; // autofix
+                unreachable;
+            } else try c.emitConstantIterator(.each_left, node);
+        },
 
         .call => {
             const nodes = tree.extraDataSlice(tree.nodeData(node).extra_range, Node.Index);
@@ -620,6 +646,12 @@ fn emitConstantUnaryPrimitive(c: *Compiler, unary_primitive: UnaryPrimitive, nod
 
 fn emitConstantOperator(c: *Compiler, operator: Operator, node: Node.Index) !void {
     const value = c.vm.operators[@intFromEnum(operator)].ref();
+    errdefer value.deref(c.gpa);
+    try c.emitConstant(value, node);
+}
+
+fn emitConstantIterator(c: *Compiler, iterator: Iterator, node: Node.Index) !void {
+    const value = c.vm.iterators[@intFromEnum(iterator)].ref();
     errdefer value.deref(c.gpa);
     try c.emitConstant(value, node);
 }

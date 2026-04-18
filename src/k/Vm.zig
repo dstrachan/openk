@@ -13,6 +13,7 @@ const Compiler = k.Compiler;
 const Lambda = k.Lambda;
 const UnaryPrimitive = k.UnaryPrimitive;
 const Operator = k.Operator;
+const Iterator = k.Iterator;
 const Type = k.Type;
 
 const Vm = @This();
@@ -29,6 +30,7 @@ color: std.zig.Color,
 constants: [6]*Value = undefined,
 unary_primitives: [std.meta.fields(UnaryPrimitive).len]*Value = undefined,
 operators: [std.meta.fields(Operator).len]*Value = undefined,
+iterators: [std.meta.fields(Iterator).len]*Value = undefined,
 string_bytes: std.ArrayList(u8) = .empty,
 string_table: std.HashMapUnmanaged(
     u32,
@@ -84,16 +86,23 @@ pub fn init(vm: *Vm, io: Io, gpa: Allocator, stdout: *Io.Writer, color: std.zig.
 
     var unary_primitives: usize = 0;
     errdefer for (0..unary_primitives) |i| vm.unary_primitives[i].deref(gpa);
-    for (&vm.unary_primitives, 0..) |*v, i| {
+    inline for (&vm.unary_primitives, 0..) |*v, i| {
         v.* = try .unaryPrimitive(gpa, @enumFromInt(i));
         unary_primitives += 1;
     }
 
     var operators: usize = 0;
     errdefer for (0..operators) |i| vm.operators[i].deref(gpa);
-    for (&vm.operators, 0..) |*v, i| {
+    inline for (&vm.operators, 0..) |*v, i| {
         v.* = try .operator(gpa, @enumFromInt(i));
         operators += 1;
+    }
+
+    var iterators: usize = 0;
+    errdefer for (0..iterators) |i| vm.iterators[i].deref(gpa);
+    inline for (&vm.iterators, 0..) |*v, i| {
+        v.* = try .iterator(gpa, @enumFromInt(i));
+        iterators += 1;
     }
 
     assert(.empty == try vm.intern(""));
@@ -114,6 +123,7 @@ pub fn deinit(vm: *Vm) void {
     for (vm.constants) |v| v.deref(vm.gpa);
     for (vm.operators) |v| v.deref(vm.gpa);
     for (vm.unary_primitives) |v| v.deref(vm.gpa);
+    for (vm.iterators) |v| v.deref(vm.gpa);
     vm.stack_lens.deinit(vm.gpa);
     vm.stack.deinit(vm.gpa);
     vm.frames.deinit(vm.gpa);
@@ -509,6 +519,7 @@ fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
                 }
             }
         },
+        .iterator => @panic("NYI"),
     }
 }
 

@@ -23,6 +23,7 @@ pub const Type = Value.Type;
 pub const Lambda = Value.Lambda;
 pub const UnaryPrimitive = Value.UnaryPrimitive;
 pub const Operator = Value.Operator;
+pub const Iterator = Value.Iterator;
 pub const Compiler = @import("k/Compiler.zig");
 pub const parseNumber = @import("k/parse_number.zig").parseNumber;
 

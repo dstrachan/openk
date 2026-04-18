@@ -36,6 +36,7 @@ pub const Type = enum(i8) {
     lambda = 100,
     unary_primitive = 101,
     operator = 102,
+    iterator = 103,
 };
 
 const Union = union(Type) {
@@ -61,6 +62,7 @@ const Union = union(Type) {
     lambda: Lambda,
     unary_primitive: UnaryPrimitive,
     operator: Operator,
+    iterator: Iterator,
 };
 
 pub const Lambda = struct {
@@ -497,6 +499,26 @@ pub const Operator = enum(u8) {
     }
 };
 
+pub const Iterator = enum(u8) {
+    each,
+    over,
+    scan,
+    each_prior,
+    each_right,
+    each_left,
+
+    pub fn format(self: Iterator, w: *Io.Writer) !void {
+        switch (self) {
+            .each => try w.writeByte('\''),
+            .over => try w.writeByte('/'),
+            .scan => try w.writeByte('\\'),
+            .each_prior => try w.writeAll("':"),
+            .each_right => try w.writeAll("/:"),
+            .each_left => try w.writeAll("\\:"),
+        }
+    }
+};
+
 pub fn ref(self: *Value) *Value {
     self.ref_count += 1;
     return self;
@@ -532,6 +554,7 @@ pub fn deref(self: *Value, gpa: Allocator) void {
             .lambda => |v| v.deinit(gpa),
             .unary_primitive => {},
             .operator => {},
+            .iterator => {},
         }
         gpa.destroy(self);
     }
@@ -642,6 +665,7 @@ pub fn format(self: Value, w: *Io.Writer, vm: *Vm) !void {
         .lambda => |v| try w.print("{s}", .{vm.nullTerminatedString(v.source)}),
         .unary_primitive => |v| try w.print("{f}", .{v}),
         .operator => |v| try w.print("{f}", .{v}),
+        .iterator => |v| try w.print("{f}", .{v}),
     }
 }
 
@@ -675,6 +699,7 @@ pub fn match(a: *Value, b: *Value) bool {
         .lambda => |v| v.source == b.as.lambda.source,
         .unary_primitive => |v| v == b.as.unary_primitive,
         .operator => |v| v == b.as.operator,
+        .iterator => |v| v == b.as.iterator,
     };
 }
 
@@ -999,6 +1024,13 @@ pub fn operator(gpa: Allocator, value: Operator) !*Value {
     const self = try gpa.create(Value);
     errdefer comptime unreachable;
     self.* = .{ .as = .{ .operator = value } };
+    return self;
+}
+
+pub fn iterator(gpa: Allocator, value: Iterator) !*Value {
+    const self = try gpa.create(Value);
+    errdefer comptime unreachable;
+    self.* = .{ .as = .{ .iterator = value } };
     return self;
 }
 
