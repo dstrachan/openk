@@ -1090,6 +1090,48 @@ pub fn iterator(gpa: Allocator, value: Iterator) !*Value {
     return self;
 }
 
+pub fn each(gpa: Allocator, value: *Value) !*Value {
+    const self = try gpa.create(Value);
+    errdefer comptime unreachable;
+    self.* = .{ .as = .{ .each = .{ .value = value.ref() } } };
+    return self;
+}
+
+pub fn over(gpa: Allocator, value: *Value) !*Value {
+    const self = try gpa.create(Value);
+    errdefer comptime unreachable;
+    self.* = .{ .as = .{ .over = .{ .value = value.ref() } } };
+    return self;
+}
+
+pub fn scan(gpa: Allocator, value: *Value) !*Value {
+    const self = try gpa.create(Value);
+    errdefer comptime unreachable;
+    self.* = .{ .as = .{ .scan = .{ .value = value.ref() } } };
+    return self;
+}
+
+pub fn eachPrior(gpa: Allocator, value: *Value) !*Value {
+    const self = try gpa.create(Value);
+    errdefer comptime unreachable;
+    self.* = .{ .as = .{ .each_prior = .{ .value = value.ref() } } };
+    return self;
+}
+
+pub fn eachRight(gpa: Allocator, value: *Value) !*Value {
+    const self = try gpa.create(Value);
+    errdefer comptime unreachable;
+    self.* = .{ .as = .{ .each_right = .{ .value = value.ref() } } };
+    return self;
+}
+
+pub fn eachLeft(gpa: Allocator, value: *Value) !*Value {
+    const self = try gpa.create(Value);
+    errdefer comptime unreachable;
+    self.* = .{ .as = .{ .each_left = .{ .value = value.ref() } } };
+    return self;
+}
+
 test {
     std.testing.refAllDecls(@This());
 }

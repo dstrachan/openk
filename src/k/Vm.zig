@@ -343,12 +343,36 @@ fn run(vm: *Vm) Error!*Value {
             .nil => vm.push(vm.constants[5].ref()),
             .empty => unreachable,
 
-            .each => unreachable,
-            .over => unreachable,
-            .scan => unreachable,
-            .each_prior => unreachable,
-            .each_right => unreachable,
-            .each_left => unreachable,
+            .each => {
+                const op = vm.pop();
+                defer op.deref(vm.gpa);
+                vm.push(try .each(vm.gpa, op));
+            },
+            .over => {
+                const op = vm.pop();
+                defer op.deref(vm.gpa);
+                vm.push(try .over(vm.gpa, op));
+            },
+            .scan => {
+                const op = vm.pop();
+                defer op.deref(vm.gpa);
+                vm.push(try .scan(vm.gpa, op));
+            },
+            .each_prior => {
+                const op = vm.pop();
+                defer op.deref(vm.gpa);
+                vm.push(try .eachPrior(vm.gpa, op));
+            },
+            .each_right => {
+                const op = vm.pop();
+                defer op.deref(vm.gpa);
+                vm.push(try .eachRight(vm.gpa, op));
+            },
+            .each_left => {
+                const op = vm.pop();
+                defer op.deref(vm.gpa);
+                vm.push(try .eachLeft(vm.gpa, op));
+            },
 
             .identity => {},
 
