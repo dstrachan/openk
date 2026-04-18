@@ -551,7 +551,28 @@ fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
             }
         },
         .iterator => @panic("NYI"),
-        .each => @panic("NYI"),
+        .each => {
+            const f = x.as.each.value;
+            const rhs = vm.pop();
+            defer rhs.deref(vm.gpa);
+
+            const count = try k.UnaryPrimitives.count(vm, rhs);
+            defer count.deref(vm.gpa);
+
+            const result: *Value = try .list(vm.gpa, @intCast(count.as.long));
+            for (result.as.list, 0..) |*v, i| {
+                switch (rhs.as) {
+                    .long_list => |items| {
+                        vm.push(try .long(vm.gpa, items[i]));
+                        try vm.applyValue(f, 1);
+                        v.* = vm.pop();
+                    },
+                    inline else => |_, t| return vm.runtimeError("nyi: each[{t}]", .{t}),
+                }
+            }
+
+            vm.push(result);
+        },
         .over => @panic("NYI"),
         .scan => @panic("NYI"),
         .each_prior => @panic("NYI"),
