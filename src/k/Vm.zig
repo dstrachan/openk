@@ -527,6 +527,12 @@ fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
             }
         },
         .iterator => @panic("NYI"),
+        .each => @panic("NYI"),
+        .over => @panic("NYI"),
+        .scan => @panic("NYI"),
+        .each_prior => @panic("NYI"),
+        .each_right => @panic("NYI"),
+        .each_left => @panic("NYI"),
     }
 }
 

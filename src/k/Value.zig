@@ -37,6 +37,14 @@ pub const Type = enum(i8) {
     unary_primitive = 101,
     operator = 102,
     iterator = 103,
+    // projection = 104,
+    // composition = 105,
+    each = 106,
+    over = 107,
+    scan = 108,
+    each_prior = 109,
+    each_right = 110,
+    each_left = 111,
 };
 
 const Union = union(Type) {
@@ -63,6 +71,12 @@ const Union = union(Type) {
     unary_primitive: UnaryPrimitive,
     operator: Operator,
     iterator: Iterator,
+    each: Each,
+    over: Over,
+    scan: Scan,
+    each_prior: EachPrior,
+    each_right: EachRight,
+    each_left: EachLeft,
 };
 
 pub const Lambda = struct {
@@ -519,6 +533,30 @@ pub const Iterator = enum(u8) {
     }
 };
 
+pub const Each = struct {
+    value: *Value,
+};
+
+pub const Over = struct {
+    value: *Value,
+};
+
+pub const Scan = struct {
+    value: *Value,
+};
+
+pub const EachPrior = struct {
+    value: *Value,
+};
+
+pub const EachRight = struct {
+    value: *Value,
+};
+
+pub const EachLeft = struct {
+    value: *Value,
+};
+
 pub fn ref(self: *Value) *Value {
     self.ref_count += 1;
     return self;
@@ -555,6 +593,12 @@ pub fn deref(self: *Value, gpa: Allocator) void {
             .unary_primitive => {},
             .operator => {},
             .iterator => {},
+            .each => |v| v.value.deref(gpa),
+            .over => |v| v.value.deref(gpa),
+            .scan => |v| v.value.deref(gpa),
+            .each_prior => |v| v.value.deref(gpa),
+            .each_right => |v| v.value.deref(gpa),
+            .each_left => |v| v.value.deref(gpa),
         }
         gpa.destroy(self);
     }
@@ -666,6 +710,12 @@ pub fn format(self: Value, w: *Io.Writer, vm: *Vm) !void {
         .unary_primitive => |v| try w.print("{f}", .{v}),
         .operator => |v| try w.print("{f}", .{v}),
         .iterator => |v| try w.print("{f}", .{v}),
+        .each => |v| try w.print("{f}'", .{v.value.alt(vm)}),
+        .over => |v| try w.print("{f}/", .{v.value.alt(vm)}),
+        .scan => |v| try w.print("{f}\\", .{v.value.alt(vm)}),
+        .each_prior => |v| try w.print("{f}':", .{v.value.alt(vm)}),
+        .each_right => |v| try w.print("{f}/:", .{v.value.alt(vm)}),
+        .each_left => |v| try w.print("{f}\\:", .{v.value.alt(vm)}),
     }
 }
 
@@ -700,6 +750,12 @@ pub fn match(a: *Value, b: *Value) bool {
         .unary_primitive => |v| v == b.as.unary_primitive,
         .operator => |v| v == b.as.operator,
         .iterator => |v| v == b.as.iterator,
+        .each => |v| v.value.match(b.as.each.value),
+        .over => |v| v.value.match(b.as.over.value),
+        .scan => |v| v.value.match(b.as.scan.value),
+        .each_prior => |v| v.value.match(b.as.each_prior.value),
+        .each_right => |v| v.value.match(b.as.each_right.value),
+        .each_left => |v| v.value.match(b.as.each_left.value),
     };
 }
 
