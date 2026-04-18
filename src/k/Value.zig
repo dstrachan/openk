@@ -681,6 +681,21 @@ pub fn reduce(self: *Value, gpa: Allocator) !*Value {
     }
 }
 
+pub fn index(self: *Value, gpa: Allocator, i: usize) !*Value {
+    switch (self.as) {
+        .boolean_list => |v| return .boolean(gpa, v[i]),
+        .byte_list => |v| return .byte(gpa, v[i]),
+        .short_list => |v| return .short(gpa, v[i]),
+        .int_list => |v| return .int(gpa, v[i]),
+        .long_list => |v| return .long(gpa, v[i]),
+        .real_list => |v| return .real(gpa, v[i]),
+        .float_list => |v| return .float(gpa, v[i]),
+        .char_list => |v| return .char(gpa, v[i]),
+        .symbol_list => |v| return .symbol(gpa, v[i]),
+        else => unreachable,
+    }
+}
+
 pub const Alt = struct {
     vm: *Vm,
     value: *Value,
@@ -833,6 +848,23 @@ pub fn match(a: *Value, b: *Value) bool {
         .each_prior => |v| v.value.match(b.as.each_prior.value),
         .each_right => |v| v.value.match(b.as.each_right.value),
         .each_left => |v| v.value.match(b.as.each_left.value),
+    };
+}
+
+pub fn count(x: *Value) usize {
+    return switch (x.as) {
+        inline .list,
+        .boolean_list,
+        .byte_list,
+        .short_list,
+        .int_list,
+        .long_list,
+        .real_list,
+        .float_list,
+        .char_list,
+        .symbol_list,
+        => |slice| slice.len,
+        else => 1,
     };
 }
 

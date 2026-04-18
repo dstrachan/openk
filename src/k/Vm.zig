@@ -517,11 +517,21 @@ fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
         .symbol_list => try vm.applyList(x, arg_count),
         .lambda => try vm.applyLambda(x, arg_count),
         .unary_primitive => {
+            // Special handling for enlist
+            if (x.as.unary_primitive == .enlist) {
+                const value: *Value = try .list(vm.gpa, arg_count);
+                defer value.deref(vm.gpa);
+                for (value.as.list) |*v| v.* = vm.pop();
+                vm.push(try value.reduce(vm.gpa));
+                return;
+            }
+
             if (arg_count != 1) return vm.runtimeError("rank", .{});
 
             switch (x.as.unary_primitive) {
                 .identity => {},
                 ._unused => unreachable,
+                .enlist => unreachable,
                 inline else => |t| {
                     const lhs = vm.pop();
                     defer lhs.deref(vm.gpa);
@@ -556,23 +566,15 @@ fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
             const rhs = vm.pop();
             defer rhs.deref(vm.gpa);
 
-            const count = try k.UnaryPrimitives.count(vm, rhs);
-            defer count.deref(vm.gpa);
-
-            switch (rhs.as) {
-                .long_list => |items| {
-                    const result: *Value = try .listSplat(vm.gpa, @intCast(count.as.long), vm.constants[0]);
-                    defer result.deref(vm.gpa);
-                    for (result.as.list, 0..) |*v, i| {
-                        vm.push(try .long(vm.gpa, items[i]));
-                        try vm.applyValue(f, 1);
-                        v.*.deref(vm.gpa);
-                        v.* = vm.pop();
-                    }
-                    vm.push(try result.reduce(vm.gpa));
-                },
-                inline else => |_, t| return vm.runtimeError("nyi: each[{t}]", .{t}),
+            const result: *Value = try .listSplat(vm.gpa, rhs.count(), vm.constants[0]);
+            defer result.deref(vm.gpa);
+            for (result.as.list, 0..) |*v, i| {
+                vm.push(try rhs.index(vm.gpa, i));
+                try vm.applyValue(f, 1);
+                v.*.deref(vm.gpa);
+                v.* = vm.pop();
             }
+            vm.push(try result.reduce(vm.gpa));
         },
         .over => @panic("NYI"),
         .scan => @panic("NYI"),

@@ -3,5 +3,5 @@ const Vm = k.Vm;
 const Value = k.Value;
 
 pub fn match(vm: *Vm, x: *Value, y: *Value) !*Value {
-    return vm.runtimeError("nyi: {s}[{t};{t}]", .{ @src().fn_name, x.as, y.as });
+    return .boolean(vm.gpa, x.match(y));
 }

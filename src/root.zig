@@ -67,7 +67,6 @@ pub const UnaryPrimitives = struct {
     pub const acos = @import("k/unary_primitives/acos.zig").acos;
     pub const tan = @import("k/unary_primitives/tan.zig").tan;
     pub const atan = @import("k/unary_primitives/atan.zig").atan;
-    pub const enlist = @import("k/unary_primitives/enlist.zig").enlist;
     pub const @"var" = @import("k/unary_primitives/var.zig").@"var";
     pub const dev = @import("k/unary_primitives/dev.zig").dev;
     pub const hopen = @import("k/unary_primitives/hopen.zig").hopen;
