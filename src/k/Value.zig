@@ -604,6 +604,83 @@ pub fn deref(self: *Value, gpa: Allocator) void {
     }
 }
 
+pub fn reduce(self: *Value, gpa: Allocator) !*Value {
+    if (self.as != .list) return self.ref();
+    if (self.as.list.len == 0) return self.ref();
+
+    const first_type: Type = self.as.list[0].as;
+    for (self.as.list[1..]) |v| {
+        if (v.as != first_type) return self.ref();
+    }
+
+    switch (self.as.list[0].as) {
+        .boolean => {
+            const new_list: *Value = try .booleanList(gpa, self.as.list.len);
+            for (new_list.as.boolean_list, self.as.list) |*new_value, list_value| {
+                new_value.* = list_value.as.boolean;
+            }
+            return new_list;
+        },
+        .byte => {
+            const new_list: *Value = try .byteList(gpa, self.as.list.len);
+            for (new_list.as.byte_list, self.as.list) |*new_value, list_value| {
+                new_value.* = list_value.as.byte;
+            }
+            return new_list;
+        },
+        .short => {
+            const new_list: *Value = try .shortList(gpa, self.as.list.len);
+            for (new_list.as.short_list, self.as.list) |*new_value, list_value| {
+                new_value.* = list_value.as.short;
+            }
+            return new_list;
+        },
+        .int => {
+            const new_list: *Value = try .intList(gpa, self.as.list.len);
+            for (new_list.as.int_list, self.as.list) |*new_value, list_value| {
+                new_value.* = list_value.as.int;
+            }
+            return new_list;
+        },
+        .long => {
+            const new_list: *Value = try .longList(gpa, self.as.list.len);
+            for (new_list.as.long_list, self.as.list) |*new_value, list_value| {
+                new_value.* = list_value.as.long;
+            }
+            return new_list;
+        },
+        .real => {
+            const new_list: *Value = try .realList(gpa, self.as.list.len);
+            for (new_list.as.real_list, self.as.list) |*new_value, list_value| {
+                new_value.* = list_value.as.real;
+            }
+            return new_list;
+        },
+        .float => {
+            const new_list: *Value = try .floatList(gpa, self.as.list.len);
+            for (new_list.as.float_list, self.as.list) |*new_value, list_value| {
+                new_value.* = list_value.as.float;
+            }
+            return new_list;
+        },
+        .char => {
+            const new_list: *Value = try .charList(gpa, self.as.list.len);
+            for (new_list.as.char_list, self.as.list) |*new_value, list_value| {
+                new_value.* = list_value.as.char;
+            }
+            return new_list;
+        },
+        .symbol => {
+            const new_list: *Value = try .symbolList(gpa, self.as.list.len);
+            for (new_list.as.symbol_list, self.as.list) |*new_value, list_value| {
+                new_value.* = list_value.as.symbol;
+            }
+            return new_list;
+        },
+        else => return self.ref(),
+    }
+}
+
 pub const Alt = struct {
     vm: *Vm,
     value: *Value,
@@ -787,6 +864,13 @@ pub fn list(gpa: Allocator, len: usize) !*Value {
     errdefer comptime unreachable;
     self.* = .{ .as = .{ .list = items } };
     return self;
+}
+
+pub fn listSplat(gpa: Allocator, len: usize, value: *Value) !*Value {
+    const l: *Value = try .list(gpa, len);
+    errdefer comptime unreachable;
+    for (l.as.list) |*v| v.* = value.ref();
+    return l;
 }
 
 pub fn boolean(gpa: Allocator, value: bool) !*Value {

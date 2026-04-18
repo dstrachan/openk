@@ -559,19 +559,20 @@ fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
             const count = try k.UnaryPrimitives.count(vm, rhs);
             defer count.deref(vm.gpa);
 
-            const result: *Value = try .list(vm.gpa, @intCast(count.as.long));
-            for (result.as.list, 0..) |*v, i| {
-                switch (rhs.as) {
-                    .long_list => |items| {
+            switch (rhs.as) {
+                .long_list => |items| {
+                    const result: *Value = try .listSplat(vm.gpa, @intCast(count.as.long), vm.constants[0]);
+                    defer result.deref(vm.gpa);
+                    for (result.as.list, 0..) |*v, i| {
                         vm.push(try .long(vm.gpa, items[i]));
                         try vm.applyValue(f, 1);
+                        v.*.deref(vm.gpa);
                         v.* = vm.pop();
-                    },
-                    inline else => |_, t| return vm.runtimeError("nyi: each[{t}]", .{t}),
-                }
+                    }
+                    vm.push(try result.reduce(vm.gpa));
+                },
+                inline else => |_, t| return vm.runtimeError("nyi: each[{t}]", .{t}),
             }
-
-            vm.push(result);
         },
         .over => @panic("NYI"),
         .scan => @panic("NYI"),
@@ -735,6 +736,7 @@ fn testVm(source: [:0]const u8, expected: []const u8) !void {
 
 test {
     try testVm("{[]x:1}", "{[]x:1}");
+    try testVm("@:'!10", "-7 -7 -7 -7 -7 -7 -7 -7 -7 -7h");
     if (true) return error.SkipZigTest;
     try testVm("{[]x}[]", "");
 }
