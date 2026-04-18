@@ -343,6 +343,13 @@ fn run(vm: *Vm) Error!*Value {
             .nil => vm.push(vm.constants[5].ref()),
             .empty => unreachable,
 
+            .each => unreachable,
+            .over => unreachable,
+            .scan => unreachable,
+            .each_prior => unreachable,
+            .each_right => unreachable,
+            .each_left => unreachable,
+
             .identity => {},
 
             ._unused_unary_primitive => unreachable,

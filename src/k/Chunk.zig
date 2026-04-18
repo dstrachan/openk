@@ -34,6 +34,14 @@ pub const OpCode = enum(u8) {
     nil = 16,
     empty = 17,
 
+    // iterators
+    each = 18,
+    over = 19,
+    scan = 20,
+    each_prior = 21,
+    each_right = 22,
+    each_left = 23,
+
     // unary primitives
     identity = 32,
     flip = 33,
@@ -178,6 +186,14 @@ pub fn disassembleInstruction(chunk: Chunk, vm: *Vm, writer: *Io.Writer, offset:
         .null_symbol,
         .nil,
         .empty,
+        => |t| return simpleInstruction(writer, t, offset),
+
+        .each,
+        .over,
+        .scan,
+        .each_prior,
+        .each_right,
+        .each_left,
         => |t| return simpleInstruction(writer, t, offset),
 
         .identity,

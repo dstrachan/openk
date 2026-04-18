@@ -191,38 +191,38 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
 
         .apostrophe => {
             if (tree.nodeData(node).opt_node.unwrap()) |lhs| {
-                _ = lhs; // autofix
-                unreachable;
+                try c.compileNode(lhs);
+                try c.emitIterator(.each);
             } else try c.emitConstantIterator(.each, node);
         },
         .apostrophe_colon => {
             if (tree.nodeData(node).opt_node.unwrap()) |lhs| {
-                _ = lhs; // autofix
-                unreachable;
+                try c.compileNode(lhs);
+                try c.emitIterator(.each_prior);
             } else try c.emitConstantIterator(.each_prior, node);
         },
         .slash => {
             if (tree.nodeData(node).opt_node.unwrap()) |lhs| {
-                _ = lhs; // autofix
-                unreachable;
+                try c.compileNode(lhs);
+                try c.emitIterator(.over);
             } else try c.emitConstantIterator(.over, node);
         },
         .slash_colon => {
             if (tree.nodeData(node).opt_node.unwrap()) |lhs| {
-                _ = lhs; // autofix
-                unreachable;
+                try c.compileNode(lhs);
+                try c.emitIterator(.each_right);
             } else try c.emitConstantIterator(.each_right, node);
         },
         .backslash => {
             if (tree.nodeData(node).opt_node.unwrap()) |lhs| {
-                _ = lhs; // autofix
-                unreachable;
+                try c.compileNode(lhs);
+                try c.emitIterator(.scan);
             } else try c.emitConstantIterator(.scan, node);
         },
         .backslash_colon => {
             if (tree.nodeData(node).opt_node.unwrap()) |lhs| {
-                _ = lhs; // autofix
-                unreachable;
+                try c.compileNode(lhs);
+                try c.emitIterator(.each_left);
             } else try c.emitConstantIterator(.each_left, node);
         },
 
@@ -635,6 +635,13 @@ fn emitOperator(c: *Compiler, operator: Operator) !void {
     const op_code: OpCode = @enumFromInt(@intFromEnum(operator) + @intFromEnum(OpCode._unused_operator));
     assert(@intFromEnum(op_code) >= @intFromEnum(OpCode._unused_operator) and
         @intFromEnum(op_code) <= @intFromEnum(OpCode.div));
+    try c.emitOpCode(op_code);
+}
+
+fn emitIterator(c: *Compiler, iterator: Iterator) !void {
+    const op_code: OpCode = @enumFromInt(@intFromEnum(iterator) + @intFromEnum(OpCode.each));
+    assert(@intFromEnum(op_code) >= @intFromEnum(OpCode.each) and
+        @intFromEnum(op_code) <= @intFromEnum(OpCode.each_left));
     try c.emitOpCode(op_code);
 }
 
@@ -1232,5 +1239,18 @@ test "operators" {
         \\0003    | apply_at
         \\0004    | print
         \\0005    | return
+    );
+}
+
+test "iterators" {
+    try testCompiler("+/!10",
+        \\== <test> ==
+        \\0000    0 constant            0 '10'
+        \\0002    | key
+        \\0003    | constant            1 '+'
+        \\0005    | over
+        \\0006    | apply_at
+        \\0007    | print
+        \\0008    | return
     );
 }
