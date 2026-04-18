@@ -3,5 +3,5 @@ const Vm = k.Vm;
 const Value = k.Value;
 
 pub fn @"type"(vm: *Vm, x: *Value) !*Value {
-    return vm.runtimeError("nyi: {s}[{t}]", .{ @src().fn_name, x.as });
+    return .short(vm.gpa, @intFromEnum(x.as));
 }
