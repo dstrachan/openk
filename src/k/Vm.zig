@@ -482,14 +482,33 @@ fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
                 .identity => {},
                 ._unused => unreachable,
                 inline else => |t| {
-                    const y = vm.pop();
-                    defer y.deref(vm.gpa);
+                    const lhs = vm.pop();
+                    defer lhs.deref(vm.gpa);
 
-                    vm.push(try @call(.auto, @field(k.UnaryPrimitives, @tagName(t)), .{ vm, y }));
+                    vm.push(try @call(.auto, @field(k.UnaryPrimitives, @tagName(t)), .{ vm, lhs }));
                 },
             }
         },
-        .operator => unreachable,
+        .operator => {
+            if (arg_count > 2) return vm.runtimeError("rank", .{});
+
+            if (arg_count == 1) {
+                unreachable;
+            } else {
+                switch (x.as.operator) {
+                    .assign => unreachable,
+                    .apply_at => unreachable,
+                    inline else => |t| {
+                        const lhs = vm.pop();
+                        defer lhs.deref(vm.gpa);
+                        const rhs = vm.pop();
+                        defer rhs.deref(vm.gpa);
+
+                        vm.push(try @call(.auto, @field(k.Operators, @tagName(t)), .{ vm, lhs, rhs }));
+                    },
+                }
+            }
+        },
     }
 }
 

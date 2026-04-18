@@ -103,6 +103,11 @@ pub const Operators = struct {
     pub const wsum = @import("k/operators/wsum.zig").wsum;
     pub const wavg = @import("k/operators/wavg.zig").wavg;
     pub const div = @import("k/operators/div.zig").div;
+    pub const xexp = @import("k/operators/xexp.zig").xexp;
+    pub const setenv = @import("k/operators/setenv.zig").setenv;
+    pub const binr = @import("k/operators/binr.zig").binr;
+    pub const cov = @import("k/operators/cov.zig").cov;
+    pub const cor = @import("k/operators/cor.zig").cor;
 };
 
 pub fn putAstErrorsIntoBundle(tree: Ast, src_path: []const u8, eb: *std.zig.ErrorBundle.Wip) !void {

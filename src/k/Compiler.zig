@@ -207,7 +207,7 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
 
         .apply_unary => {
             const lhs, const rhs = tree.nodeData(node).node_and_node;
-            try c.emitUnaryCall(tree.unwrap(lhs), rhs.toOptional());
+            try c.emitApplyUnary(tree.unwrap(lhs), rhs);
         },
 
         .apply_binary => {
@@ -357,10 +357,44 @@ fn emitAmend(c: *Compiler, identifier: u8, operator: Operator) !void {
     try c.emitByte(@intFromEnum(operator));
 }
 
+fn emitApplyUnary(c: *Compiler, func: Node.Index, rhs: Node.Index) !void {
+    const tree = c.tree;
+
+    try c.compileNode(rhs);
+    switch (tree.nodeTag(func)) {
+        .grouped_expression => unreachable,
+
+        .colon => try c.emitUnaryPrimitive(.identity),
+        .plus => try c.emitUnaryPrimitive(.flip),
+        .minus => try c.emitUnaryPrimitive(.neg),
+        .asterisk => try c.emitUnaryPrimitive(.first),
+        .percent => try c.emitUnaryPrimitive(.reciprocal),
+        .ampersand => try c.emitUnaryPrimitive(.where),
+        .pipe => try c.emitUnaryPrimitive(.reverse),
+        .caret => try c.emitUnaryPrimitive(.null),
+        .equal => try c.emitUnaryPrimitive(.group),
+        .l_angle_bracket => try c.emitUnaryPrimitive(.asc),
+        .r_angle_bracket => try c.emitUnaryPrimitive(.desc),
+        .dollar => try c.emitUnaryPrimitive(.string),
+        .comma => try c.emitUnaryPrimitive(.list),
+        .hash => try c.emitUnaryPrimitive(.count),
+        .underscore => try c.emitUnaryPrimitive(.lower),
+        .tilde => try c.emitUnaryPrimitive(.not),
+        .bang => try c.emitUnaryPrimitive(.key),
+        .question_mark => try c.emitUnaryPrimitive(.distinct),
+        .at => try c.emitUnaryPrimitive(.type),
+        .dot => try c.emitUnaryPrimitive(.value),
+        .zero_colon => try c.emitUnaryPrimitive(.read_text),
+        .one_colon => try c.emitUnaryPrimitive(.read_binary),
+
+        else => try c.emitUnaryCall(func, .none),
+    }
+}
+
 fn emitUnaryCall(c: *Compiler, func: Node.Index, maybe_rhs: Node.OptionalIndex) !void {
     const tree = c.tree;
 
-    if (maybe_rhs.unwrap()) |rhs| try c.compileNode(rhs) else try c.emitNil();
+    if (maybe_rhs.unwrap()) |rhs| try c.compileNode(rhs);
     switch (tree.nodeTag(func)) {
         .grouped_expression => unreachable,
 
@@ -508,7 +542,10 @@ fn emitBinaryCall(c: *Compiler, func: Node.Index, lhs: Node.Index, maybe_rhs: No
 fn emitCall(c: *Compiler, func: Node.Index, args: []const Node.Index) !void {
     const tree = c.tree;
     switch (args.len) {
-        0 => try c.emitUnaryCall(func, .none),
+        0 => {
+            try c.emitNil();
+            try c.emitUnaryCall(func, .none);
+        },
         1 => try c.emitUnaryCall(func, tree.unwrap(args[0]).toOptional()),
         2 => try c.emitBinaryCall(func, tree.unwrap(args[0]), tree.unwrap(args[1]).toOptional()),
         else => {
@@ -1046,6 +1083,13 @@ test "unary primitives" {
         \\0002    | print
         \\0003    | return
     );
+    try testCompiler("+0",
+        \\== <test> ==
+        \\0000    0 zero
+        \\0001    | flip
+        \\0002    | print
+        \\0003    | return
+    );
     try testCompiler("+:0",
         \\== <test> ==
         \\0000    0 zero
@@ -1053,12 +1097,52 @@ test "unary primitives" {
         \\0002    | print
         \\0003    | return
     );
+    try testCompiler("+[0]",
+        \\== <test> ==
+        \\0000    0 zero
+        \\0001    | constant            0 '+'
+        \\0003    | apply_at
+        \\0004    | print
+        \\0005    | return
+    );
     try testCompiler("+:[0]",
         \\== <test> ==
         \\0000    0 zero
         \\0001    | flip
         \\0002    | print
         \\0003    | return
+    );
+    try testCompiler("+@0",
+        \\== <test> ==
+        \\0000    0 zero
+        \\0001    | type
+        \\0002    | flip
+        \\0003    | print
+        \\0004    | return
+    );
+    try testCompiler("+@:0",
+        \\== <test> ==
+        \\0000    0 zero
+        \\0001    | type
+        \\0002    | flip
+        \\0003    | print
+        \\0004    | return
+    );
+    try testCompiler("+:@0",
+        \\== <test> ==
+        \\0000    0 zero
+        \\0001    | type
+        \\0002    | flip
+        \\0003    | print
+        \\0004    | return
+    );
+    try testCompiler("+:@:0",
+        \\== <test> ==
+        \\0000    0 zero
+        \\0001    | type
+        \\0002    | flip
+        \\0003    | print
+        \\0004    | return
     );
 }
 
@@ -1100,5 +1184,21 @@ test "operators" {
         \\0002    | add
         \\0003    | print
         \\0004    | return
+    );
+    try testCompiler("(+)@0",
+        \\== <test> ==
+        \\0000    0 zero
+        \\0001    | constant            0 '+'
+        \\0003    | apply_at
+        \\0004    | print
+        \\0005    | return
+    );
+    try testCompiler("(+:)@0",
+        \\== <test> ==
+        \\0000    0 zero
+        \\0001    | constant            0 '+:'
+        \\0003    | apply_at
+        \\0004    | print
+        \\0005    | return
     );
 }
