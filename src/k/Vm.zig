@@ -516,9 +516,9 @@ fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
         .symbol => unreachable,
         .symbol_list => try vm.applyList(x, arg_count),
         .lambda => try vm.applyLambda(x, arg_count),
-        .unary_primitive => {
+        .unary_primitive => |unary_primitive| {
             // Special handling for enlist
-            if (x.as.unary_primitive == .enlist) {
+            if (unary_primitive == .enlist) {
                 const value: *Value = try .list(vm.gpa, arg_count);
                 defer value.deref(vm.gpa);
                 for (value.as.list) |*v| v.* = vm.pop();
@@ -528,7 +528,7 @@ fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
 
             if (arg_count != 1) return vm.runtimeError("rank", .{});
 
-            switch (x.as.unary_primitive) {
+            switch (unary_primitive) {
                 .identity => {},
                 ._unused => unreachable,
                 .enlist => unreachable,
@@ -540,13 +540,13 @@ fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
                 },
             }
         },
-        .operator => {
+        .operator => |operator| {
             if (arg_count > 2) return vm.runtimeError("rank", .{});
 
             if (arg_count == 1) {
                 unreachable;
             } else {
-                switch (x.as.operator) {
+                switch (operator) {
                     .assign => unreachable,
                     .apply_at => unreachable,
                     inline else => |t| {
