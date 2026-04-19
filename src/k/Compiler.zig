@@ -111,16 +111,11 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             }
             for (body) |n| try compiler.findLocals(n, params.len == 0);
 
-            const arity: usize = if (params.len == 0) arity: {
-                const locals = compiler.lambda.as.lambda.chunk.locals.items;
-                if (locals.len > 2 and locals[2] == .z) break :arity 3;
-                if (locals.len > 1 and locals[1] == .y) break :arity 2;
-                break :arity 1;
-            } else params.len;
+            if (chunk.params.items.len == 0) {
+                chunk.params.appendAssumeCapacity(.empty);
+            }
 
             compiler.lambda.as.lambda.source = try c.vm.intern(tree.nodeSlice(node));
-            compiler.lambda.as.lambda.arity = arity;
-            compiler.lambda.as.lambda.locals = compiler.lambda.as.lambda.chunk.locals.items.len -| arity;
 
             for (body) |n| try compiler.compileNode(n);
             if (body.len == 0 or data.trailing_semicolon) try compiler.emitNil();
@@ -323,7 +318,7 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
                 else => {},
             }
 
-            if (c.lambda.as.lambda.arity > 0) {
+            if (c.lambda.as.lambda.chunk.params.items.len > 0) {
                 if (c.getLocal(name)) |local| {
                     try c.emitLocal(local);
                     return;

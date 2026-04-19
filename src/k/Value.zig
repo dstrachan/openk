@@ -81,8 +81,6 @@ const Union = union(Type) {
 
 pub const Lambda = struct {
     source: NullTerminatedString,
-    arity: usize = 0,
-    locals: usize = 0,
     chunk: Chunk = .empty,
 
     pub fn deinit(self: Lambda, gpa: Allocator) void {
@@ -715,6 +713,7 @@ pub fn format(self: Value, w: *Io.Writer, vm: *Vm) !void {
             if (value.len == 0) {
                 try w.writeAll("()");
             } else {
+                if (value.len == 1) try w.writeByte(',');
                 try w.writeByte('(');
                 try w.print("{f}", .{value[0].alt(vm)});
                 for (value[1..]) |v| try w.print(";{f}", .{v.alt(vm)});
@@ -726,6 +725,7 @@ pub fn format(self: Value, w: *Io.Writer, vm: *Vm) !void {
             if (value.len == 0) {
                 try w.writeAll("`boolean$()");
             } else {
+                if (value.len == 1) try w.writeByte(',');
                 for (value) |v| try w.print("{d}", .{@intFromBool(v)});
                 try w.writeByte('b');
             }
@@ -735,6 +735,7 @@ pub fn format(self: Value, w: *Io.Writer, vm: *Vm) !void {
             if (value.len == 0) {
                 try w.writeAll("`byte$()");
             } else {
+                if (value.len == 1) try w.writeByte(',');
                 try w.writeAll("0x");
                 for (value) |v| try w.print("{x:02}", .{v});
             }
@@ -744,6 +745,7 @@ pub fn format(self: Value, w: *Io.Writer, vm: *Vm) !void {
             if (value.len == 0) {
                 try w.writeAll("`short$()");
             } else {
+                if (value.len == 1) try w.writeByte(',');
                 try w.print("{f}", .{@as(Short, @enumFromInt(value[0]))});
                 for (value[1..]) |v| try w.print(" {f}", .{@as(Short, @enumFromInt(v))});
                 try w.writeByte('h');
@@ -754,6 +756,7 @@ pub fn format(self: Value, w: *Io.Writer, vm: *Vm) !void {
             if (value.len == 0) {
                 try w.writeAll("`int$()");
             } else {
+                if (value.len == 1) try w.writeByte(',');
                 try w.print("{f}", .{@as(Int, @enumFromInt(value[0]))});
                 for (value[1..]) |v| try w.print(" {f}", .{@as(Int, @enumFromInt(v))});
                 try w.writeByte('i');
@@ -764,6 +767,7 @@ pub fn format(self: Value, w: *Io.Writer, vm: *Vm) !void {
             if (value.len == 0) {
                 try w.writeAll("`long$()");
             } else {
+                if (value.len == 1) try w.writeByte(',');
                 try w.print("{f}", .{@as(Long, @enumFromInt(value[0]))});
                 for (value[1..]) |v| try w.print(" {f}", .{@as(Long, @enumFromInt(v))});
             }
@@ -773,6 +777,7 @@ pub fn format(self: Value, w: *Io.Writer, vm: *Vm) !void {
             if (value.len == 0) {
                 try w.writeAll("`real$()");
             } else {
+                if (value.len == 1) try w.writeByte(',');
                 try w.print("{d}", .{value[0]});
                 for (value[1..]) |v| try w.print(" {d}", .{v});
                 try w.writeByte('e');
@@ -783,18 +788,23 @@ pub fn format(self: Value, w: *Io.Writer, vm: *Vm) !void {
             if (value.len == 0) {
                 try w.writeAll("`float$()");
             } else {
+                if (value.len == 1) try w.writeByte(',');
                 try w.print("{d}", .{value[0]});
                 for (value[1..]) |v| try w.print(" {d}", .{v});
                 try w.writeByte('f');
             }
         },
         .char => |v| try w.print("\"{c}\"", .{v}),
-        .char_list => |v| try w.print("\"{s}\"", .{v}),
+        .char_list => |value| {
+            if (value.len == 1) try w.writeByte(',');
+            try w.print("\"{s}\"", .{value});
+        },
         .symbol => |v| try w.print("`{s}", .{vm.nullTerminatedString(v)}),
         .symbol_list => |value| {
             if (value.len == 0) {
                 try w.writeAll("`symbol$()");
             } else {
+                if (value.len == 1) try w.writeByte(',');
                 for (value) |v| try w.print("`{s}", .{vm.nullTerminatedString(v)});
             }
         },

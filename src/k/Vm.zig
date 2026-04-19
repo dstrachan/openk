@@ -562,6 +562,8 @@ fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
         },
         .iterator => @panic("NYI"),
         .each => |each| {
+            if (arg_count != 1) return vm.runtimeError("rank", .{});
+
             const rhs = vm.pop();
             defer rhs.deref(vm.gpa);
 
@@ -576,6 +578,8 @@ fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
             vm.push(try result.reduce(vm.gpa));
         },
         .over => |over| {
+            if (arg_count != 1) return vm.runtimeError("rank", .{});
+
             const rhs = vm.pop();
             defer rhs.deref(vm.gpa);
 
@@ -593,6 +597,8 @@ fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
             vm.push(try k.UnaryPrimitives.last(vm, list));
         },
         .scan => |scan| {
+            if (arg_count != 1) return vm.runtimeError("rank", .{});
+
             const rhs = vm.pop();
             defer rhs.deref(vm.gpa);
 
@@ -710,8 +716,8 @@ fn applyList(vm: *Vm, x: *Value, arg_count: usize) !void {
 fn applyLambda(vm: *Vm, x: *Value, arg_count: usize) !void {
     assert(x.as == .lambda);
     const lambda = x.as.lambda;
-    if (lambda.arity != arg_count) {
-        return vm.runtimeError("expected {d} argument(s), found: {d}", .{ lambda.arity, arg_count });
+    if (lambda.chunk.params.items.len != arg_count) {
+        return vm.runtimeError("expected {d} argument(s), found: {d}", .{ lambda.chunk.params.items.len, arg_count });
     }
 
     if (vm.frames.items.len == frames_max) {
@@ -772,4 +778,11 @@ test {
     try testVm("+\\!10", "0 1 3 6 10 15 21 28 36 45");
     if (true) return error.SkipZigTest;
     try testVm("{[]x}[]", "");
+}
+
+test "lambda arity" {
+    try testVm(".{}", "(0x1000;,`;`symbol$();`symbol$())");
+    try testVm(".{x}", "(0x600100;,`x;`symbol$();`symbol$())");
+    try testVm(".{y}", "(0x600200;`x`y;`symbol$();`symbol$())");
+    try testVm(".{z}", "(0x600300;`x`y`z;`symbol$();`symbol$())");
 }
