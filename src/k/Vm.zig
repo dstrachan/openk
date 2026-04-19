@@ -561,8 +561,7 @@ fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
             }
         },
         .iterator => @panic("NYI"),
-        .each => {
-            const f = x.as.each.value;
+        .each => |each| {
             const rhs = vm.pop();
             defer rhs.deref(vm.gpa);
 
@@ -570,14 +569,44 @@ fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
             defer result.deref(vm.gpa);
             for (result.as.list, 0..) |*v, i| {
                 vm.push(try rhs.index(vm.gpa, i));
-                try vm.applyValue(f, 1);
+                try vm.applyValue(each.value, 1);
                 v.*.deref(vm.gpa);
                 v.* = vm.pop();
             }
             vm.push(try result.reduce(vm.gpa));
         },
-        .over => @panic("NYI"),
-        .scan => @panic("NYI"),
+        .over => |over| {
+            const rhs = vm.pop();
+            defer rhs.deref(vm.gpa);
+
+            vm.push(try rhs.index(vm.gpa, 0));
+            const result: *Value = try .listSplat(vm.gpa, rhs.count(), vm.peek());
+            defer result.deref(vm.gpa);
+            for (result.as.list[1..], 1..) |*v, i| {
+                vm.push(try rhs.index(vm.gpa, i));
+                try vm.applyValue(over.value, 2);
+                v.*.deref(vm.gpa);
+                v.* = vm.peek().ref();
+            }
+            const list = try result.reduce(vm.gpa);
+            defer list.deref(vm.gpa);
+            vm.push(try k.UnaryPrimitives.last(vm, list));
+        },
+        .scan => |scan| {
+            const rhs = vm.pop();
+            defer rhs.deref(vm.gpa);
+
+            vm.push(try rhs.index(vm.gpa, 0));
+            const result: *Value = try .listSplat(vm.gpa, rhs.count(), vm.peek());
+            defer result.deref(vm.gpa);
+            for (result.as.list[1..], 1..) |*v, i| {
+                vm.push(try rhs.index(vm.gpa, i));
+                try vm.applyValue(scan.value, 2);
+                v.*.deref(vm.gpa);
+                v.* = vm.peek().ref();
+            }
+            vm.push(try result.reduce(vm.gpa));
+        },
         .each_prior => @panic("NYI"),
         .each_right => @panic("NYI"),
         .each_left => @panic("NYI"),
@@ -739,6 +768,8 @@ fn testVm(source: [:0]const u8, expected: []const u8) !void {
 test {
     try testVm("{[]x:1}", "{[]x:1}");
     try testVm("@:'!10", "-7 -7 -7 -7 -7 -7 -7 -7 -7 -7h");
+    try testVm("+/!10", "45");
+    try testVm("+\\!10", "0 1 3 6 10 15 21 28 36 45");
     if (true) return error.SkipZigTest;
     try testVm("{[]x}[]", "");
 }
