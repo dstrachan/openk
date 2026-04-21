@@ -110,7 +110,40 @@ pub const OpCode = enum(u8) {
     wavg = 94,
     div = 95,
 
-    local = 96,
+    self = 96,
+
+    param_1 = 97,
+    param_2 = 98,
+    param_3 = 99,
+    param_4 = 100,
+    param_5 = 101,
+    param_6 = 102,
+    param_7 = 103,
+    param_8 = 104,
+
+    local_1 = 105,
+    local_2 = 106,
+    local_3 = 107,
+    local_4 = 108,
+    local_5 = 109,
+    local_6 = 110,
+    local_7 = 111,
+    local_8 = 112,
+    local_9 = 113,
+    local_10 = 114,
+    local_11 = 115,
+    local_12 = 116,
+    local_13 = 117,
+    local_14 = 118,
+    local_15 = 119,
+    local_16 = 120,
+    local_17 = 121,
+    local_18 = 122,
+    local_19 = 123,
+    local_20 = 124,
+    local_21 = 125,
+    local_22 = 126,
+    local_wide = 127,
 
     global = 129,
 
@@ -264,7 +297,44 @@ pub fn disassembleInstruction(chunk: Chunk, vm: *Vm, writer: *Io.Writer, offset:
         .div,
         => |t| return simpleInstruction(writer, t, offset),
 
-        .local => |t| return chunk.localInstruction(vm, writer, t, offset),
+        .self => |t| return simpleInstruction(writer, t, offset),
+
+        .param_1,
+        .param_2,
+        .param_3,
+        .param_4,
+        .param_5,
+        .param_6,
+        .param_7,
+        .param_8,
+        => |t| return chunk.paramInstruction(vm, writer, t, offset),
+
+        .local_1,
+        .local_2,
+        .local_3,
+        .local_4,
+        .local_5,
+        .local_6,
+        .local_7,
+        .local_8,
+        .local_9,
+        .local_10,
+        .local_11,
+        .local_12,
+        .local_13,
+        .local_14,
+        .local_15,
+        .local_16,
+        .local_17,
+        .local_18,
+        .local_19,
+        .local_20,
+        .local_21,
+        .local_22,
+        => |t| return chunk.localInstruction(vm, writer, t, offset),
+
+        .local_wide,
+        => |t| return chunk.localWideInstruction(vm, writer, t, offset),
 
         .global => |t| return chunk.globalInstruction(vm, writer, t, offset),
 
@@ -286,11 +356,23 @@ fn assignInstruction(chunk: Chunk, vm: *Vm, writer: *Io.Writer, op_code: OpCode,
     return offset + 2;
 }
 
+fn paramInstruction(chunk: Chunk, vm: *Vm, writer: *Io.Writer, op_code: OpCode, offset: usize) !usize {
+    const index = @intFromEnum(op_code) - @intFromEnum(OpCode.param_1);
+    const name = vm.nullTerminatedString(chunk.params.items[index]);
+    try writer.print("{t: <21} '{s}'\n", .{ op_code, name });
+    return offset + 1;
+}
+
 fn localInstruction(chunk: Chunk, vm: *Vm, writer: *Io.Writer, op_code: OpCode, offset: usize) !usize {
+    const index = @intFromEnum(op_code) - @intFromEnum(OpCode.local_1);
+    const name = vm.nullTerminatedString(chunk.locals.items[index]);
+    try writer.print("{t: <21} '{s}'\n", .{ op_code, name });
+    return offset + 1;
+}
+
+fn localWideInstruction(chunk: Chunk, vm: *Vm, writer: *Io.Writer, op_code: OpCode, offset: usize) !usize {
     const constant = chunk.data.items(.code)[offset + 1];
-    const name = vm.nullTerminatedString(
-        if (constant < 9) chunk.params.items[constant - 1] else chunk.locals.items[constant - 9],
-    );
+    const name = vm.nullTerminatedString(chunk.locals.items[constant]);
     try writer.print("{t: <16} {d:4} '{s}'\n", .{ op_code, constant, name });
     return offset + 2;
 }

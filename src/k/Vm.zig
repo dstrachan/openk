@@ -24,7 +24,6 @@ trace_execution: bool = k.trace_execution,
 print_code: bool = k.print_code,
 frames: std.ArrayList(CallFrame),
 stack: std.ArrayList(*Value),
-stack_lens: std.ArrayList(usize),
 stdout: *Io.Writer,
 color: std.zig.Color,
 constants: [6]*Value = undefined,
@@ -56,52 +55,49 @@ pub fn init(vm: *Vm, io: Io, gpa: Allocator, stdout: *Io.Writer, color: std.zig.
     errdefer frames.deinit(gpa);
     var stack: std.ArrayList(*Value) = try .initCapacity(gpa, stack_max);
     errdefer stack.deinit(gpa);
-    var stack_lens: std.ArrayList(usize) = try .initCapacity(gpa, stack_max);
-    errdefer stack_lens.deinit(gpa);
 
     vm.* = .{
         .io = io,
         .gpa = gpa,
         .frames = frames,
         .stack = stack,
-        .stack_lens = stack_lens,
         .stdout = stdout,
         .color = color,
     };
 
     var constants: usize = 0;
     errdefer for (0..constants) |i| vm.constants[i].deref(gpa);
-    vm.constants[0] = try .list(gpa, 0);
+    vm.constants[0] = try .create(.list, gpa, &.{});
     constants += 1;
-    vm.constants[1] = try .long(gpa, 0);
+    vm.constants[1] = try .create(.long, gpa, 0);
     constants += 1;
-    vm.constants[2] = try .long(gpa, 1);
+    vm.constants[2] = try .create(.long, gpa, 1);
     constants += 1;
-    vm.constants[3] = try .operator(gpa, .join);
+    vm.constants[3] = try .create(.operator, gpa, .join);
     constants += 1;
-    vm.constants[4] = try .symbol(gpa, .empty);
+    vm.constants[4] = try .create(.symbol, gpa, .empty);
     constants += 1;
-    vm.constants[5] = try .unaryPrimitive(gpa, .identity);
+    vm.constants[5] = try .create(.unary_primitive, gpa, .identity);
     constants += 1;
 
     var unary_primitives: usize = 0;
     errdefer for (0..unary_primitives) |i| vm.unary_primitives[i].deref(gpa);
     inline for (&vm.unary_primitives, 0..) |*v, i| {
-        v.* = try .unaryPrimitive(gpa, @enumFromInt(i));
+        v.* = try .create(.unary_primitive, gpa, @enumFromInt(i));
         unary_primitives += 1;
     }
 
     var operators: usize = 0;
     errdefer for (0..operators) |i| vm.operators[i].deref(gpa);
     inline for (&vm.operators, 0..) |*v, i| {
-        v.* = try .operator(gpa, @enumFromInt(i));
+        v.* = try .create(.operator, gpa, @enumFromInt(i));
         operators += 1;
     }
 
     var iterators: usize = 0;
     errdefer for (0..iterators) |i| vm.iterators[i].deref(gpa);
     inline for (&vm.iterators, 0..) |*v, i| {
-        v.* = try .iterator(gpa, @enumFromInt(i));
+        v.* = try .create(.iterator, gpa, @enumFromInt(i));
         iterators += 1;
     }
 
@@ -124,7 +120,6 @@ pub fn deinit(vm: *Vm) void {
     for (vm.operators) |v| v.deref(vm.gpa);
     for (vm.unary_primitives) |v| v.deref(vm.gpa);
     for (vm.iterators) |v| v.deref(vm.gpa);
-    vm.stack_lens.deinit(vm.gpa);
     vm.stack.deinit(vm.gpa);
     vm.frames.deinit(vm.gpa);
 }
@@ -272,11 +267,21 @@ fn run(vm: *Vm) Error!*Value {
     var frame = &vm.frames.items[vm.frames.items.len - 1];
     while (true) {
         if (vm.trace_execution) {
+            for (vm.frames.items[1..], 0..) |f, i| {
+                try vm.stdout.writeAll("          ");
+                try vm.stdout.print("[{d}]", .{i});
+                for (vm.stack.items[f.slots - vm.stack.items.ptr ..][0..9]) |slot| {
+                    try vm.stdout.print("[ {f} ]", .{slot.alt(vm)});
+                }
+                try vm.stdout.writeByte('\n');
+            }
+
             try vm.stdout.writeAll("          ");
-            for (vm.stack.items) |slot| {
+            for (vm.stack.items[frame.slots - vm.stack.items.ptr + 9 ..]) |slot| {
                 try vm.stdout.print("[ {f} ]", .{slot.alt(vm)});
             }
             try vm.stdout.writeByte('\n');
+
             _ = try frame.lambda.chunk.disassembleInstruction(vm, vm.stdout, frame.ip - frame.lambda.chunk.data.items(.code).ptr);
             try vm.stdout.flush();
         }
@@ -343,35 +348,10 @@ fn run(vm: *Vm) Error!*Value {
             .nil => vm.push(vm.constants[5].ref()),
             .empty => unreachable,
 
-            .each => {
+            inline .each, .over, .scan, .each_prior, .each_right, .each_left => |t| {
                 const op = vm.pop();
                 defer op.deref(vm.gpa);
-                vm.push(try .each(vm.gpa, op));
-            },
-            .over => {
-                const op = vm.pop();
-                defer op.deref(vm.gpa);
-                vm.push(try .over(vm.gpa, op));
-            },
-            .scan => {
-                const op = vm.pop();
-                defer op.deref(vm.gpa);
-                vm.push(try .scan(vm.gpa, op));
-            },
-            .each_prior => {
-                const op = vm.pop();
-                defer op.deref(vm.gpa);
-                vm.push(try .eachPrior(vm.gpa, op));
-            },
-            .each_right => {
-                const op = vm.pop();
-                defer op.deref(vm.gpa);
-                vm.push(try .eachRight(vm.gpa, op));
-            },
-            .each_left => {
-                const op = vm.pop();
-                defer op.deref(vm.gpa);
-                vm.push(try .eachLeft(vm.gpa, op));
+                vm.push(try .create(@field(Type, @tagName(t)), vm.gpa, .{ .value = op.ref() }));
             },
 
             .identity => {},
@@ -454,7 +434,7 @@ fn run(vm: *Vm) Error!*Value {
                 switch (t) {
                     .apply_at => {
                         try vm.applyValue(x, 1);
-                        if (x.as == .lambda) frame = &vm.frames.items[vm.frames.items.len - 1];
+                        frame = &vm.frames.items[vm.frames.items.len - 1];
                     },
                     else => {
                         const y = vm.pop();
@@ -464,7 +444,40 @@ fn run(vm: *Vm) Error!*Value {
                 }
             },
 
-            .local => vm.push(frame.slots[vm.readByte()].ref()),
+            inline .self => vm.push(frame.slots[0].ref()),
+            .param_1,
+            .param_2,
+            .param_3,
+            .param_4,
+            .param_5,
+            .param_6,
+            .param_7,
+            .param_8,
+            .local_1,
+            .local_2,
+            .local_3,
+            .local_4,
+            .local_5,
+            .local_6,
+            .local_7,
+            .local_8,
+            .local_9,
+            .local_10,
+            .local_11,
+            .local_12,
+            .local_13,
+            .local_14,
+            .local_15,
+            .local_16,
+            .local_17,
+            .local_18,
+            .local_19,
+            .local_20,
+            .local_21,
+            .local_22,
+            => |t| vm.push(frame.slots[@intFromEnum(t) - @intFromEnum(OpCode.self)].ref()),
+
+            .local_wide => vm.push(frame.slots[vm.readByte()].ref()),
 
             .global => {
                 const name = vm.readGlobal();
@@ -519,10 +532,7 @@ fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
         .unary_primitive => |unary_primitive| {
             // Special handling for enlist
             if (unary_primitive == .enlist) {
-                const value: *Value = try .list(vm.gpa, arg_count);
-                defer value.deref(vm.gpa);
-                for (value.as.list) |*v| v.* = vm.pop();
-                vm.push(try value.reduce(vm.gpa));
+                vm.push(try vm.enlist(arg_count));
                 return;
             }
 
@@ -561,21 +571,58 @@ fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
             }
         },
         .iterator => @panic("NYI"),
+        // TODO: Convert over/scan to chunk-based frame.
         .each => |each| {
             if (arg_count != 1) return vm.runtimeError("rank", .{});
 
-            const rhs = vm.pop();
-            defer rhs.deref(vm.gpa);
+            const len = vm.peek().count();
 
-            const result: *Value = try .listSplat(vm.gpa, rhs.count(), vm.constants[0]);
-            defer result.deref(vm.gpa);
-            for (result.as.list, 0..) |*v, i| {
-                vm.push(try rhs.index(vm.gpa, i));
-                try vm.applyValue(each.value, 1);
-                v.*.deref(vm.gpa);
-                v.* = vm.pop();
-            }
-            vm.push(try result.reduce(vm.gpa));
+            const lambda: *Value = lambda: {
+                var chunk: Chunk = .empty;
+                errdefer chunk.deinit(vm.gpa);
+
+                try chunk.params.append(vm.gpa, .x);
+
+                const each_fn = try chunk.addConstant(vm.gpa, each.value.ref());
+                const enlist_fn = try chunk.addConstant(vm.gpa, vm.unary_primitives[@intFromEnum(UnaryPrimitive.enlist)].ref());
+
+                try chunk.write(vm.gpa, OpCode.param_1, 0);
+                try chunk.write(vm.gpa, OpCode.first, 0);
+                try chunk.write(vm.gpa, OpCode.constant, 0);
+                try chunk.write(vm.gpa, each_fn, 0);
+                try chunk.write(vm.gpa, OpCode.apply_at, 0);
+
+                for (1..len) |_| {
+                    try chunk.write(vm.gpa, OpCode.param_1, 0);
+                    try chunk.write(vm.gpa, OpCode.one, 0);
+                    try chunk.write(vm.gpa, OpCode.drop, 0);
+                    try chunk.write(vm.gpa, OpCode.assign, 0);
+                    try chunk.write(vm.gpa, 1, 0);
+                    try chunk.write(vm.gpa, OpCode.first, 0);
+                    try chunk.write(vm.gpa, OpCode.constant, 0);
+                    try chunk.write(vm.gpa, each_fn, 0);
+                    try chunk.write(vm.gpa, OpCode.apply_at, 0);
+                }
+
+                try chunk.write(vm.gpa, OpCode.constant, 0);
+                try chunk.write(vm.gpa, enlist_fn, 0);
+                try chunk.write(vm.gpa, OpCode.call, 0);
+                try chunk.write(vm.gpa, len, 0); // TODO: Remove 255 element limit
+                try chunk.write(vm.gpa, OpCode.reverse, 0);
+                try chunk.write(vm.gpa, OpCode.@"return", 0);
+
+                if (vm.print_code) {
+                    try chunk.disassemble(vm, vm.stdout, "<each>");
+                }
+
+                break :lambda try .create(.lambda, vm.gpa, .{
+                    .source = try vm.intern("<each>"),
+                    .chunk = chunk,
+                });
+            };
+            defer lambda.deref(vm.gpa);
+
+            try vm.applyLambda(lambda, 1);
         },
         .over => |over| {
             if (arg_count != 1) return vm.runtimeError("rank", .{});
@@ -584,17 +631,10 @@ fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
             defer rhs.deref(vm.gpa);
 
             vm.push(try rhs.index(vm.gpa, 0));
-            const result: *Value = try .listSplat(vm.gpa, rhs.count(), vm.peek());
-            defer result.deref(vm.gpa);
-            for (result.as.list[1..], 1..) |*v, i| {
-                vm.push(try rhs.index(vm.gpa, i));
+            for (0..rhs.count()) |i| {
+                vm.push(try rhs.index(vm.gpa, i + 1));
                 try vm.applyValue(over.value, 2);
-                v.*.deref(vm.gpa);
-                v.* = vm.peek().ref();
             }
-            const list = try result.reduce(vm.gpa);
-            defer list.deref(vm.gpa);
-            vm.push(try k.UnaryPrimitives.last(vm, list));
         },
         .scan => |scan| {
             if (arg_count != 1) return vm.runtimeError("rank", .{});
@@ -603,20 +643,27 @@ fn applyValue(vm: *Vm, x: *Value, arg_count: usize) !void {
             defer rhs.deref(vm.gpa);
 
             vm.push(try rhs.index(vm.gpa, 0));
-            const result: *Value = try .listSplat(vm.gpa, rhs.count(), vm.peek());
-            defer result.deref(vm.gpa);
-            for (result.as.list[1..], 1..) |*v, i| {
-                vm.push(try rhs.index(vm.gpa, i));
+            for (0..rhs.count()) |i| {
+                vm.push(vm.peek().ref());
+                vm.push(try rhs.index(vm.gpa, i + 1));
                 try vm.applyValue(scan.value, 2);
-                v.*.deref(vm.gpa);
-                v.* = vm.peek().ref();
             }
-            vm.push(try result.reduce(vm.gpa));
+            vm.pop().deref(vm.gpa);
+            const list = try vm.enlist(rhs.count());
+            defer list.deref(vm.gpa);
+            vm.push(try list.reverse(vm.gpa));
         },
         .each_prior => @panic("NYI"),
         .each_right => @panic("NYI"),
         .each_left => @panic("NYI"),
     }
+}
+
+fn enlist(vm: *Vm, arg_count: usize) !*Value {
+    const value: *Value = try .alloc(.list, vm.gpa, arg_count);
+    defer value.deref(vm.gpa);
+    for (value.as.list) |*v| v.* = vm.pop();
+    return value.reduce(vm.gpa);
 }
 
 fn applyList(vm: *Vm, x: *Value, arg_count: usize) !void {
@@ -633,75 +680,77 @@ fn applyList(vm: *Vm, x: *Value, arg_count: usize) !void {
     switch (y_index.as) {
         .long => |i| vm.push(switch (x.as) {
             .list => |list| if (i < 0 or i >= list.len) @panic("NYI") else list[@intCast(i)].ref(),
-            .boolean_list => |list| try .boolean(vm.gpa, if (i < 0 or i >= list.len) false else list[@intCast(i)]),
-            .byte_list => |list| try .byte(vm.gpa, if (i < 0 or i >= list.len) 0 else list[@intCast(i)]),
-            .short_list => |list| try .short(vm.gpa, if (i < 0 or i >= list.len) @intFromEnum(Value.Short.null) else list[@intCast(i)]),
-            .int_list => |list| try .int(vm.gpa, if (i < 0 or i >= list.len) @intFromEnum(Value.Int.null) else list[@intCast(i)]),
-            .long_list => |list| try .long(vm.gpa, if (i < 0 or i >= list.len) @intFromEnum(Value.Long.null) else list[@intCast(i)]),
-            .real_list => |list| try .real(vm.gpa, if (i < 0 or i >= list.len) std.math.nan(f32) else list[@intCast(i)]),
-            .float_list => |list| try .float(vm.gpa, if (i < 0 or i >= list.len) std.math.nan(f64) else list[@intCast(i)]),
-            .char_list => |list| try .char(vm.gpa, if (i < 0 or i >= list.len) ' ' else list[@intCast(i)]),
-            .symbol_list => |list| try .symbol(vm.gpa, if (i < 0 or i >= list.len) .empty else list[@intCast(i)]),
+            .boolean_list => |list| try .create(.boolean, vm.gpa, if (i < 0 or i >= list.len) false else list[@intCast(i)]),
+            .byte_list => |list| try .create(.byte, vm.gpa, if (i < 0 or i >= list.len) 0 else list[@intCast(i)]),
+            .short_list => |list| try .create(.short, vm.gpa, if (i < 0 or i >= list.len) @intFromEnum(Value.Short.null) else list[@intCast(i)]),
+            .int_list => |list| try .create(.int, vm.gpa, if (i < 0 or i >= list.len) @intFromEnum(Value.Int.null) else list[@intCast(i)]),
+            .long_list => |list| try .create(.long, vm.gpa, if (i < 0 or i >= list.len) @intFromEnum(Value.Long.null) else list[@intCast(i)]),
+            .real_list => |list| try .create(.real, vm.gpa, if (i < 0 or i >= list.len) std.math.nan(f32) else list[@intCast(i)]),
+            .float_list => |list| try .create(.float, vm.gpa, if (i < 0 or i >= list.len) std.math.nan(f64) else list[@intCast(i)]),
+            .char_list => |list| try .create(.char, vm.gpa, if (i < 0 or i >= list.len) ' ' else list[@intCast(i)]),
+            .symbol_list => |list| try .create(.symbol, vm.gpa, if (i < 0 or i >= list.len) .empty else list[@intCast(i)]),
             else => unreachable,
         }),
         .long_list => |is| {
             switch (x.as) {
                 .list => |list| {
-                    const value: *Value = try .list(vm.gpa, is.len);
-                    errdefer comptime unreachable;
-                    for (value.as.list, is) |*v, i| v.* = if (i < 0 or i >= list.len) @panic("NYI") else list[@intCast(i)].ref();
-                    vm.push(value);
+                    const items = try vm.gpa.alloc(*Value, is.len);
+                    errdefer vm.gpa.free(items);
+                    for (items, is) |*v, i| v.* = if (i < 0 or i >= list.len) @panic("NYI") else list[@intCast(i)].ref();
+                    const value: *Value = try .create(.list, vm.gpa, items);
+                    errdefer value.deref(vm.gpa);
+                    vm.push(try value.reduce(vm.gpa));
                 },
                 .boolean_list => |list| {
-                    const value: *Value = try .booleanList(vm.gpa, is.len);
+                    const value: *Value = try .alloc(.boolean_list, vm.gpa, is.len);
                     errdefer comptime unreachable;
                     for (value.as.boolean_list, is) |*v, i| v.* = if (i < 0 or i >= list.len) false else list[@intCast(i)];
                     vm.push(value);
                 },
                 .byte_list => |list| {
-                    const value: *Value = try .byteList(vm.gpa, is.len);
+                    const value: *Value = try .alloc(.byte_list, vm.gpa, is.len);
                     errdefer comptime unreachable;
                     for (value.as.byte_list, is) |*v, i| v.* = if (i < 0 or i >= list.len) 0 else list[@intCast(i)];
                     vm.push(value);
                 },
                 .short_list => |list| {
-                    const value: *Value = try .shortList(vm.gpa, is.len);
+                    const value: *Value = try .alloc(.short_list, vm.gpa, is.len);
                     errdefer comptime unreachable;
                     for (value.as.short_list, is) |*v, i| v.* = if (i < 0 or i >= list.len) @intFromEnum(Value.Short.null) else list[@intCast(i)];
                     vm.push(value);
                 },
                 .int_list => |list| {
-                    const value: *Value = try .intList(vm.gpa, is.len);
+                    const value: *Value = try .alloc(.int_list, vm.gpa, is.len);
                     errdefer comptime unreachable;
                     for (value.as.int_list, is) |*v, i| v.* = if (i < 0 or i >= list.len) @intFromEnum(Value.Int.null) else list[@intCast(i)];
                     vm.push(value);
                 },
                 .long_list => |list| {
-                    const value: *Value = try .longList(vm.gpa, is.len);
+                    const value: *Value = try .alloc(.long_list, vm.gpa, is.len);
                     errdefer comptime unreachable;
                     for (value.as.long_list, is) |*v, i| v.* = if (i < 0 or i >= list.len) @intFromEnum(Value.Long.null) else list[@intCast(i)];
                     vm.push(value);
                 },
                 .real_list => |list| {
-                    const value: *Value = try .realList(vm.gpa, is.len);
+                    const value: *Value = try .alloc(.real_list, vm.gpa, is.len);
                     errdefer comptime unreachable;
                     for (value.as.real_list, is) |*v, i| v.* = if (i < 0 or i >= list.len) std.math.nan(f32) else list[@intCast(i)];
                     vm.push(value);
                 },
                 .float_list => |list| {
-                    const value: *Value = try .floatList(vm.gpa, is.len);
+                    const value: *Value = try .alloc(.float_list, vm.gpa, is.len);
                     errdefer comptime unreachable;
                     for (value.as.float_list, is) |*v, i| v.* = if (i < 0 or i >= list.len) std.math.nan(f64) else list[@intCast(i)];
                     vm.push(value);
                 },
                 .char_list => |list| {
-                    const value: *Value = try .charList(vm.gpa, is.len);
+                    const value: *Value = try .alloc(.char_list, vm.gpa, is.len);
                     errdefer comptime unreachable;
                     for (value.as.char_list, is) |*v, i| v.* = if (i < 0 or i >= list.len) ' ' else list[@intCast(i)];
                     vm.push(value);
                 },
                 .symbol_list => |list| {
-                    const value: *Value = try .symbolList(vm.gpa, is.len);
+                    const value: *Value = try .alloc(.symbol_list, vm.gpa, is.len);
                     errdefer comptime unreachable;
                     for (value.as.symbol_list, is) |*v, i| v.* = if (i < 0 or i >= list.len) .empty else list[@intCast(i)];
                     vm.push(value);
@@ -735,6 +784,9 @@ fn applyLambda(vm: *Vm, x: *Value, arg_count: usize) !void {
 
     vm.push(x.ref());
     for (args) |v| vm.push(v);
+    for (args.len..8) |_| {
+        vm.push(vm.constants[0].ref());
+    }
     for (lambda.chunk.locals.items) |_| {
         vm.push(vm.constants[0].ref());
     }
@@ -774,15 +826,17 @@ fn testVm(source: [:0]const u8, expected: []const u8) !void {
 test {
     try testVm("{[]x:1}", "{[]x:1}");
     try testVm("@:'!10", "-7 -7 -7 -7 -7 -7 -7 -7 -7 -7h");
+    try testVm("{@x}'!10", "-7 -7 -7 -7 -7 -7 -7 -7 -7 -7h");
     try testVm("+/!10", "45");
     try testVm("+\\!10", "0 1 3 6 10 15 21 28 36 45");
+    try testVm("{x+y}/!10", "45");
     if (true) return error.SkipZigTest;
     try testVm("{[]x}[]", "");
 }
 
 test "lambda arity" {
     try testVm(".{}", "(0x1000;,`;`symbol$();`symbol$())");
-    try testVm(".{x}", "(0x600100;,`x;`symbol$();`symbol$())");
-    try testVm(".{y}", "(0x600200;`x`y;`symbol$();`symbol$())");
-    try testVm(".{z}", "(0x600300;`x`y`z;`symbol$();`symbol$())");
+    try testVm(".{x}", "(0x6100;,`x;`symbol$();`symbol$())");
+    try testVm(".{y}", "(0x6200;`x`y;`symbol$();`symbol$())");
+    try testVm(".{z}", "(0x6300;`x`y`z;`symbol$();`symbol$())");
 }

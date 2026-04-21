@@ -31,8 +31,10 @@ src_path: []const u8,
 line: u32 = 0,
 eb: *ErrorBundle.Wip,
 
+pub const max_locals = 255 - 9;
+
 pub fn init(c: *Compiler, vm: *Vm, tree: Ast, eb: *ErrorBundle.Wip, src_path: []const u8) !void {
-    const lambda: *Value = try .lambda(vm.gpa, .{ .source = try vm.intern(src_path) });
+    const lambda: *Value = try .create(.lambda, vm.gpa, .{ .source = try vm.intern(src_path) });
     errdefer comptime unreachable;
 
     c.* = .{
@@ -77,7 +79,7 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
 
             var it = std.mem.reverseIterator(nodes);
             while (it.next()) |n| try c.compileNode(n);
-            const value: *Value = try .unaryPrimitive(c.gpa, .enlist);
+            const value: *Value = try .create(.unary_primitive, c.gpa, .enlist);
             errdefer value.deref(c.gpa);
             try c.emitConstant(value, node);
             try c.emitOpCode(.call);
@@ -99,7 +101,7 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             try compiler.init(c.vm, tree, c.eb, c.src_path);
             errdefer compiler.lambda.deref(c.gpa);
 
-            const chunk = &compiler.lambda.as.lambda.chunk;
+            const chunk = compiler.currentChunk();
             try chunk.params.ensureTotalCapacity(c.gpa, 8);
 
             if (params.len > 0 and tree.nodeTag(params[0]) != .no_op) {
@@ -129,6 +131,12 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             assert(tree.nodeTag(number_literal) == .number_literal);
             const token = tree.nodeMainToken(number_literal);
             const slice = tree.tokenSlice(token);
+            if (slice.len == 1 or (slice.len == 2 and slice[1] == 'j')) {
+                switch (slice[0]) {
+                    '0' => return c.emitZero(),
+                    else => {},
+                }
+            }
             const value = parseNumber(c.gpa, slice, .neg) catch |err| switch (err) {
                 error.OutOfMemory => return error.OutOfMemory,
                 error.Overflow => return c.failNode(node, "Overflow", .{}),
@@ -259,7 +267,7 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
         .string_literal => {
             const token = tree.nodeMainToken(node);
             const slice = tree.tokenSlice(token);
-            const value: *Value = try .copyCharList(c.gpa, slice[1 .. slice.len - 1]);
+            const value: *Value = try .dupe(.char_list, c.gpa, @constCast(slice[1 .. slice.len - 1]));
             errdefer value.deref(c.gpa);
             try c.emitConstant(value, node);
         },
@@ -267,7 +275,7 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             const token = tree.nodeMainToken(node);
             const slice = tree.tokenSlice(token);
             if (slice.len == 1) return c.emitNullSymbol();
-            const value: *Value = try .symbol(c.gpa, try c.vm.intern(slice[1..]));
+            const value: *Value = try .create(.symbol, c.gpa, try c.vm.intern(slice[1..]));
             errdefer value.deref(c.gpa);
             try c.emitConstant(value, node);
         },
@@ -275,18 +283,18 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
             const first_token = tree.nodeMainToken(node);
             const last_token = tree.nodeData(node).token;
             const len = last_token - first_token + 1;
-            const value: *Value = try .symbolList(c.gpa, len);
-            errdefer value.deref(c.gpa);
-            for (value.as.symbol_list, first_token..) |*symbol, token| {
+            const items = try c.gpa.alloc(NullTerminatedString, len);
+            errdefer c.gpa.free(items);
+            for (items, first_token..) |*symbol, token| {
                 const slice = tree.tokenSlice(@intCast(token));
                 symbol.* = try c.vm.intern(slice[1..]);
             }
-            try c.emitConstant(value, node);
+            try c.emitConstant(try .create(.symbol_list, c.gpa, items), node);
         },
         .identifier => {
             const name = try c.vm.intern(tree.tokenSlice(tree.nodeMainToken(node)));
             switch (name) {
-                .avg,
+                inline .avg,
                 .last,
                 .sum,
                 .prd,
@@ -309,16 +317,13 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
                 .dev,
                 .hopen,
                 => |t| {
-                    const unary_primitive = std.meta.stringToEnum(UnaryPrimitive, @tagName(t)).?;
-                    const value = c.vm.unary_primitives[@intFromEnum(unary_primitive)].ref();
-                    errdefer value.deref(c.gpa);
-                    try c.emitConstant(value, node);
+                    try c.emitConstantUnaryPrimitive(@field(UnaryPrimitive, @tagName(t)), node);
                     return;
                 },
                 else => {},
             }
 
-            if (c.lambda.as.lambda.chunk.params.items.len > 0) {
+            if (c.currentChunk().params.items.len > 0) {
                 if (c.getLocal(name)) |local| {
                     try c.emitLocal(local);
                     return;
@@ -327,7 +332,7 @@ fn compileNode(c: *Compiler, node: Node.Index) Error!void {
 
             const global: u8 = c.getGlobal(name) orelse global: {
                 try c.addGlobal(name);
-                const globals = c.lambda.as.lambda.chunk.globals.items;
+                const globals = c.currentChunk().globals.items;
                 assert(globals[globals.len - 1] == name);
                 break :global @intCast(globals.len - 1);
             };
@@ -366,9 +371,12 @@ fn endCompiler(c: *Compiler) !*Value {
     return c.lambda;
 }
 
-fn emitAssign(c: *Compiler, local: u8) !void {
+fn emitAssign(c: *Compiler, local: Local) !void {
     try c.emitOpCode(.assign);
-    try c.emitByte(local);
+    try c.emitByte(switch (local) {
+        .param => |b| b + 1,
+        .local, .wide => |b| b + 9,
+    });
 }
 
 fn emitAmend(c: *Compiler, identifier: u8, operator: Operator) !void {
@@ -454,7 +462,7 @@ fn emitUnaryCall(c: *Compiler, func: Node.Index, maybe_rhs: Node.OptionalIndex) 
                 .exit,
                 .getenv,
                 .abs,
-                => |t| try c.emitUnaryPrimitive(std.meta.stringToEnum(UnaryPrimitive, @tagName(t)).?),
+                => |t| try c.emitUnaryPrimitive(@field(UnaryPrimitive, @tagName(t))),
                 else => {
                     try c.compileNode(func);
                     try c.emitOpCode(.apply_at);
@@ -581,9 +589,23 @@ fn emitCall(c: *Compiler, func: Node.Index, args: []const Node.Index) !void {
     }
 }
 
-fn emitLocal(c: *Compiler, local: u8) !void {
-    try c.emitOpCode(.local);
-    try c.emitByte(local);
+fn emitLocal(c: *Compiler, local: Local) !void {
+    switch (local) {
+        .param => {
+            const op_code: OpCode = @enumFromInt(local.param + @intFromEnum(OpCode.param_1));
+            assert(@intFromEnum(op_code) <= @intFromEnum(OpCode.param_8));
+            try c.emitOpCode(op_code);
+        },
+        .local => {
+            const op_code: OpCode = @enumFromInt(local.local + @intFromEnum(OpCode.local_1));
+            assert(@intFromEnum(op_code) <= @intFromEnum(OpCode.local_22));
+            try c.emitOpCode(op_code);
+        },
+        .wide => {
+            try c.emitOpCode(.local_wide);
+            try c.emitByte(local.wide);
+        },
+    }
 }
 
 fn emitGlobal(c: *Compiler, global: u8) !void {
@@ -665,7 +687,7 @@ fn emitConstant(c: *Compiler, value: *Value, node: Node.Index) !void {
 }
 
 fn addImplicitParam(c: *Compiler, name: NullTerminatedString) void {
-    const params = &c.lambda.as.lambda.chunk.params;
+    const params = &c.currentChunk().params;
     assert(params.capacity >= 8);
     switch (name) {
         .x => if (params.items.len < 1) {
@@ -688,17 +710,20 @@ fn addImplicitParam(c: *Compiler, name: NullTerminatedString) void {
 }
 
 fn addLocal(c: *Compiler, name: NullTerminatedString, node: Node.Index) !void {
+    if (c.currentChunk().locals.items.len > max_locals) {
+        return c.failNode(node, "Too many local variables", .{});
+    }
     if (c.getGlobal(name) != null) {
         return c.failNode(node, "Cannot assign to global variable '{s}'", .{c.vm.nullTerminatedString(name)});
     }
     if (c.getLocal(name) != null) return;
-    try c.lambda.as.lambda.chunk.locals.append(c.gpa, name);
+    try c.currentChunk().locals.append(c.gpa, name);
 }
 
 fn addGlobal(c: *Compiler, name: NullTerminatedString) !void {
     if (c.getLocal(name) != null) return;
     if (c.getGlobal(name) != null) return;
-    try c.lambda.as.lambda.chunk.globals.append(c.gpa, name);
+    try c.currentChunk().globals.append(c.gpa, name);
 }
 
 fn addIdentifier(c: *Compiler, node: Node.Index, implicit_args: bool, scope: enum { local, global }) !void {
@@ -804,23 +829,29 @@ fn appendErrorNodeNotes(
     }, notes);
 }
 
-fn getParam(c: *Compiler, name: NullTerminatedString) ?u8 {
-    for (c.lambda.as.lambda.chunk.params.items, 1..) |value, i| {
-        if (value == name) return @intCast(i);
+const Local = union(enum) {
+    param: u8,
+    local: u8,
+    wide: u8,
+};
+
+fn getParam(c: *Compiler, name: NullTerminatedString) ?Local {
+    for (c.currentChunk().params.items, 0..) |value, i| {
+        if (value == name) return .{ .param = @intCast(i) };
     }
     return null;
 }
 
-fn getLocal(c: *Compiler, name: NullTerminatedString) ?u8 {
+fn getLocal(c: *Compiler, name: NullTerminatedString) ?Local {
     if (c.getParam(name)) |param| return param;
-    for (c.lambda.as.lambda.chunk.locals.items, 9..) |value, i| {
-        if (value == name) return @intCast(i);
+    for (c.currentChunk().locals.items, 0..) |value, i| {
+        if (value == name) return if (i < 22) .{ .local = @intCast(i) } else .{ .wide = @intCast(i) };
     }
     return null;
 }
 
 fn getGlobal(c: *Compiler, name: NullTerminatedString) ?u8 {
-    for (c.lambda.as.lambda.chunk.globals.items, 0..) |value, i| {
+    for (c.currentChunk().globals.items, 0..) |value, i| {
         if (value == name) return @intCast(i);
     }
     return null;
@@ -996,8 +1027,8 @@ fn testCompiler(source: [:0]const u8, expected: []const u8) !void {
 test "implicit params" {
     try testCompiler("{x}",
         \\== {x} ==
-        \\0000    0 local               1 'x'
-        \\0002    | return
+        \\0000    0 param_1               'x'
+        \\0001    | return
         \\== <test> ==
         \\0000    0 constant            0 '{x}'
         \\0002    | print
@@ -1005,9 +1036,9 @@ test "implicit params" {
     );
     try testCompiler("{a:x}",
         \\== {a:x} ==
-        \\0000    0 local               1 'x'
-        \\0002    | assign              9 'a'
-        \\0004    | return
+        \\0000    0 param_1               'x'
+        \\0001    | assign              9 'a'
+        \\0003    | return
         \\== <test> ==
         \\0000    0 constant            0 '{a:x}'
         \\0002    | print
@@ -1015,9 +1046,9 @@ test "implicit params" {
     );
     try testCompiler("{y:x}",
         \\== {y:x} ==
-        \\0000    0 local               1 'x'
-        \\0002    | assign              2 'y'
-        \\0004    | return
+        \\0000    0 param_1               'x'
+        \\0001    | assign              2 'y'
+        \\0003    | return
         \\== <test> ==
         \\0000    0 constant            0 '{y:x}'
         \\0002    | print
@@ -1025,14 +1056,14 @@ test "implicit params" {
     );
     try testCompiler("{x;x+1;x}",
         \\== {x;x+1;x} ==
-        \\0000    0 local               1 'x'
-        \\0002    | pop
-        \\0003    | one
-        \\0004    | local               1 'x'
-        \\0006    | add
-        \\0007    | pop
-        \\0008    | local               1 'x'
-        \\0010    | return
+        \\0000    0 param_1               'x'
+        \\0001    | pop
+        \\0002    | one
+        \\0003    | param_1               'x'
+        \\0004    | add
+        \\0005    | pop
+        \\0006    | param_1               'x'
+        \\0007    | return
         \\== <test> ==
         \\0000    0 constant            0 '{x;x+1;x}'
         \\0002    | print
@@ -1040,11 +1071,11 @@ test "implicit params" {
     );
     try testCompiler("{x;x:1}",
         \\== {x;x:1} ==
-        \\0000    0 local               1 'x'
-        \\0002    | pop
-        \\0003    | one
-        \\0004    | assign              1 'x'
-        \\0006    | return
+        \\0000    0 param_1               'x'
+        \\0001    | pop
+        \\0002    | one
+        \\0003    | assign              1 'x'
+        \\0005    | return
         \\== <test> ==
         \\0000    0 constant            0 '{x;x:1}'
         \\0002    | print
@@ -1052,11 +1083,11 @@ test "implicit params" {
     );
     try testCompiler("{x;x::1}",
         \\== {x;x::1} ==
-        \\0000    0 local               1 'x'
-        \\0002    | pop
-        \\0003    | one
-        \\0004    | assign              1 'x'
-        \\0006    | return
+        \\0000    0 param_1               'x'
+        \\0001    | pop
+        \\0002    | one
+        \\0003    | assign              1 'x'
+        \\0005    | return
         \\== <test> ==
         \\0000    0 constant            0 '{x;x::1}'
         \\0002    | print
@@ -1100,9 +1131,9 @@ test "explicit params" {
     );
     try testCompiler("{[x]a:x}",
         \\== {[x]a:x} ==
-        \\0000    0 local               1 'x'
-        \\0002    | assign              9 'a'
-        \\0004    | return
+        \\0000    0 param_1               'x'
+        \\0001    | assign              9 'a'
+        \\0003    | return
         \\== <test> ==
         \\0000    0 constant            0 '{[x]a:x}'
         \\0002    | print

@@ -32,48 +32,48 @@ pub fn parseNumber(gpa: Allocator, bytes: []const u8, comptime sign: Sign) !*Val
 
 fn parseBoolean(gpa: Allocator, bytes: []const u8) !*Value {
     if (bytes.len == 1) {
-        return .boolean(gpa, switch (bytes[0]) {
+        return .create(.boolean, gpa, switch (bytes[0]) {
             '0' => false,
             '1' => true,
             else => return error.InvalidCharacter,
         });
     }
 
-    const value: *Value = try .booleanList(gpa, bytes.len);
-    errdefer value.deref(gpa);
-    for (value.as.boolean_list, bytes) |*i, b| {
+    const items = try gpa.alloc(bool, bytes.len);
+    errdefer gpa.free(items);
+    for (items, bytes) |*i, b| {
         i.* = switch (b) {
             '0' => false,
             '1' => true,
             else => return error.InvalidCharacter,
         };
     }
-    return value;
+    return .create(.boolean_list, gpa, items);
 }
 
 fn parseByte(gpa: Allocator, bytes: []const u8) !*Value {
     return switch (bytes.len) {
-        0 => .byteList(gpa, 0),
-        1, 2 => .byte(gpa, try parseIntWithSign(u8, bytes, 16, .pos)),
+        0 => .create(.byte_list, gpa, &.{}),
+        1, 2 => .create(.byte, gpa, try parseIntWithSign(u8, bytes, 16, .pos)),
         else => switch (bytes.len % 2) {
             0 => {
                 const len = bytes.len / 2;
-                const value: *Value = try .byteList(gpa, len);
-                errdefer value.deref(gpa);
-                for (value.as.byte_list, 0..) |*v, i| {
+                const items = try gpa.alloc(u8, len);
+                errdefer gpa.free(items);
+                for (items, 0..) |*v, i| {
                     v.* = try parseIntWithSign(u8, bytes[(i * 2)..][0..2], 16, .pos);
                 }
-                return value;
+                return .create(.byte_list, gpa, items);
             },
             1 => {
                 const len = bytes.len / 2 + 1;
-                const value: *Value = try .byteList(gpa, len);
-                errdefer value.deref(gpa);
-                value.as.byte_list[0] = try parseIntWithSign(u8, bytes[0..1], 16, .pos);
-                for (value.as.byte_list[1..], 1..) |*v, i| {
+                const items = try gpa.alloc(u8, len);
+                errdefer gpa.free(items);
+                items[0] = try parseIntWithSign(u8, bytes[0..1], 16, .pos);
+                for (items[1..], 1..) |*v, i| {
                     v.* = try parseIntWithSign(u8, bytes[1 + ((i - 1) * 2) ..][0..2], 16, .pos);
                 }
-                return value;
+                return .create(.byte_list, gpa, items);
             },
             else => unreachable,
         },
@@ -81,15 +81,15 @@ fn parseByte(gpa: Allocator, bytes: []const u8) !*Value {
 }
 
 fn parseShort(gpa: Allocator, bytes: []const u8, comptime sign: Sign) !*Value {
-    return .short(gpa, try parseIntWithSign(i16, bytes, 10, sign));
+    return .create(.short, gpa, try parseIntWithSign(i16, bytes, 10, sign));
 }
 
 fn parseInt(gpa: Allocator, bytes: []const u8, comptime sign: Sign) !*Value {
-    return .int(gpa, try parseIntWithSign(i32, bytes, 10, sign));
+    return .create(.int, gpa, try parseIntWithSign(i32, bytes, 10, sign));
 }
 
 fn parseLong(gpa: Allocator, bytes: []const u8, comptime sign: Sign) !*Value {
-    return .long(gpa, try parseIntWithSign(i64, bytes, 10, sign));
+    return .create(.long, gpa, try parseIntWithSign(i64, bytes, 10, sign));
 }
 
 fn parseIntWithSign(comptime T: type, bytes: []const u8, base: u8, comptime sign: Sign) !T {
@@ -115,7 +115,7 @@ fn parseIntWithSign(comptime T: type, bytes: []const u8, base: u8, comptime sign
 
 fn parseReal(gpa: Allocator, bytes: []const u8, comptime sign: Sign) !*Value {
     const value = try std.fmt.parseFloat(f32, bytes);
-    return .real(gpa, switch (sign) {
+    return .create(.real, gpa, switch (sign) {
         .neg => -value,
         .pos => value,
     });
@@ -123,7 +123,7 @@ fn parseReal(gpa: Allocator, bytes: []const u8, comptime sign: Sign) !*Value {
 
 fn parseFloat(gpa: Allocator, bytes: []const u8, comptime sign: Sign) !*Value {
     const value = try std.fmt.parseFloat(f64, bytes);
-    return .float(gpa, switch (sign) {
+    return .create(.float, gpa, switch (sign) {
         .neg => -value,
         .pos => value,
     });

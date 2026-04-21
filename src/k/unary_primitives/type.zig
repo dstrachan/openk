@@ -3,5 +3,5 @@ const Vm = k.Vm;
 const Value = k.Value;
 
 pub fn @"type"(vm: *Vm, x: *Value) !*Value {
-    return .short(vm.gpa, @intFromEnum(x.as));
+    return .create(.short, vm.gpa, @intFromEnum(x.as));
 }

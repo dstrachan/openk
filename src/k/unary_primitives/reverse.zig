@@ -3,5 +3,5 @@ const Vm = k.Vm;
 const Value = k.Value;
 
 pub fn reverse(vm: *Vm, x: *Value) !*Value {
-    return vm.runtimeError("nyi: {s}[{t}]", .{ @src().fn_name, x.as });
+    return x.reverse(vm.gpa);
 }

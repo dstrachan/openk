@@ -7,7 +7,7 @@ pub fn key(vm: *Vm, x: *Value) !*Value {
         .long => {
             if (x.as.long < 0) return vm.runtimeError("domain", .{});
 
-            const value: *Value = try .longList(vm.gpa, @intCast(x.as.long));
+            const value: *Value = try .alloc(.long_list, vm.gpa, @intCast(x.as.long));
             errdefer comptime unreachable;
             for (value.as.long_list, 0..) |*v, i| v.* = @intCast(i);
             return value;
